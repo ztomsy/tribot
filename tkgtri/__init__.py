@@ -1,1 +1,2 @@
-from .tribot import triBot
+from .tribot import TriBot
+from .tri_cli import *
