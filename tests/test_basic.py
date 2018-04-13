@@ -4,6 +4,8 @@ from .context import tkgtri
 
 import unittest
 import os
+import time
+
 
 # todo - tests for reports directories creation
 
@@ -61,6 +63,15 @@ class BasicTestSuite(unittest.TestCase):
         self.assertGreater(log_file.find("Test"), -1)
 
         os.remove(default_log)
+
+    def test_timer(self):
+        timer = tkgtri.Timer()
+        timer.notch("start")
+        time.sleep(0.1)
+        timer.notch("finish")
+
+        self.assertEqual(timer.notches[0]["name"], "start")
+        self.assertAlmostEqual(timer.notches[1]["duration"], 0.1, 1)
 
 
 if __name__ == '__main__':
