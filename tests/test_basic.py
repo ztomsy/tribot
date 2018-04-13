@@ -3,6 +3,7 @@
 from .context import tkgtri
 
 import unittest
+import os
 
 # todo - tests for reports directories creation
 
@@ -21,13 +22,10 @@ class BasicTestSuite(unittest.TestCase):
 
         self.assertEqual(tribot.api_key["apiKey"], "testApiKey")
 
-        # todo: test for checking if log file created
-
     def test_cli_overrides_config_file(self):
 
         default_config = "_config_default.json"
         default_log = "_tri_log_default.log"
-
 
         tribot = tkgtri.TriBot(default_config, default_log)
 
@@ -47,6 +45,22 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(tribot.test_balance, 2)
 
         self.assertEqual(tribot.api_key["apiKey"], "testApiKey")
+
+    def test_logging(self):
+
+        default_config = "_config_default.json"
+        default_log = "_tri_log_default.log"
+
+        tribot = tkgtri.TriBot(default_config, default_log)
+
+        tribot.log(tribot.LOG_INFO, "Test")
+
+        with open(default_log, 'r') as myfile:
+            log_file = myfile.read()
+
+        self.assertGreater(log_file.find("Test"), -1)
+
+        os.remove(default_log)
 
 
 if __name__ == '__main__':
