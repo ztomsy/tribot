@@ -10,8 +10,9 @@ class BasicTestSuite(unittest.TestCase):
 
     def test_create_tribot(self):
         default_config = "_config_default.json"
+        default_log = "_tri_log_default.log"
 
-        tribot = tkgtri.TriBot(default_config)
+        tribot = tkgtri.TriBot(default_config,default_log)
         tribot.load_config_from_file(default_config)
 
         self.assertEqual(tribot.start_currency , "ETH")
@@ -19,11 +20,15 @@ class BasicTestSuite(unittest.TestCase):
 
         self.assertEqual(tribot.api_key["apiKey"], "testApiKey")
 
+        # todo: test for cheching if log file created
+
     def test_cli_overrides_config_file(self):
 
         default_config = "_config_default.json"
+        default_log = "_tri_log_default.log"
 
-        tribot = tkgtri.TriBot(default_config)
+
+        tribot = tkgtri.TriBot(default_config, default_log)
 
         tribot.debug = True
         tribot.live = True

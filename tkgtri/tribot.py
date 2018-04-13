@@ -1,12 +1,15 @@
 import importlib.util
 import ccxt
 import json
+import logging
+import os
+import sys
 from .tri_cli import *
 
 
 class TriBot:
 
-    def __init__(self, default_config):
+    def __init__(self, default_config, log_filename):
 
         self.config_filename = default_config
         self.exchange_id = str
@@ -28,6 +31,17 @@ class TriBot:
         self.live = bool
         self.debug = bool
 
+        self.tickers_file = str
+
+        self.log_filename = log_filename
+
+        self.logger = self.init_logging(self.log_filename)
+
+        self.LOG_DEBUG = logging.DEBUG
+        self.LOG_INFO = logging.INFO
+        self.LOG_ERROR = logging.ERROR
+        self.LOG_CRITICAL = logging.CRITICAL
+
     # load config from json
     def load_config_from_file(self, config_file):
 
@@ -39,20 +53,6 @@ class TriBot:
             if type(getattr(self, i)) == type and attr_val is not None:
                 setattr(self, i, attr_val)
 
-        # self.exchange_id = cnf["exchange_id"]
-        # self.server = cnf["server"]
-        # self.start_currency = cnf["start_currency"]
-        # self.share_balance_to_bid = cnf["share_balance_to_bid"]
-        # self.max_recovery_attempts = cnf["max_recovery_attempts"]
-        # self.lot_limits = cnf["lot_limits"]
-        # self.commission = cnf["commission"]
-        # self.threshold = cnf["threshold"]
-        # self.threshold_orderbook = cnf["threshold_orderbook"]
-        # self.api_key = cnf["api_key"]
-        # self.max_past_triangles = cnf["max_past_triangles"]
-        # self.good_consecutive_results_threshold = cnf["good_consecutive_results_threshold"]
-        # self.lap_time = cnf["lap_time"]
-        # self.max_transactions_per_lap = cnf["max_transactions_per_lap"]
 
     # parse cli
     def set_from_cli(self, args):
@@ -64,25 +64,60 @@ class TriBot:
             if attr_val is not None:
                 setattr(self, i, attr_val)
 
-        # self.nolive = cli_args.nolive
-        # self.nodebug = cli_args.nodebug
-        # self.exchange_id = cli_args.exchange
-        # self.fake_balance = cli_args.balance
+    def init_logging(self, file_log):
+
+        log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+        logger = logging.getLogger()
+
+        file_handler = logging.FileHandler(file_log)
+        file_handler.setFormatter(log_formatter)
+        logger.addHandler(file_handler)
+
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(log_formatter)
+        logger.addHandler(console_handler)
+
+        logger.setLevel(logging.INFO)
+
+        return logger
+
+    def set_log_level(self, log_level):
+
+        self.logger.setLevel(log_level)
 
 
-    # @classmethod
-    # def create_from_config(cls, config_file):
-    #
-    #     bot = cls(config_file)
-    #
-    #     config_parameters = cls.load_config_from_file(config_file)
-    #
-    #
-    #
-    #
-    #     return cls(config.start_cur, config.bal_share_to_bid, config.max_recovery_attempts, config.lot_limits,
-    #                config.commission, config.threshold, config.threshold_orderbook, config.api_key,
-    #                config.max_past_triangles,
-    #                config.good_consecutive_results_threshold, config.lap_time, config.max_transactions_per_lap)
+    def log(self, level, msg):
 
+        self.logger.log(level, msg)
 
+    #
+    # get next filename under the [exchange directory]. if there is no folder for filename - the folder will be created
+    #
+    def get_next_report_filename(self, filename):
+
+        filename = "_"+self.exchange_id+"/"+filename
+        directory = os.path.dirname(filename)
+
+        try:
+            os.stat(directory)
+
+        except:
+            os.mkdir(directory)
+            print("New directory created:", directory)
+
+        deals_id = 0
+        while os.path.exists(filename % deals_id):
+            deals_id += 1
+
+        return deals_id
+
+    def print_logo(self, product = ""):
+        print('TTTTTTTTTT    K    K     GGGGG')
+        print('    T         K   K     G')
+        print('    T         KKKK      G')
+        print('    T         K  K      G  GG')
+        print('    T         K   K     G    G')
+        print('    T         K    K     GGGGG')
+        print('-' * 36)
+        print('          %s               ' % product)
+        print('-' * 36)
