@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+from . import utils
 from .tri_cli import *
 
 
@@ -33,6 +34,7 @@ class TriBot:
 
         self.tickers_file = str
 
+        self.logger = logging
         self.log_filename = log_filename
 
         self.logger = self.init_logging(self.log_filename)
@@ -42,17 +44,25 @@ class TriBot:
         self.LOG_ERROR = logging.ERROR
         self.LOG_CRITICAL = logging.CRITICAL
 
-    # load config from json
+        self.report_all_deals_filename = str
+        self.report_tickers_filename = str
+        self.report_deals_filename = str
+        self.report_prev_tickers_filename = str
+
+        self.report_dir = str
+        self.deals_file_id = int
+
+        # load config from json
+
     def load_config_from_file(self, config_file):
 
         with open(config_file) as json_data_file:
             cnf = json.load(json_data_file)
 
-        for i in cnf :
+        for i in cnf:
             attr_val = cnf[i]
             if type(getattr(self, i)) == type and attr_val is not None:
                 setattr(self, i, attr_val)
-
 
     # parse cli
     def set_from_cli(self, args):
@@ -85,33 +95,19 @@ class TriBot:
 
         self.logger.setLevel(log_level)
 
-
     def log(self, level, msg):
-
         self.logger.log(level, msg)
 
-    #
-    # get next filename under the [exchange directory]. if there is no folder for filename - the folder will be created
-    #
-    def get_next_report_filename(self, filename):
+    def init_reports(self, dir):
 
-        filename = "_"+self.exchange_id+"/"+filename
-        directory = os.path.dirname(filename)
+        self.deals_file_id = utils.get_next_report_filename(dir, self.report_deals_filename)
 
-        try:
-            os.stat(directory)
+        self.report_deals_filename = self.report_deals_filename % (dir, self.deals_file_id)
+        self.report_prev_tickers_filename = self.report_prev_tickers_filename % (dir, self.deals_file_id)
+        self.report_dir = dir
 
-        except:
-            os.mkdir(directory)
-            print("New directory created:", directory)
-
-        deals_id = 0
-        while os.path.exists(filename % deals_id):
-            deals_id += 1
-
-        return deals_id
-
-    def print_logo(self, product = ""):
+    @staticmethod
+    def print_logo(product=""):
         print('TTTTTTTTTT    K    K     GGGGG')
         print('    T         K   K     G')
         print('    T         KKKK      G')

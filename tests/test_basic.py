@@ -4,6 +4,7 @@ from .context import tkgtri
 
 import unittest
 
+# todo - tests for reports directories creation
 
 class BasicTestSuite(unittest.TestCase):
     """Basic test cases."""
@@ -20,7 +21,7 @@ class BasicTestSuite(unittest.TestCase):
 
         self.assertEqual(tribot.api_key["apiKey"], "testApiKey")
 
-        # todo: test for cheching if log file created
+        # todo: test for checking if log file created
 
     def test_cli_overrides_config_file(self):
 
