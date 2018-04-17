@@ -9,44 +9,54 @@ import unittest
 class BasicTestSuite(unittest.TestCase):
     """Basic test cases."""
 
+    def setUp(self):
+
+        self.default_config = "_config_default.json"
+        self.default_log = "_tri_log_default.log"
+
+        self.tribot = tkgtri.TriBot(self.default_config, self.default_log)
+
+    def tearDown(self):
+        # self.tribot.dispose()
+        pass
+
     def test_create_tribot(self):
-        default_config = "_config_default.json"
-        default_log = "_tri_log_default.log"
+        self.tribot.load_config_from_file(self.default_config)
 
-        tribot = tkgtri.TriBot(default_config,default_log)
-        tribot.load_config_from_file(default_config)
+        self.assertEqual(self.tribot.start_currency , "ETH")
+        self.assertEqual(self.tribot.test_balance, 1)
 
-        self.assertEqual(tribot.start_currency , "ETH")
-        self.assertEqual(tribot.test_balance, 1)
-
-        self.assertEqual(tribot.api_key["apiKey"], "testApiKey")
+        self.assertEqual(self.tribot.api_key["apiKey"], "testApiKey")
 
         # todo: test for checking if log file created
 
     def test_cli_overrides_config_file(self):
 
-        default_config = "_config_default.json"
-        default_log = "_tri_log_default.log"
+        self.tribot.debug = True
+        self.tribot.live = True
+
+        self.tribot.set_from_cli("--config _config_default.json --balance 2 --nodebug --nolive --exchange kraken".split(" "))
+
+        self.tribot.load_config_from_file(self.tribot.config_filename)
+
+        self.assertEqual(self.tribot.debug, False)
+        self.assertEqual(self.tribot.live, False)
+
+        self.assertEqual(self.tribot.exchange_id, "kraken")
+
+        self.assertEqual(self.tribot.config_filename, "_config_default.json")
+        self.assertEqual(self.tribot.test_balance, 2)
+
+        self.assertEqual(self.tribot.api_key["apiKey"], "testApiKey")
+
+    def test_multi_logging(self):
+
+        self.tribot.log(self.tribot.LOG_ERROR, "ERRORS", list(("error line 1", "error line 2", "error line 3")))
 
 
-        tribot = tkgtri.TriBot(default_config, default_log)
 
-        tribot.debug = True
-        tribot.live = True
 
-        tribot.set_from_cli("--config _config_default.json --balance 2 --nodebug --nolive --exchange kraken".split(" "))
 
-        tribot.load_config_from_file(tribot.config_filename)
-
-        self.assertEqual(tribot.debug, False)
-        self.assertEqual(tribot.live, False)
-
-        self.assertEqual(tribot.exchange_id, "kraken")
-
-        self.assertEqual(tribot.config_filename, "_config_default.json")
-        self.assertEqual(tribot.test_balance, 2)
-
-        self.assertEqual(tribot.api_key["apiKey"], "testApiKey")
 
 
 if __name__ == '__main__':
