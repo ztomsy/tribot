@@ -6,6 +6,8 @@ import os
 import sys
 from . import utils
 from .tri_cli import *
+import networkx as nx
+import numpy as np
 
 
 class TriBot:
@@ -52,10 +54,12 @@ class TriBot:
         self.report_dir = str
         self.deals_file_id = int
 
-        self.exchange = ccxt.Exchange
+        self.exchange = None
+        self.triangles = list
+        self.triangles_count = int
 
+        # load config from json
 
-    # load config from json
     def load_config_from_file(self, config_file):
 
         with open(config_file) as json_data_file:
@@ -75,9 +79,11 @@ class TriBot:
             attr_val = getattr(cli_args, i)
             if attr_val is not None:
                 setattr(self, i, attr_val)
+
     #
     # init logging
     #
+
     def init_logging(self, file_log):
 
         log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
@@ -117,12 +123,41 @@ class TriBot:
 
     def init_exchange(self):
 
-        s = "ccxt.{}({{'apiKey':'{}','secret':'{}' }})".format(self.exchange_id, self.api_key["apiKey"],
-                                                               self.api_key["secret"])
-        self.exchange = eval(s)
+        exchange = getattr(ccxt, self.exchange_id)
+        self.exchange = exchange({'apiKey': self.api_key["apiKey"], 'secret': self.api_key["secret"] })
+        self.exchange.load_markets()
 
 
+    def get_triangles_from_markets(self, markets: list, start_currency: str):
 
+        graph = nx.Graph()
+        for symbol in markets:
+
+            if markets[symbol]["active"]:
+                graph.add_edge(markets[symbol]["base"], markets[symbol]["quote"])
+
+            # finding the triangles as the basis cycles in graph
+        triangles = list(nx.cycle_basis(graph))
+
+        # todo: add setting like from what currency to start BTC, ETH for example
+
+        filtered_triangles = list()
+
+        for cur in triangles:
+            if start_currency in cur:
+                p = cur.index(start_currency)
+                if p > 0:
+                    cur = np.roll(cur, 3 - p).tolist()
+
+                filtered_triangles.append(list((start_currency, cur[1], cur[2])))
+                filtered_triangles.append(list((start_currency, cur[2], cur[1])))
+
+        return filtered_triangles
+
+    def set_triangles(self):
+
+        self.triangles = self.get_triangles_from_markets(self.exchange.markets, self.start_currency)
+        self.triangles_count = len(self.triangles)
 
     @staticmethod
     def print_logo(product=""):

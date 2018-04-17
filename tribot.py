@@ -36,13 +36,30 @@ tribot.init_reports("_"+tribot.exchange_id+"/")
 
 try:
     tribot.init_exchange()
-
+    tribot.exchange.fetch_markets()
 except Exception as e:
-
     tribot.log(tribot.LOG_ERROR, "Error while exchange initialization {}".format(tribot.exchange_id))
     tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
     tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+    sys.exit(0)
 
+if len(tribot.exchange.markets) < 1:
+    tribot.log(tribot.LOG_ERROR, "Zero markets {}".format(tribot.exchange_id))
+    sys.exit(0)
+
+try:
+    tribot.set_triangles()
+except Exception as e:
+    tribot.log(tribot.LOG_ERROR, "Error while preparing triangles {}".format(tribot.exchange_id))
+    tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+    tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+    sys.exit(0)
+
+if tribot.triangles_count < 1:
+    tribot.log(tribot.LOG_ERROR, "Zero triangles".format(tribot.exchange_id))
+    sys.exit(0)
+
+tribot.log(tribot.LOG_INFO, "Triangles loaded: {}".format(tribot.triangles_count))
 
 tribot.log(tribot.LOG_CRITICAL, "Finished")
 timer.notch("finished")

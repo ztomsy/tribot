@@ -58,9 +58,6 @@ class BasicTestSuite(unittest.TestCase):
 
 
 
-
-
-
     def test_logging(self):
 
         default_config = "_config_default.json"
@@ -86,6 +83,22 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(timer.notches[0]["name"], "start")
         self.assertAlmostEqual(timer.notches[1]["duration"], 0.1, 1)
 
+    def test_exchange_init(self):
+        pass
+
+    def test_get_triangles(self):
+
+        markets = dict({"ETH/BTC": {"active": True, 'base': 'ETH', 'quote': 'BTC'},
+                        "ADA/BTC": {"active": True, 'base': 'ADA', 'quote': 'BTC'},
+                        "ADA/ETH": {"active": True, 'base': 'ADA', 'quote': 'ETH'},
+                        "BNB/ETH": {"active": True, 'base': 'BNB', 'quote': 'ETH'},
+                        "BNB/BTC": {"active": True, 'base': 'BNB', 'quote': 'BTC'}})
+
+        triangles = self.tribot.get_triangles_from_markets(markets, "BTC")
+        check_triangle = list([['BTC', 'BNB', 'ETH'], ['BTC', 'ETH', 'BNB'], ['BTC', 'ETH', 'ADA'], ['BTC', 'ADA', 'ETH']])
+
+        self.assertEqual(len(triangles), len(check_triangle))
+        # self.assertListEqual(triangles, check_triangle)
 
 if __name__ == '__main__':
     unittest.main()
