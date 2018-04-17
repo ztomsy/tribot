@@ -52,8 +52,10 @@ class TriBot:
         self.report_dir = str
         self.deals_file_id = int
 
-        # load config from json
+        self.exchange = ccxt.Exchange
 
+
+    # load config from json
     def load_config_from_file(self, config_file):
 
         with open(config_file) as json_data_file:
@@ -73,7 +75,9 @@ class TriBot:
             attr_val = getattr(cli_args, i)
             if attr_val is not None:
                 setattr(self, i, attr_val)
-
+    #
+    # init logging
+    #
     def init_logging(self, file_log):
 
         log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
@@ -95,8 +99,13 @@ class TriBot:
 
         self.logger.setLevel(log_level)
 
-    def log(self, level, msg):
-        self.logger.log(level, msg)
+    def log(self, level, msg, msg_list=None):
+        if msg_list is None:
+            self.logger.log(level, msg)
+        else:
+            self.logger.log(level, msg)
+            for line in msg_list:
+                self.logger.log(level, "... " + line)
 
     def init_reports(self, dir):
 
@@ -105,6 +114,15 @@ class TriBot:
         self.report_deals_filename = self.report_deals_filename % (dir, self.deals_file_id)
         self.report_prev_tickers_filename = self.report_prev_tickers_filename % (dir, self.deals_file_id)
         self.report_dir = dir
+
+    def init_exchange(self):
+
+        s = "ccxt.{}({{'apiKey':'{}','secret':'{}' }})".format(self.exchange_id, self.api_key["apiKey"],
+                                                               self.api_key["secret"])
+        self.exchange = eval(s)
+
+
+
 
     @staticmethod
     def print_logo(product=""):
