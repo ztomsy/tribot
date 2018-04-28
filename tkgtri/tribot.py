@@ -5,9 +5,12 @@ import logging
 import os
 import sys
 from . import utils
+from . import timer
+
 from .tri_cli import *
 import networkx as nx
 import numpy as np
+from . import exchanges
 
 
 class TriBot:
@@ -57,6 +60,13 @@ class TriBot:
         self.exchange = None
         self.triangles = list
         self.triangles_count = int
+        self.markets = dict
+        self.tickers = dict
+
+        self.balance = float
+
+        self.time = timer.Timer
+
 
         # load config from json
 
@@ -121,12 +131,20 @@ class TriBot:
         self.report_prev_tickers_filename = self.report_prev_tickers_filename % (dir, self.deals_file_id)
         self.report_dir = dir
 
+    def init_timer(self):
+        self.timer = timer.Timer()
+        self.timer.max_transactions_per_lap = self.max_transactions_per_lap
+        self.timer.lap_time = self.lap_time
+
     def init_exchange(self):
+        # exchange = getattr(ccxt, self.exchange_id)
+        # self.exchange = exchange({'apiKey': self.api_key["apiKey"], 'secret': self.api_key["secret"] })
+        # self.exchange.load_markets()
+        exchange = getattr(exchanges, self.exchange_id)
+        self.exchange = exchange(self.exchange_id, self.api_key["apiKey"], self.api_key["secret"])
 
-        exchange = getattr(ccxt, self.exchange_id)
-        self.exchange = exchange({'apiKey': self.api_key["apiKey"], 'secret': self.api_key["secret"] })
-        self.exchange.load_markets()
-
+    def load_markets(self):
+        self.markets = self.exchange.get_markets()
 
     def get_triangles_from_markets(self, markets: list, start_currency: str):
 
@@ -156,8 +174,17 @@ class TriBot:
 
     def set_triangles(self):
 
-        self.triangles = self.get_triangles_from_markets(self.exchange.markets, self.start_currency)
+        self.triangles = self.get_triangles_from_markets(self.markets, self.start_currency)
         self.triangles_count = len(self.triangles)
+
+    def load_balance(self):
+        if self.test_balance is not None:
+            self.balance = self.test_balance
+
+    def fetch_tickers(self):
+        self.tickers = self.exchange.get_tickers()
+
+
 
     @staticmethod
     def print_logo(product=""):

@@ -1,5 +1,4 @@
-from tkgtri import *
-import ccxt
+from tkgtri import TriBot
 import sys
 
 TriBot.print_logo("TriBot v0.5")
@@ -19,31 +18,36 @@ tribot.debug = True
 tribot.live = True
 
 tribot.set_log_level(tribot.LOG_INFO)
-#---------------------------------------
-
-timer = Timer()
-timer.notch("start")
+# ---------------------------------------
 
 tribot.log(tribot.LOG_INFO, "Started")
 
 tribot.set_from_cli(sys.argv[1:])  # cli parameters  override config
 tribot.load_config_from_file(tribot.config_filename)  # config taken from cli or default
 
+tribot.init_timer()
+tribot.timer.notch("start")
+
+
 tribot.log(tribot.LOG_INFO, "Exchange ID:" + tribot.exchange_id)
+tribot.log(tribot.LOG_INFO, "Debug: {}".format(tribot.debug))
+
 
 # now we have exchange_id from config file or cli
 tribot.init_reports("_"+tribot.exchange_id+"/")
 
 try:
     tribot.init_exchange()
-    tribot.exchange.fetch_markets()
+    tribot.load_markets()
+
+
 except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Error while exchange initialization {}".format(tribot.exchange_id))
     tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
     tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
     sys.exit(0)
 
-if len(tribot.exchange.markets) < 1:
+if len(tribot.markets) < 1:
     tribot.log(tribot.LOG_ERROR, "Zero markets {}".format(tribot.exchange_id))
     sys.exit(0)
 
@@ -61,11 +65,28 @@ if tribot.triangles_count < 1:
 
 tribot.log(tribot.LOG_INFO, "Triangles loaded: {}".format(tribot.triangles_count))
 
-tribot.log(tribot.LOG_CRITICAL, "Finished")
-timer.notch("finished")
+while True:
 
-tribot.log(tribot.LOG_INFO, "Total time:" + str((timer.notches[-1]["time"] - timer.start_time).total_seconds()))
+    tribot.load_balance()
+    tribot.log(tribot.LOG_INFO, "Balance: {}".format(tribot.balance))
 
+    while True:
+
+        try:
+            tribot.timer.check_timer()
+            tribot.fetch_tickers()
+
+        except Exception as e:
+            tribot.log(tribot.LOG_ERROR, "Error while fetching tickers {}".format(tribot.exchange_id))
+            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+            sys.exit()
+
+        continue
+
+    continue
+
+tribot.log(tribot.LOG_INFO, "Total time:" + str((tribot.timer.notches[-1]["time"] - tribot.timer.start_time).total_seconds()))
 tribot.log(tribot.LOG_INFO, "Finished")
 
 
