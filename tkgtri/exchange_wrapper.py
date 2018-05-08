@@ -1,9 +1,19 @@
 import ccxt
-
+from . import exchanges
 
 class ccxtExchangeWrapper:
 
-    def __init__(self, exchange_id, api_key = "", secret = ""):
+    @classmethod
+    def load_from_id(cls, exchange_id, api_key ="", secret =""):
+
+        try:
+            exchange = getattr(exchanges, exchange_id)
+            exchange = exchange(exchange_id, api_key, secret)
+            return exchange
+        except AttributeError:
+            return cls(exchange_id, api_key, secret)
+
+    def __init__(self, exchange_id, api_key="", secret=""):
 
         exchange = getattr(ccxt, exchange_id)
 
