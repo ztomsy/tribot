@@ -1,7 +1,7 @@
-from tkgtri.exchange_wrapper import ccxtExchangeWrapper
+from .. import exchange_wrapper as ew
 
 
-class binance(ccxtExchangeWrapper):
+class binance(ew.ccxtExchangeWrapper):
 
     def __init__(self, exchange_id, api_key ="", secret ="" ):
         super(binance, self).__init__(exchange_id, api_key ="", secret ="")

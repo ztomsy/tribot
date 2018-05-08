@@ -75,6 +75,7 @@ while True:
         try:
             tribot.timer.check_timer()
             tribot.fetch_tickers()
+            print("Tickers fetched {}".format(len(tribot.tickers)))
 
         except Exception as e:
             tribot.log(tribot.LOG_ERROR, "Error while fetching tickers {}".format(tribot.exchange_id))
