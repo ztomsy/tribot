@@ -10,8 +10,8 @@ from . import timer
 from .tri_cli import *
 import networkx as nx
 import numpy as np
-from . import exchanges
-
+import tkgtri
+#from .exchange_wrapper import ccxtExchangeWrapper
 
 class TriBot:
 
@@ -140,8 +140,9 @@ class TriBot:
         # exchange = getattr(ccxt, self.exchange_id)
         # self.exchange = exchange({'apiKey': self.api_key["apiKey"], 'secret': self.api_key["secret"] })
         # self.exchange.load_markets()
-        exchange = getattr(exchanges, self.exchange_id)
-        self.exchange = exchange(self.exchange_id, self.api_key["apiKey"], self.api_key["secret"])
+
+        self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"], self.api_key["secret"])
+
 
     def load_markets(self):
         self.markets = self.exchange.get_markets()

@@ -1,6 +1,7 @@
 import ccxt
 from . import exchanges
 
+
 class ccxtExchangeWrapper:
 
     @classmethod
@@ -18,6 +19,7 @@ class ccxtExchangeWrapper:
         exchange = getattr(ccxt, exchange_id)
 
         self._ccxt = exchange({'apiKey': api_key, 'secret': secret})
+        self.wrapper_id = "generic"
 
     def get_markets(self):
         return self._ccxt.load_markets()
