@@ -20,7 +20,7 @@ class TriBot:
         self.config_filename = default_config
         self.exchange_id = str
         self.server = str
-        self.start_currency = str
+        self.start_currency = list
         self.share_balance_to_bid = float
         self.max_recovery_attempts = int
         self.lot_limits = dict

@@ -1,7 +1,7 @@
 {
   "exchange_id":"binance",
   "server": "server1",
-  "start_currency":"ETH",
+  "start_currency":["ETH","BTC"],
   "share_balance_to_bid":0.8,
   "max_recovery_attempts": 20,
   "lot_limits":

@@ -26,7 +26,7 @@ class BasicTestSuite(unittest.TestCase):
     def test_create_tribot(self):
         self.tribot.load_config_from_file(self.default_config)
 
-        self.assertEqual(self.tribot.start_currency , "ETH")
+        self.assertEqual(self.tribot.start_currency, ["ETH","BTC"])
         self.assertEqual(self.tribot.test_balance, 1)
 
         self.assertEqual(self.tribot.api_key["apiKey"], "testApiKey")
