@@ -11,7 +11,7 @@ from .tri_cli import *
 import networkx as nx
 import numpy as np
 import tkgtri
-#from .exchange_wrapper import ccxtExchangeWrapper
+from . import tri_arb as ta
 
 class TriBot:
 
@@ -58,8 +58,8 @@ class TriBot:
         self.deals_file_id = int
 
         self.exchange = None
-        self.triangles = list
-        self.triangles_count = int
+        self.basic_triangles = list
+        self.basic_triangles_count = int
         self.markets = dict
         self.tickers = dict
 
@@ -175,8 +175,8 @@ class TriBot:
 
     def set_triangles(self):
 
-        self.triangles = self.get_triangles_from_markets(self.markets, self.start_currency)
-        self.triangles_count = len(self.triangles)
+        self.basic_triangles = ta.get_basic_triangles_from_markets(self.markets)
+        self.basic_triangles_count = len(self.basic_triangles)
 
     def load_balance(self):
         if self.test_balance is not None:
