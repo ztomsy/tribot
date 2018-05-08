@@ -14,7 +14,7 @@ class ExchageWrapperTestSuite(unittest.TestCase):
     def test_create_generic(self):
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin")
         self.assertEqual(exchange.get_exchange_wrapper_id(), "generic")
-
+        self.assertEqual(exchange._ccxt.id, "kucoin")
 
 if __name__ == '__main__':
     unittest.main()
