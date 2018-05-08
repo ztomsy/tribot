@@ -14,3 +14,6 @@ class ccxtExchangeWrapper:
 
     def get_tickers(self):
         return self._ccxt.fetch_tickers()
+
+    def get_exchange_wrapper_id(self):
+        return "generic"
