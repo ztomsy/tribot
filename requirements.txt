@@ -1,3 +1,4 @@
+influxdb
 ccxt
 numpy
 networkx
