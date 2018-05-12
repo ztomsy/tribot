@@ -5,3 +5,4 @@ from .utils import *
 from .exchanges import *
 from .exchange_wrapper import ccxtExchangeWrapper
 from .tri_arb import *
+from .stats_influx import TkgStatsInflux

@@ -15,8 +15,13 @@ TTTTTTTTTT    K    K     GGGGG
 TKG-Production for TRIANGULAR Arbitrage
 
 ---------------
+Installation:
 
+cd tkg-production
+pip3 install -r requirements.txt
+pip3 install -e .
 
+Running the tests: python3 -m unittest -v -b
 
 ---------------
 

@@ -4,13 +4,14 @@ import unittest
 import json
 
 
-class BasicTestSuite(unittest.TestCase):
+class StatsTestSuite(unittest.TestCase):
     """Basic test cases."""
 
     def test_tags(self):
         deal_row = {"server-id" : "Arb2",
 
-                    'BNB-after': '41.78100931', 'BNB-before': 41.78100931,
+                    'BNB-after': 41.78100931,
+                    'BNB-before': 41.78100931,
                     'after-start': 26125.586834,
                     'bal-after': 89.49255701,
                     'bal-before': 89.49255701,
@@ -102,7 +103,8 @@ class BasicTestSuite(unittest.TestCase):
 
         deal_row = {"server-id": "Arb2",
 
-                    'BNB-after': '41.78100931', 'BNB-before': 41.78100931,
+                    'BNB-after': 41.78100931,
+                    'BNB-before': 41.78100931,
                     'after-start': 26125.586834,
                     'bal-after': 89.49255701,
                     'bal-before': 89.49255701,

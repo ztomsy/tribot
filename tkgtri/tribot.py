@@ -20,6 +20,7 @@ class TriBot:
         self.config_filename = default_config
         self.exchange_id = str
         self.server = str
+        self.script_id = str
         self.start_currency = list
         self.share_balance_to_bid = float
         self.max_recovery_attempts = int
@@ -27,6 +28,7 @@ class TriBot:
         self.commission = float
         self.threshold = float
         self.threshold_order_book = float
+        self.balance_bid_thresholds = dict
         self.api_key = dict
         self.max_past_triangles = int
         self.good_consecutive_results_threshold = int

@@ -1,17 +1,33 @@
 {
+  "server": "1",
+  "script_id": "triarb_research",
   "exchange_id":"binance",
-  "server": "server1",
+
   "start_currency":["ETH","BTC"],
   "share_balance_to_bid":0.8,
   "max_recovery_attempts": 20,
+
   "lot_limits":
     {"BTC": 0.002, "ETH": 0.02, "BNB": 1, "USDT": 20},
 
   "commission" : 0.0005,
   "threshold" : 1.005,
   "threshold_order_book" : 1.005,
+
+  "balance_bid_thresholds" : {
+    "ETH":
+        {"5": {"result_threshold": 1.005, "orderbook_result_threshold": 1.005},
+         "10": {"result_threshold": 1.01, "orderbook_result_threshold": 1.01}},
+
+    "BTC":
+        {"0.5": {"result_threshold": 1.005, "orderbook_result_threshold": 1.005},
+         "1": {"result_threshold": 1.01, "orderbook_result_threshold": 1.01}
+         }
+    },
+
   "api_key": {"apiKey": "testApiKey",
            "secret": "testApiSecret"},
+
   "max_past_triangles" : 100,
   "good_consecutive_results_threshold":2,
   "lap_time" : 60,

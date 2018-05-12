@@ -1,5 +1,5 @@
 import networkx as nx
-
+import numpy as np
 
 #
 # todo make ccxt independent - take only active markets and tickers as parameter
@@ -29,17 +29,29 @@ def get_basic_triangles_from_markets(markets: list):
 #                     }
 #
 #
-# def fill_triangles(triangles: list, start_currency: list, ccxt_tickers:dict):
-#
-#     filtered_triangles = list()
-#
-#     for cur in triangles:
-#         if start_currency in cur:
-#             p = cur.index(start_currency)
-#             if p > 0:
-#                 cur = np.roll(cur, 3 - p).tolist()
-#
-#             filtered_triangles.append(list((start_currency, cur[1], cur[2])))
-#             filtered_triangles.append(list((start_currency, cur[2], cur[1])))
-#
-#     return filtered_triangles
+
+def get_triangle_with_tickers(triangle:list, ccxt_tickers: dict):
+    # triangle_tickers = dict()
+    # s += i: for i in triangle
+    #
+    # triangle_tickers
+    pass
+
+
+
+def fill_triangles(triangles: list, start_currencies: list, ccxt_tickers: dict):
+    #
+    # filtered_triangles = list()
+    #
+    # for start_currency in start_currencies:
+    #     for cur in triangles:
+    #         if start_currency in cur:
+    #             p = cur.index(start_currency)
+    #             if p > 0:
+    #                 cur = np.roll(cur, 3 - p).tolist()
+    #
+    #             filtered_triangles.append(list((start_currency, cur[1], cur[2])))
+    #             filtered_triangles.append(list((start_currency, cur[2], cur[1])))
+    #
+    # return filtered_triangles
+    pass

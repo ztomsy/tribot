@@ -1,9 +1,10 @@
 from .context import tkgtri
 from tkgtri import tri_arb as ta
 import unittest
+import json
 
 
-class BasicTestSuite(unittest.TestCase):
+class TriArbTestSuite(unittest.TestCase):
     """Basic test cases."""
 
     def setUp(self):
@@ -42,3 +43,19 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(len(triangles), len(check_triangle))
         self.assertListEqual(triangles, check_triangle)
 
+
+    def test_fill_triangles(self):
+        start_currencies = ["ETH", "BTC"]
+        triangles = list(
+            [['ETH', 'BTC', 'ADA'], ['BTC', 'BNB', 'ETH']])
+
+        with open('tests/tickers.json') as f:
+            ccxt_tickers = json.load(f)
+
+        ta.fill_triangles(triangles, start_currencies, ccxt_tickers)
+
+        pass
+
+
+if __name__ == '__main__':
+    unittest.main()
