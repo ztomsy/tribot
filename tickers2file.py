@@ -4,14 +4,22 @@ import collections
 import time
 import csv
 import tkgtri
+import tkgtri.utils as utils
 
 tkgtri.tribot.TriBot.print_logo("tools")
 print("Fetch markets+tickers data and dump it to files.")
 print("For settings edit source file.")
+print("-----------------------------------")
 
 exchange_id = "binance"
 markets_file = "test_data/markets_binance.json"
 tickers_file = "test_data/tickers_binance.csv"
+
+markets_file = utils.get_next_filename_index(markets_file)
+tickers_file = utils.get_next_filename_index(tickers_file)
+
+print("Markets file:" + markets_file)
+print("Tickers file:" + tickers_file)
 
 # create markets and tickers files for offline testing
 
