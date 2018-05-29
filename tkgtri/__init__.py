@@ -4,5 +4,7 @@ from .timer import Timer
 from .utils import *
 from .exchanges import *
 from .exchange_wrapper import ccxtExchangeWrapper
+from .exchange_wrapper import ExchangeWrapperOfflineFetchError
+from .exchange_wrapper import ExchangeWrapperError
 from .tri_arb import *
 from .stats_influx import TkgStatsInflux

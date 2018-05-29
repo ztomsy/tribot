@@ -4,6 +4,16 @@ import json
 from . import exchanges
 
 
+class ExchangeWrapperError(Exception):
+    """Basic exception for errors raised by cars"""
+    pass
+
+
+class ExchangeWrapperOfflineFetchError(ExchangeWrapperError):
+    """Basic exception for errors raised by cars"""
+    pass
+
+
 class ccxtExchangeWrapper:
     _ccxt = ...  # type: ccxt.base
 
@@ -27,7 +37,7 @@ class ccxtExchangeWrapper:
 
         self._offline_markets = dict()
         self._offline_tickers = dict()
-        self._offline_tickers_index = int
+        self._offline_tickers_current_index = int
 
         self.markets_json_file = str
         self.tickers_csv_file = str
@@ -48,7 +58,7 @@ class ccxtExchangeWrapper:
         self.tickers_csv_file = tickers_csv_file
 
         self.offline = True
-        self._offline_tickers_index = 0
+        self._offline_tickers_current_index = 0
 
         self._offline_markets = self.load_markets_from_json_file(markets_json_file)
         self._offline_tickers = self.load_tickers_from_csv(tickers_csv_file)
@@ -63,7 +73,6 @@ class ccxtExchangeWrapper:
 
     @staticmethod
     def load_tickers_from_csv(tickers_csv_file):
-
         tickers = dict()
 
         with open(tickers_csv_file, newline='') as csvfile:
@@ -76,5 +85,15 @@ class ccxtExchangeWrapper:
                                                                      "bid": float(row["bid"]),
                                                                      "askVolume": float(row["askVolume"]),
                                                                      "bidVolume": float(row["bidVolume"])})
+        return tickers
+
+    def _offline_fetch_tickers(self):
+        if self._offline_tickers_current_index < len(self._offline_tickers):
+            tickers = self._offline_tickers[self._offline_tickers_current_index]
+            self._offline_tickers_current_index += 1
+
+        else:
+            raise(ExchangeWrapperOfflineFetchError(
+                "No more loaded tickers. Total tickers: {}".format(len(self._offline_tickers))))
         return tickers
 

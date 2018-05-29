@@ -48,6 +48,35 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(exchange._offline_tickers[2]["ETH/BTC"]["ask"], 0.082975)
         self.assertEqual(exchange._offline_markets["ETH/BTC"]["active"], True)
 
+    def test_offline_tickers_fetch(self):
+
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
+        tickers = list()
+        for i in exchange._offline_tickers:
+            tickers.append(exchange._offline_fetch_tickers())
+
+        self.assertEqual(len(tickers), 3)
+        self.assertEqual(tickers[0]["ETH/BTC"]["bidVolume"], 10.011)
+        self.assertEqual(tickers[1]["ETH/BTC"]["bidVolume"], 10.056)
+        self.assertEqual(tickers[2]["ETH/BTC"]["bidVolume"], 10)
+
+        with self.assertRaises(tkgtri.ExchangeWrapperOfflineFetchError) as cm:
+            exchange._offline_fetch_tickers()
+
+        e = cm.exception
+        self.assertEqual(type(e), tkgtri.ExchangeWrapperOfflineFetchError )
+
+
+
+
+
+
+        pass
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
