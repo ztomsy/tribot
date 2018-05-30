@@ -5,12 +5,11 @@ from . import exchanges
 
 
 class ExchangeWrapperError(Exception):
-    """Basic exception for errors raised by cars"""
+    """Basic exception for errors raised by ccxtExchangeWrapper"""
     pass
 
-
 class ExchangeWrapperOfflineFetchError(ExchangeWrapperError):
-    """Basic exception for errors raised by cars"""
+    """Exception for Offline fetching errors"""
     pass
 
 
@@ -42,16 +41,30 @@ class ccxtExchangeWrapper:
         self.markets_json_file = str
         self.tickers_csv_file = str
 
-    def get_markets(self):
+    # generic method for loading markets could be redefined in custom exchange wrapper
+    def _load_markets(self):
         return self._ccxt.load_markets()
 
-    def get_tickers(self):
+    # generic method for fetching tickers could be redefined in custom exchange wrapper
+    def _fetch_tickers(self):
         return self._ccxt.fetch_tickers()
+
+    def get_markets(self):
+        if not self.offline:
+            return self._load_markets()
+        else:
+            return self._offline_load_markets()
+
+    def get_tickers(self):
+        if not self.offline:
+            return self._fetch_tickers()
+        else:
+            return self._offline_fetch_tickers()
 
     def get_exchange_wrapper_id(self):
         return "generic"
 
-    # offline fetching
+    # init offline fetching
     def set_offline_mode(self, markets_json_file: str, tickers_csv_file: str):
 
         self.markets_json_file = markets_json_file
@@ -97,3 +110,10 @@ class ccxtExchangeWrapper:
                 "No more loaded tickers. Total tickers: {}".format(len(self._offline_tickers))))
         return tickers
 
+    def _offline_load_markets(self):
+        if self._offline_markets is not None and len(self._offline_markets):
+            return self._offline_markets
+
+        else:
+            raise (ExchangeWrapperOfflineFetchError(
+                "Markets are not loaded".format(len(self._offline_tickers))))

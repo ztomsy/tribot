@@ -53,7 +53,7 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
         tickers = list()
-        for i in exchange._offline_tickers:
+        for _ in exchange._offline_tickers:
             tickers.append(exchange._offline_fetch_tickers())
 
         self.assertEqual(len(tickers), 3)
@@ -65,15 +65,33 @@ class ExchageWrapperTestSuite(unittest.TestCase):
             exchange._offline_fetch_tickers()
 
         e = cm.exception
-        self.assertEqual(type(e), tkgtri.ExchangeWrapperOfflineFetchError )
+        self.assertEqual(type(e), tkgtri.ExchangeWrapperOfflineFetchError)
 
+    def test_offline_load_markets(self):
 
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
+        markets = exchange._offline_load_markets()
+        self.assertEqual(markets["ETH/BTC"]["active"], True)
 
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
 
+        with self.assertRaises(tkgtri.ExchangeWrapperOfflineFetchError) as cm:
+            exchange._offline_load_markets()
 
+        e = cm.exception
+        self.assertEqual(type(e), tkgtri.ExchangeWrapperOfflineFetchError)
 
-        pass
+    def test_offline_mode(self):
 
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
+
+        markets = exchange.get_markets()
+        tickers = exchange.get_tickers()
+
+        self.assertEqual(tickers["ETH/BTC"]["bidVolume"], 10.011)
+        self.assertEqual(len(tickers), len(markets))
 
 
 
