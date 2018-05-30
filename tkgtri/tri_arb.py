@@ -1,13 +1,11 @@
 import networkx as nx
 import numpy as np
 
+
 #
 # todo make ccxt independent - take only active markets and tickers as parameter
 #
-
-
 def get_basic_triangles_from_markets(markets: list):
-
     graph = nx.Graph()
     for symbol in markets:
 
@@ -30,7 +28,7 @@ def get_basic_triangles_from_markets(markets: list):
 #
 #
 
-def get_triangle_with_tickers(triangle:list, ccxt_tickers: dict):
+def get_triangle_with_tickers(triangle: list, ccxt_tickers: dict):
     # triangle_tickers = dict()
     # s += i: for i in triangle
     #
@@ -38,8 +36,50 @@ def get_triangle_with_tickers(triangle:list, ccxt_tickers: dict):
     pass
 
 
+def fill_triangles(triangles: list, start_currencies: list, tickers: dict):
+    triangles = list()
 
-def fill_triangles(triangles: list, start_currencies: list, ccxt_tickers: dict):
+    for t in triangles:
+        tri_name = "-".join(triangles[t])
+
+        if start_currencies is not None and t[0] in start_currencies:
+
+            for i in t:
+
+                source_cur = t[i]
+                dest_cur = t[i + 1] if i < len(t) - 1 else t[0]
+
+                if source_cur + "/" + dest_cur in tickers:
+                    symbol = source_cur + "/" + dest_cur
+                    order_type = "sell"
+                    price_type = "bid"
+
+                elif dest_cur + "/" + source_cur in tickers:
+                    symbol = dest_cur + "/" + source_cur
+                    order_type = "buy"
+                    price_type = "ask"
+
+                if symbol in tickers and price_type in tickers[symbol] and tickers[symbol][price_type] > 0:
+                    price = tickers[symbol][price_type]
+
+                else:
+                    price = None
+
+                leg = i + 1
+
+                tri_dict = dict()
+                tri_dict["triangle"] = tri_name
+                tri_dict["cur" + str(leg)] = t[i]
+                tri_dict["symbol" + str(leg)] = symbol
+                tri_dict["leg{}order".format(str(leg))] = order_type
+                tri_dict["leg{}price".format(str(leg))] = price
+
+            tri_dict["leg-orders"] = tri_dict["leg1-order"] + "-" + tri_dict["leg2-order"] + "-" + \
+                                     tri_dict["leg3-order"]
+
+    #
+    #
+    #
     #
     # filtered_triangles = list()
     #

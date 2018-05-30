@@ -34,9 +34,12 @@ class ccxtExchangeWrapper:
         self.wrapper_id = "generic"
         self.offline = offline
 
+        self.tickers = dict()
+        self.markets = dict()
+
         self._offline_markets = dict()
         self._offline_tickers = dict()
-        self._offline_tickers_current_index = int
+        self._offline_tickers_current_index = 0
 
         self.markets_json_file = str
         self.tickers_csv_file = str
@@ -51,9 +54,12 @@ class ccxtExchangeWrapper:
 
     def get_markets(self):
         if not self.offline:
-            return self._load_markets()
+            self.markets = self._load_markets()
+            return self.markets
+
         else:
-            return self._offline_load_markets()
+            self.markets = self._offline_load_markets()
+            return self.markets
 
     def get_tickers(self):
         if not self.offline:
@@ -104,11 +110,11 @@ class ccxtExchangeWrapper:
         if self._offline_tickers_current_index < len(self._offline_tickers):
             tickers = self._offline_tickers[self._offline_tickers_current_index]
             self._offline_tickers_current_index += 1
+            return tickers
 
         else:
             raise(ExchangeWrapperOfflineFetchError(
                 "No more loaded tickers. Total tickers: {}".format(len(self._offline_tickers))))
-        return tickers
 
     def _offline_load_markets(self):
         if self._offline_markets is not None and len(self._offline_markets):

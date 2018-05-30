@@ -1,5 +1,6 @@
 from .context import tkgtri
 from tkgtri import tri_arb as ta
+from tkgtri import ccxtExchangeWrapper
 import unittest
 import json
 
@@ -21,6 +22,11 @@ class TriArbTestSuite(unittest.TestCase):
                         "ADA/ETH": {"active": True, 'base': 'ADA', 'quote': 'ETH'},
                         "BNB/ETH": {"active": True, 'base': 'BNB', 'quote': 'ETH'},
                         "BNB/BTC": {"active": True, 'base': 'BNB', 'quote': 'BTC'}})
+
+        # ex = ccxtExchangeWrapper.load_from_id("Exchange")
+        # ex.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
+        #
+        # markets = ex.get_markets()
 
         # check_triangle = list([['BTC', 'BNB', 'ETH'], ['BTC', 'ETH', 'BNB'], ['BTC', 'ETH', 'ADA'],
         # ['BTC', 'ADA', 'ETH']])
