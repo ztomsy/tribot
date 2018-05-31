@@ -10,17 +10,15 @@ def get_basic_triangles_from_markets(markets: list):
     for symbol in markets:
 
         if markets[symbol]["active"]:
-            graph.add_edge(markets[symbol]["base"], markets[symbol]["quote"])
+            graph.add_edge(markets[symbol]['base'], markets[symbol]['quote'])
 
     # finding the triangles as the basis cycles in graph
     triangles = list(nx.cycle_basis(graph))
 
-
-
-
     return triangles
 
-def get_all_triangles(triangles: list, start_currencies: list ):
+
+def get_all_triangles(triangles: list, start_currencies: list):
 
     filtered_triangles = list()
 
@@ -37,8 +35,6 @@ def get_all_triangles(triangles: list, start_currencies: list ):
     return filtered_triangles
 
 
-
-
 # output : dict
 # {"CUR1-CUR2-CUR3": { "triangle": ["CUR1","CUR2","CUR3"],
 #                       "symbols": ["CUR2/CUR1","CUR3/CUR2","CUR2/CUR3"],
@@ -46,17 +42,6 @@ def get_all_triangles(triangles: list, start_currencies: list ):
 #                       "prices": [price1, price2, price3]
 #                       "result": result
 #                     }
-#
-#
-
-
-def get_triangle_with_tickers(triangle: list, ccxt_tickers: dict):
-    # triangle_tickers = dict()
-    # s += i: for i in triangle
-    #
-    # triangle_tickers
-    pass
-
 
 def fill_triangles(triangles: list, start_currencies: list, tickers: dict):
     tri_list = list()
@@ -71,6 +56,10 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict):
 
                 source_cur = t[i]
                 dest_cur = t[i + 1] if i < len(t) - 1 else t[0]
+
+                symbol = str
+                order_type = str
+                price_type = str
 
                 if source_cur + "/" + dest_cur in tickers:
                     symbol = source_cur + "/" + dest_cur
@@ -90,7 +79,6 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict):
 
                 leg = i + 1
 
-
                 tri_dict["triangle"] = tri_name
                 tri_dict["cur" + str(leg)] = t[i]
                 tri_dict["symbol" + str(leg)] = symbol
@@ -102,6 +90,4 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict):
 
             tri_list.append(tri_dict)
 
-
     return tri_list
-

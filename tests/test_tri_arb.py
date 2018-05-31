@@ -68,7 +68,6 @@ class TriArbTestSuite(unittest.TestCase):
         for i in all_triangles:
             self.assertEqual(i in check_triangles, True)
 
-
         start_currencies = ["BTC"]
         all_triangles = ta.get_all_triangles(triangles, start_currencies)
         check_triangles = list(
@@ -77,7 +76,6 @@ class TriArbTestSuite(unittest.TestCase):
         self.assertEqual(len(all_triangles), len(check_triangles))
         for i in all_triangles:
             self.assertEqual(i in check_triangles, True)
-
 
         start_currencies = ["BTC", "ETH"]
         all_triangles = ta.get_all_triangles(triangles, start_currencies)
@@ -89,7 +87,6 @@ class TriArbTestSuite(unittest.TestCase):
         for i in all_triangles:
             self.assertEqual(i in check_triangles, True)
 
-
     def test_fill_triangles(self):
         start_currencies = ["ETH"]
 
@@ -98,11 +95,22 @@ class TriArbTestSuite(unittest.TestCase):
 
         markets = ex.get_markets()
         tickers = ex.get_tickers()
+        tickers = ex.get_tickers()  # none values for XEN in second fetch
         triangles = ta.get_basic_triangles_from_markets(markets)
 
         all_triangles = ta.get_all_triangles(triangles, start_currencies)
 
-        ta.fill_triangles(all_triangles, start_currencies, tickers)
+        tri_list = ta.fill_triangles(all_triangles, start_currencies, tickers)
+
+        check_tri = list(filter(lambda tri_dict: tri_dict['triangle'] == 'ETH-XEM-BTC', tri_list))[0]
+
+        self.assertEqual(check_tri["symbol1"], "XEM/ETH")
+        self.assertEqual(check_tri["leg1-price"], None)
+        self.assertEqual(check_tri["leg1-order"], "buy")
+
+        self.assertEqual(check_tri["symbol2"], "XEM/BTC")
+        self.assertEqual(check_tri["leg2-price"], 0.00003611)
+        self.assertEqual(check_tri["leg2-order"], "sell")
 
         pass
 
