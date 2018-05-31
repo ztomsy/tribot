@@ -59,11 +59,11 @@ except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
     sys.exit(0)
 
-if tribot.basic_triangles_count < 1:
+if len(tribot.tri_list) < 1:
     tribot.log(tribot.LOG_ERROR, "Zero basic triangles".format(tribot.exchange_id))
     sys.exit(0)
 
-tribot.log(tribot.LOG_INFO, "Basic Triangles found: {}".format(tribot.basic_triangles_count))
+tribot.log(tribot.LOG_INFO, "Triangles found: {}".format(len(tribot.tri_list)))
 
 while True:
 

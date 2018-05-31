@@ -43,7 +43,7 @@ def get_all_triangles(triangles: list, start_currencies: list):
 #                       "result": result
 #                     }
 
-def fill_triangles(triangles: list, start_currencies: list, tickers: dict):
+def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commission=0):
     tri_list = list()
 
     for t in triangles:
@@ -51,6 +51,7 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict):
 
         if start_currencies is not None and t[0] in start_currencies:
             tri_dict = dict()
+            result = 1.0
 
             for i, s_c in enumerate(t):
 
@@ -74,8 +75,13 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict):
                 if symbol in tickers and price_type in tickers[symbol] and tickers[symbol][price_type] > 0:
                     price = tickers[symbol][price_type]
 
+                    if result is not None:
+                        result = result / price if order_type == "buy" else result * price
+                        result = result * (1-commission)
+
                 else:
                     price = None
+                    result = None
 
                 leg = i + 1
 
@@ -88,6 +94,9 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict):
             tri_dict["leg-orders"] = tri_dict["leg1-order"] + "-" + tri_dict["leg2-order"] + "-" + \
                                      tri_dict["leg3-order"]
 
+            tri_dict["result"] = result
+
             tri_list.append(tri_dict)
 
     return tri_list
+

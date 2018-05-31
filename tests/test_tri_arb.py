@@ -94,7 +94,7 @@ class TriArbTestSuite(unittest.TestCase):
         ex.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
 
         markets = ex.get_markets()
-        tickers = ex.get_tickers()
+        ex.get_tickers()
         tickers = ex.get_tickers()  # none values for XEN in second fetch
         triangles = ta.get_basic_triangles_from_markets(markets)
 
@@ -112,10 +112,18 @@ class TriArbTestSuite(unittest.TestCase):
         self.assertEqual(check_tri["leg2-price"], 0.00003611)
         self.assertEqual(check_tri["leg2-order"], "sell")
 
-        pass
+        # from test_data/test_data.csv
+        handmade_result = dict({"ETH-AMB-BNB": 0.9891723469,
+                                "ETH-BNB-AMB": 0.9592578537,
+                                "ETH-BTC-TRX": 0.9997944847,
+                                "ETH-TRX-BTC": 0.9983509307,
+                                "ETH-XEM-BTC": None,
+                                "ETH-BTC-XEM": None,
+                                "ETH-USDT-BTC": 0.9998017609,
+                                "ETH-BTC-USDT": 0.999101801})
 
-
-
+        for i in tri_list:
+            self.assertAlmostEqual(i["result"], handmade_result[i["triangle"]], delta=0.0001)
 
 
 if __name__ == '__main__':

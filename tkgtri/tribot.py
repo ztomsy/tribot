@@ -60,10 +60,14 @@ class TriBot:
         self.deals_file_id = int
 
         self.exchange = None
+
         self.basic_triangles = list
         self.basic_triangles_count = int
+
         self.markets = dict
         self.tickers = dict
+
+        self.tri_list = list
 
         self.balance = float
 
@@ -149,36 +153,12 @@ class TriBot:
     def load_markets(self):
         self.markets = self.exchange.get_markets()
 
-    def get_triangles_from_markets(self, markets: list, start_currency: str):
-
-        graph = nx.Graph()
-        for symbol in markets:
-
-            if markets[symbol]["active"]:
-                graph.add_edge(markets[symbol]["base"], markets[symbol]["quote"])
-
-            # finding the triangles as the basis cycles in graph
-        triangles = list(nx.cycle_basis(graph))
-
-        # todo: add setting like from what currency to start BTC, ETH for example
-
-        filtered_triangles = list()
-
-        for cur in triangles:
-            if start_currency in cur:
-                p = cur.index(start_currency)
-                if p > 0:
-                    cur = np.roll(cur, 3 - p).tolist()
-
-                filtered_triangles.append(list((start_currency, cur[1], cur[2])))
-                filtered_triangles.append(list((start_currency, cur[2], cur[1])))
-
-        return filtered_triangles
-
     def set_triangles(self):
 
-        self.basic_triangles = ta.get_basic_triangles_from_markets(self.markets)
-        self.basic_triangles_count = len(self.basic_triangles)
+        basic_triangles = ta.get_basic_triangles_from_markets(self.markets)
+        self.tri_list = ta.get_all_triangles(basic_triangles, self.start_currency)
+
+
 
     def load_balance(self):
         if self.test_balance is not None:
