@@ -49,18 +49,65 @@ class TriArbTestSuite(unittest.TestCase):
         self.assertEqual(len(triangles), len(check_triangle))
         self.assertListEqual(triangles, check_triangle)
 
+    def test_get_all_triangles(self):
+
+        markets = dict({"ETH/BTC": {"active": True, 'base': 'ETH', 'quote': 'BTC'},
+                        "ADA/BTC": {"active": True, 'base': 'ADA', 'quote': 'BTC'},
+                        "ADA/ETH": {"active": True, 'base': 'ADA', 'quote': 'ETH'},
+                        "BNB/ETH": {"active": True, 'base': 'BNB', 'quote': 'ETH'},
+                        "BNB/BTC": {"active": True, 'base': 'BNB', 'quote': 'BTC'}})
+
+        triangles = ta.get_basic_triangles_from_markets(markets)
+
+        start_currencies = ["ETH"]
+        all_triangles = ta.get_all_triangles(triangles, start_currencies)
+        check_triangles = list(
+            [['ETH', 'BNB', 'BTC'], ['ETH', 'BTC', 'BNB'], ['ETH', 'BTC', 'ADA'], ['ETH', 'ADA', 'BTC']])
+
+        self.assertEqual(len(all_triangles), len(check_triangles))
+        for i in all_triangles:
+            self.assertEqual(i in check_triangles, True)
+
+
+        start_currencies = ["BTC"]
+        all_triangles = ta.get_all_triangles(triangles, start_currencies)
+        check_triangles = list(
+            [['BTC', 'ETH', 'BNB'], ['BTC', 'BNB', 'ETH'], ['BTC', 'ADA', 'ETH'], ['BTC', 'ETH', 'ADA']])
+
+        self.assertEqual(len(all_triangles), len(check_triangles))
+        for i in all_triangles:
+            self.assertEqual(i in check_triangles, True)
+
+
+        start_currencies = ["BTC", "ETH"]
+        all_triangles = ta.get_all_triangles(triangles, start_currencies)
+        check_triangles = list(
+            [['BTC', 'ETH', 'BNB'], ['BTC', 'BNB', 'ETH'], ['BTC', 'ADA', 'ETH'], ['BTC', 'ETH', 'ADA'],
+             ['ETH', 'BNB', 'BTC'], ['ETH', 'BTC', 'BNB'], ['ETH', 'BTC', 'ADA'], ['ETH', 'ADA', 'BTC']])
+
+        self.assertEqual(len(all_triangles), len(check_triangles))
+        for i in all_triangles:
+            self.assertEqual(i in check_triangles, True)
+
 
     def test_fill_triangles(self):
-        start_currencies = ["ETH", "BTC"]
-        triangles = list(
-            [['ETH', 'BTC', 'ADA'], ['BTC', 'BNB', 'ETH']])
+        start_currencies = ["ETH"]
 
-        with open('tests/tickers.json') as f:
-            ccxt_tickers = json.load(f)
+        ex = ccxtExchangeWrapper.load_from_id("Exchange")
+        ex.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
 
-        ta.fill_triangles(triangles, start_currencies, ccxt_tickers)
+        markets = ex.get_markets()
+        tickers = ex.get_tickers()
+        triangles = ta.get_basic_triangles_from_markets(markets)
+
+        all_triangles = ta.get_all_triangles(triangles, start_currencies)
+
+        ta.fill_triangles(all_triangles, start_currencies, tickers)
 
         pass
+
+
+
 
 
 if __name__ == '__main__':
