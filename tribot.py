@@ -59,11 +59,11 @@ except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
     sys.exit(0)
 
-if len(tribot.tri_list) < 1:
+if len(tribot.all_triangles) < 1:
     tribot.log(tribot.LOG_ERROR, "Zero basic triangles".format(tribot.exchange_id))
     sys.exit(0)
 
-tribot.log(tribot.LOG_INFO, "Triangles found: {}".format(len(tribot.tri_list)))
+tribot.log(tribot.LOG_INFO, "Triangles found: {}".format(len(tribot.all_triangles)))
 
 while True:
 
@@ -72,16 +72,28 @@ while True:
 
     while True:
 
+        # fetching tickers
         try:
             tribot.timer.check_timer()
             tribot.fetch_tickers()
             print("Tickers fetched {}".format(len(tribot.tickers)))
-
         except Exception as e:
             tribot.log(tribot.LOG_ERROR, "Error while fetching tickers {}".format(tribot.exchange_id))
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
             sys.exit()
+
+        # proceeding tickers
+        try:
+            tribot.proceed_triangles()
+            print("Tickers proceeded {}".format(len(tribot.tickers)))
+        except Exception as e:
+            tribot.log(tribot.LOG_ERROR, "Error while proceeding tickers {}".format(tribot.exchange_id))
+            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+            sys.exit()
+
+
 
         continue
 

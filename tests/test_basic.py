@@ -86,6 +86,47 @@ class BasicTestSuite(unittest.TestCase):
     def test_exchange_init(self):
         pass
 
+    def test_tri_list(self):
+        self.tribot.load_config_from_file(self.default_config)
+
+        self.tribot.init_exchange()
+        self.tribot.exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
+        self.tribot.load_markets()
+        self.tribot.set_triangles()
+        self.tribot.fetch_tickers()
+        self.tribot.fetch_tickers()
+        self.tribot.proceed_triangles()
+
+        check_tri = list(filter(lambda tri_dict: tri_dict['triangle'] == 'ETH-XEM-BTC', self.tribot.tri_list))[0]
+
+        self.assertEqual(check_tri["symbol1"], "XEM/ETH")
+        self.assertEqual(check_tri["leg1-price"], None)
+        self.assertEqual(check_tri["leg1-order"], "buy")
+
+        self.assertEqual(check_tri["symbol2"], "XEM/BTC")
+        self.assertEqual(check_tri["leg2-price"], 0.00003611)
+        self.assertEqual(check_tri["leg2-order"], "sell")
+
+        # from test_data/test_data.csv results without commission
+        handmade_result = dict({"ETH-AMB-BNB": 0.9891723469,
+                                "ETH-BNB-AMB": 1.0235943966,
+                                "ETH-BTC-TRX": 1.0485521602,
+                                "ETH-TRX-BTC": 0.9983509307,
+                                "ETH-XEM-BTC": None,
+                                "ETH-BTC-XEM": None,
+                                "ETH-USDT-BTC": 0.9998017609,
+                                "ETH-BTC-USDT": 0.999101801})
+
+        # apply commission 0.0005 from config
+        for i in self.tribot.tri_list:
+            if i["triangle"] in handmade_result:
+                if i["result"] is not None:
+                    self.assertAlmostEqual(i["result"], handmade_result[i["triangle"]]*(1-self.tribot.commission)**3,
+                                           delta=0.0001)
+                else:
+                    self.assertEqual(i["result"], handmade_result[i["triangle"]])
+
+        pass
 
 if __name__ == '__main__':
     unittest.main()

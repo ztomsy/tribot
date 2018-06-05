@@ -114,8 +114,8 @@ class TriArbTestSuite(unittest.TestCase):
 
         # from test_data/test_data.csv
         handmade_result = dict({"ETH-AMB-BNB": 0.9891723469,
-                                "ETH-BNB-AMB": 0.9592578537,
-                                "ETH-BTC-TRX": 0.9997944847,
+                                "ETH-BNB-AMB": 1.0235943966,
+                                "ETH-BTC-TRX": 1.0485521602,
                                 "ETH-TRX-BTC": 0.9983509307,
                                 "ETH-XEM-BTC": None,
                                 "ETH-BTC-XEM": None,

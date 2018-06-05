@@ -59,10 +59,14 @@ class TriBot:
         self.report_dir = str
         self.deals_file_id = int
 
-        self.exchange = None
+        #self.exchange = None
+
+        self.exchange = ...  # type: tkgtri.ccxtExchangeWrapper
 
         self.basic_triangles = list
         self.basic_triangles_count = int
+
+        self.all_triangles = list
 
         self.markets = dict
         self.tickers = dict
@@ -149,15 +153,20 @@ class TriBot:
 
         self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"], self.api_key["secret"])
 
-
     def load_markets(self):
         self.markets = self.exchange.get_markets()
 
     def set_triangles(self):
 
-        basic_triangles = ta.get_basic_triangles_from_markets(self.markets)
-        self.tri_list = ta.get_all_triangles(basic_triangles, self.start_currency)
+        self.basic_triangles = ta.get_basic_triangles_from_markets(self.markets)
+        self.all_triangles = ta.get_all_triangles(self.basic_triangles, self.start_currency)
 
+
+        #return True
+
+    def proceed_triangles(self):
+
+        self.tri_list = ta.fill_triangles(self.all_triangles, self.start_currency, self.tickers, self.commission)
 
 
     def load_balance(self):
