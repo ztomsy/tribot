@@ -91,9 +91,11 @@ while True:
             tribot.log(tribot.LOG_ERROR, "Error while proceeding tickers {}".format(tribot.exchange_id))
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-            sys.exit()
+            # sys.exit()
 
-
+        tribot.get_good_triangles()
+        tribot.log(tribot.LOG_INFO, "Good triangles: {} / {} ".format(len(tribot.tri_list_good),
+                   len(tribot.tri_list)))
 
         continue
 

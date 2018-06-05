@@ -31,7 +31,7 @@ class TkgStatsInflux:
         return {"tags": tags, "fields": fields}
 
     # time should be a datetime type
-    def write_deal_info(self, deal_row:dict, time = None):
+    def write_deal_info(self, deal_row:dict, time=None):
 
         updtmsg = dict()
 

@@ -72,6 +72,7 @@ class TriBot:
         self.tickers = dict
 
         self.tri_list = list
+        self.tri_list_good = list
 
         self.balance = float
 
@@ -168,7 +169,6 @@ class TriBot:
 
         self.tri_list = ta.fill_triangles(self.all_triangles, self.start_currency, self.tickers, self.commission)
 
-
     def load_balance(self):
         if self.test_balance is not None:
             self.balance = self.test_balance
@@ -176,7 +176,20 @@ class TriBot:
     def fetch_tickers(self):
         self.tickers = self.exchange.get_tickers()
 
+    def get_good_triangles(self):
+        tri_list = list(filter(lambda x: x['result'] is not None, self.tri_list))
+        tri_list = sorted(tri_list, key=lambda k: k['result'], reverse=True)
 
+        threshold = self.threshold
+
+        tri_list_good = list(
+            filter(lambda x:
+                   x['result'] is not None and x['result'] > threshold,
+                   tri_list))
+
+        self.tri_list_good = tri_list_good
+
+        return len(tri_list_good)
 
     @staticmethod
     def print_logo(product=""):
