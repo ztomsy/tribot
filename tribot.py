@@ -1,5 +1,6 @@
 from tkgtri import TriBot
 import sys
+import traceback
 
 TriBot.print_logo("TriBot v0.5")
 
@@ -91,11 +92,16 @@ while True:
             tribot.log(tribot.LOG_ERROR, "Error while proceeding tickers {}".format(tribot.exchange_id))
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-            # sys.exit()
+
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_tb(exc_traceback)
+            sys.exit()
 
         tribot.get_good_triangles()
-        tribot.log(tribot.LOG_INFO, "Good triangles: {} / {} ".format(len(tribot.tri_list_good),
+        print("Good triangles: {} / {} ".format(len(tribot.tri_list_good),
                    len(tribot.tri_list)))
+        print("Best triangle {}: {} ".format(tribot.last_proceed_report["best_result"]["triangle"],
+                                                                   tribot.last_proceed_report["best_result"]["result"]))
 
         continue
 

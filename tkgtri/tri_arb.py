@@ -58,9 +58,9 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commi
                 source_cur = t[i]
                 dest_cur = t[i + 1] if i < len(t) - 1 else t[0]
 
-                symbol = str
-                order_type = str
-                price_type = str
+                symbol = None
+                order_type = None
+                price_type = None
 
                 if source_cur + "/" + dest_cur in tickers:
                     symbol = source_cur + "/" + dest_cur
@@ -83,6 +83,7 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commi
                     price = None
                     result = None
 
+
                 leg = i + 1
 
                 tri_dict["triangle"] = tri_name
@@ -91,8 +92,9 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commi
                 tri_dict["leg{}-order".format(str(leg))] = order_type
                 tri_dict["leg{}-price".format(str(leg))] = price
 
-            tri_dict["leg-orders"] = tri_dict["leg1-order"] + "-" + tri_dict["leg2-order"] + "-" + \
-                                     tri_dict["leg3-order"]
+            if result is not None:
+                tri_dict["leg-orders"] = tri_dict["leg1-order"] + "-" + tri_dict["leg2-order"] + "-" + \
+                                         tri_dict["leg3-order"]
 
             tri_dict["result"] = result
 

@@ -94,16 +94,25 @@ class ccxtExchangeWrapper:
     def load_tickers_from_csv(tickers_csv_file):
         tickers = dict()
 
+        csv_float_fields = ["ask","bid","askVolume", "bidVolume"]
+
         with open(tickers_csv_file, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 if int(row["fetch_id"]) not in tickers:
                     tickers[int(row["fetch_id"])] = dict()
 
-                tickers[int(row["fetch_id"])][row["symbol"]] = dict({"ask": float(row["ask"]),
-                                                                     "bid": float(row["bid"]),
-                                                                     "askVolume": float(row["askVolume"]),
-                                                                     "bidVolume": float(row["bidVolume"])})
+                row_value = dict()
+                for v in csv_float_fields:
+                    try:
+                        row_value[v] = float(row[v])
+                    except ValueError:
+                        row_value[v] = 0
+
+                tickers[int(row["fetch_id"])][row["symbol"]] = dict({"ask": float(row_value["ask"]),
+                                                                     "bid": float(row_value["bid"]),
+                                                                     "askVolume": float(row_value["askVolume"]),
+                                                                     "bidVolume": float(row_value["bidVolume"])})
         return tickers
 
     def _offline_fetch_tickers(self):

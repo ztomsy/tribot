@@ -125,6 +125,36 @@ class TriArbTestSuite(unittest.TestCase):
         for i in tri_list:
             self.assertAlmostEqual(i["result"], handmade_result[i["triangle"]], delta=0.0001)
 
+    def test_no_ticker(self):
+
+        start_currencies = ["ETH"]
+
+        ex = ccxtExchangeWrapper.load_from_id("Exchange")
+        ex.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
+
+        markets = ex.get_markets()
+        ex.get_tickers()
+        ex.get_tickers()
+        tickers = ex.get_tickers()  # none values for XEN in second fetch
+        triangles = ta.get_basic_triangles_from_markets(markets)
+
+        all_triangles = ta.get_all_triangles(triangles, start_currencies)
+
+        tri_list = ta.fill_triangles(all_triangles, start_currencies, tickers)
+
+        check_tri1 = list(filter(lambda x: x["triangle"] == "ETH-BTC-USDT", tri_list ))[0]
+
+        self.assertEqual(check_tri1["result"], None)
+        self.assertEqual(check_tri1["symbol2"], None)
+        self.assertEqual(check_tri1["leg2-order"], None)
+        self.assertEqual(check_tri1["leg2-price"], None)
+
+        check_tri1 = list(filter(lambda x: x["triangle"] == "ETH-BTC-TRX", tri_list))[0]
+
+        self.assertEqual(check_tri1["result"], None)
+        self.assertEqual(check_tri1["symbol3"], "TRX/ETH")
+        self.assertEqual(check_tri1["leg3-order"], "sell")
+        self.assertEqual(check_tri1["leg3-price"], None)
 
 if __name__ == '__main__':
     unittest.main()

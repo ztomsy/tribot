@@ -77,6 +77,7 @@ class TriBot:
         self.balance = float
 
         self.time = timer.Timer
+        self.last_proceed_report = dict
 
 
         # load config from json
@@ -188,6 +189,8 @@ class TriBot:
                    tri_list))
 
         self.tri_list_good = tri_list_good
+        self.last_proceed_report = dict()
+        self.last_proceed_report["best_result"] = tri_list[0]
 
         return len(tri_list_good)
 

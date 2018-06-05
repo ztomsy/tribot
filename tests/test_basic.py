@@ -161,6 +161,7 @@ class BasicTestSuite(unittest.TestCase):
 
         self.assertEqual(good_results, 0)
         self.assertEqual(len(self.tribot.tri_list_good), 0)
+        self.assertEqual(self.tribot.last_proceed_report["best_result"]["triangle"], 'BTC-ETH-USDT')
 
 
 if __name__ == '__main__':
