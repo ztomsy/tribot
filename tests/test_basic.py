@@ -100,7 +100,7 @@ class BasicTestSuite(unittest.TestCase):
         check_tri = list(filter(lambda tri_dict: tri_dict['triangle'] == 'ETH-XEM-BTC', self.tribot.tri_list))[0]
 
         self.assertEqual(check_tri["symbol1"], "XEM/ETH")
-        self.assertEqual(check_tri["leg1-price"], None)
+        self.assertEqual(check_tri["leg1-price"], 0)
         self.assertEqual(check_tri["leg1-order"], "buy")
 
         self.assertEqual(check_tri["symbol2"], "XEM/BTC")
@@ -112,8 +112,8 @@ class BasicTestSuite(unittest.TestCase):
                                 "ETH-BNB-AMB": 1.0235943966,
                                 "ETH-BTC-TRX": 1.0485521602,
                                 "ETH-TRX-BTC": 0.9983509307,
-                                "ETH-XEM-BTC": None,
-                                "ETH-BTC-XEM": None,
+                                "ETH-XEM-BTC": 0,
+                                "ETH-BTC-XEM": 0,
                                 "ETH-USDT-BTC": 0.9998017609,
                                 "ETH-BTC-USDT": 0.999101801})
 

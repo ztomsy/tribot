@@ -76,7 +76,7 @@ while True:
         # fetching tickers
         try:
             tribot.timer.check_timer()
-            tribot.timer.notch("from start")
+            tribot.timer.notch("start")
             tribot.fetch_tickers()
             tribot.timer.notch("fetch")
             print("Tickers fetched {}".format(len(tribot.tickers)))
@@ -109,9 +109,9 @@ while True:
         print("Best triangle {}: {} ".format(tribot.last_proceed_report["best_result"]["triangle"],
                                                                    tribot.last_proceed_report["best_result"]["result"]))
 
-        continue
 
-    continue
+
+
 
 tribot.log(tribot.LOG_INFO, "Total time:" + str((tribot.timer.notches[-1]["time"] - tribot.timer.start_time).total_seconds()))
 tribot.log(tribot.LOG_INFO, "Finished")

@@ -105,7 +105,7 @@ class TriArbTestSuite(unittest.TestCase):
         check_tri = list(filter(lambda tri_dict: tri_dict['triangle'] == 'ETH-XEM-BTC', tri_list))[0]
 
         self.assertEqual(check_tri["symbol1"], "XEM/ETH")
-        self.assertEqual(check_tri["leg1-price"], None)
+        self.assertEqual(check_tri["leg1-price"], 0)
         self.assertEqual(check_tri["leg1-order"], "buy")
 
         self.assertEqual(check_tri["symbol2"], "XEM/BTC")
@@ -117,8 +117,8 @@ class TriArbTestSuite(unittest.TestCase):
                                 "ETH-BNB-AMB": 1.0235943966,
                                 "ETH-BTC-TRX": 1.0485521602,
                                 "ETH-TRX-BTC": 0.9983509307,
-                                "ETH-XEM-BTC": None,
-                                "ETH-BTC-XEM": None,
+                                "ETH-XEM-BTC": 0,
+                                "ETH-BTC-XEM": 0,
                                 "ETH-USDT-BTC": 0.9998017609,
                                 "ETH-BTC-USDT": 0.999101801})
 
@@ -144,17 +144,17 @@ class TriArbTestSuite(unittest.TestCase):
 
         check_tri1 = list(filter(lambda x: x["triangle"] == "ETH-BTC-USDT", tri_list ))[0]
 
-        self.assertEqual(check_tri1["result"], None)
-        self.assertEqual(check_tri1["symbol2"], None)
-        self.assertEqual(check_tri1["leg2-order"], None)
-        self.assertEqual(check_tri1["leg2-price"], None)
+        self.assertEqual(check_tri1["result"], 0)
+        self.assertEqual(check_tri1["symbol2"], "")
+        self.assertEqual(check_tri1["leg2-order"], "")
+        self.assertEqual(check_tri1["leg2-price"], 0)
 
         check_tri1 = list(filter(lambda x: x["triangle"] == "ETH-BTC-TRX", tri_list))[0]
 
-        self.assertEqual(check_tri1["result"], None)
+        self.assertEqual(check_tri1["result"], 0)
         self.assertEqual(check_tri1["symbol3"], "TRX/ETH")
         self.assertEqual(check_tri1["leg3-order"], "sell")
-        self.assertEqual(check_tri1["leg3-price"], None)
+        self.assertEqual(check_tri1["leg3-price"], 0)
 
 if __name__ == '__main__':
     unittest.main()
