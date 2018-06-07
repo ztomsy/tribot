@@ -72,11 +72,13 @@ while True:
     tribot.log(tribot.LOG_INFO, "Balance: {}".format(tribot.balance))
 
     while True:
-
+        tribot.timer.reset_notches()
         # fetching tickers
         try:
             tribot.timer.check_timer()
+            tribot.timer.notch("from start")
             tribot.fetch_tickers()
+            tribot.timer.notch("fetch")
             print("Tickers fetched {}".format(len(tribot.tickers)))
         except Exception as e:
             tribot.log(tribot.LOG_ERROR, "Error while fetching tickers {}".format(tribot.exchange_id))
@@ -86,8 +88,12 @@ while True:
 
         # proceeding tickers
         try:
+
             tribot.proceed_triangles()
-            print("Tickers proceeded {}".format(len(tribot.tickers)))
+            tribot.timer.notch("proceed")
+            print("Tickers proceeded {} time".format(len(tribot.tickers)))
+            print("Time: "+tribot.timer.results())
+
         except Exception as e:
             tribot.log(tribot.LOG_ERROR, "Error while proceeding tickers {}".format(tribot.exchange_id))
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))

@@ -194,6 +194,14 @@ class TriBot:
 
         return len(tri_list_good)
 
+    def get_status_report(self):
+
+        report_fields = list("timestamp", "fetches", "good_triangles_total", "best_result", "best_triangle", "message")
+
+
+
+
+
     @staticmethod
     def print_logo(product=""):
         print('TTTTTTTTTT    K    K     GGGGG')

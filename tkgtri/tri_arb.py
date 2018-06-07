@@ -72,10 +72,10 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commi
                     order_type = "buy"
                     price_type = "ask"
 
-                if symbol in tickers and price_type in tickers[symbol] and tickers[symbol][price_type] > 0:
+                if symbol in tickers and price_type in tickers[symbol] and tickers[symbol][price_type] is not None:
                     price = tickers[symbol][price_type]
 
-                    if result is not None:
+                    if result is not None and price > 0:
                         result = result / price if order_type == "buy" else result * price
                         result = result * (1-commission)
 

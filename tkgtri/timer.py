@@ -43,8 +43,9 @@ class Timer:
     def results(self):
         result = []
         for n in self.notches:
-            result.append('%s: %s ms ' % (n['name'],  (n['duration'].microseconds / 1000)))
+            result.append('%s: %s s ' % (n['name'],  (n['duration'])))
 
         return '| '.join(result)
 
-
+    def reset_notches(self):
+        self.notches = list()
