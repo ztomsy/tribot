@@ -1,5 +1,6 @@
 from datetime import datetime
 import time
+import collections
 
 class Timer:
 
@@ -46,6 +47,12 @@ class Timer:
             result.append('%s: %s s ' % (n['name'],  (n['duration'])))
 
         return '| '.join(result)
+
+    def results_dict(self):
+        d = collections.OrderedDict()
+        for i in self.notches:
+            d[i["name"]] = i["duration"]
+        return d
 
     def reset_notches(self):
         self.notches = list()

@@ -33,9 +33,9 @@ tribot.timer.notch("start")
 tribot.log(tribot.LOG_INFO, "Exchange ID:" + tribot.exchange_id)
 tribot.log(tribot.LOG_INFO, "Debug: {}".format(tribot.debug))
 
-
 # now we have exchange_id from config file or cli
 tribot.init_reports("_"+tribot.exchange_id+"/")
+tribot.init_remote_reports()
 
 try:
     tribot.init_exchange()
@@ -76,9 +76,9 @@ while True:
         # fetching tickers
         try:
             tribot.timer.check_timer()
-            tribot.timer.notch("start")
+            tribot.timer.notch("time_from_start")
             tribot.fetch_tickers()
-            tribot.timer.notch("fetch")
+            tribot.timer.notch("duration_fetch")
             print("Tickers fetched {}".format(len(tribot.tickers)))
         except Exception as e:
             tribot.log(tribot.LOG_ERROR, "Error while fetching tickers {}".format(tribot.exchange_id))
@@ -90,9 +90,7 @@ while True:
         try:
 
             tribot.proceed_triangles()
-            tribot.timer.notch("proceed")
-            print("Tickers proceeded {} time".format(len(tribot.tickers)))
-            print("Time: "+tribot.timer.results())
+            tribot.timer.notch("duration_proceed")
 
         except Exception as e:
             tribot.log(tribot.LOG_ERROR, "Error while proceeding tickers {}".format(tribot.exchange_id))
@@ -104,14 +102,21 @@ while True:
             sys.exit()
 
         tribot.get_good_triangles()
+
+        tribot.reporter.set_indicator("good_triangles", len(tribot.tri_list_good))
+        tribot.reporter.set_indicator("total_triangles",  len(tribot.tri_list))
+        tribot.reporter.set_indicator("best_triangle", tribot.last_proceed_report["best_result"]["triangle"])
+        tribot.reporter.set_indicator("best_result", tribot.last_proceed_report["best_result"]["result"])
+
+        tribot.reporter.push_to_influx()
+        tribot.timer.notch("duration_to_influx")
+
         print("Good triangles: {} / {} ".format(len(tribot.tri_list_good),
-                   len(tribot.tri_list)))
+                                                len(tribot.tri_list)))
         print("Best triangle {}: {} ".format(tribot.last_proceed_report["best_result"]["triangle"],
-                                                                   tribot.last_proceed_report["best_result"]["result"]))
-
-
-
-
+                                             tribot.last_proceed_report["best_result"]["result"]))
+        print("Tickers proceeded {} time".format(len(tribot.tickers)))
+        print("Duration,s: " + str(tribot.timer.results_dict()))
 
 tribot.log(tribot.LOG_INFO, "Total time:" + str((tribot.timer.notches[-1]["time"] - tribot.timer.start_time).total_seconds()))
 tribot.log(tribot.LOG_INFO, "Finished")

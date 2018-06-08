@@ -1,7 +1,7 @@
 from .stats_influx import TkgStatsInflux
 
 
-class reporter:
+class TkgReporter:
 
     def __init__(self, server_id, exchange_id, session_uuid):
 
@@ -20,21 +20,11 @@ class reporter:
         self.indicators[key] = value
 
     def init_db(self, host, port, database, measurement, user="", password=""):
-
-        self.influx = TkgStatsInflux(host,port, database, measurement)
-        self.influx.set_tags(["server_id", "exchange_id", "session_uuid"])
+        self.influx = TkgStatsInflux(host, port, database, measurement)
+        self.influx.set_tags(self.def_indicators)
 
     def push_to_influx(self):
 
-        pass
-
-
-
-
-
-
-
-
-
+        return self.influx.push_fields(self.indicators)
 
 

@@ -1,25 +1,25 @@
-import importlib.util
-import ccxt
 import json
 import logging
-import os
 import sys
 from . import utils
 from . import timer
 
 from .tri_cli import *
-import networkx as nx
-import numpy as np
 import tkgtri
 from . import tri_arb as ta
+import uuid
+from .reporter import TkgReporter
+
 
 class TriBot:
 
     def __init__(self, default_config, log_filename):
 
+        self.session_uuid = str(uuid.uuid4())
+
         self.config_filename = default_config
         self.exchange_id = str
-        self.server = str
+        self.server_id = str
         self.script_id = str
         self.start_currency = list
         self.share_balance_to_bid = float
@@ -32,6 +32,9 @@ class TriBot:
         self.api_key = dict
         self.max_past_triangles = int
         self.good_consecutive_results_threshold = int
+
+        self.timer = ...  # type: timer.Timer
+
         self.lap_time = float
         self.max_transactions_per_lap = float
         self.test_balance = float
@@ -59,7 +62,8 @@ class TriBot:
         self.report_dir = str
         self.deals_file_id = int
 
-        #self.exchange = None
+        self.influxdb = dict
+        self.reporter = ...  # type: tkgtri.TkgReporter
 
         self.exchange = ...  # type: tkgtri.ccxtExchangeWrapper
 
@@ -78,7 +82,6 @@ class TriBot:
 
         self.time = timer.Timer
         self.last_proceed_report = dict
-
 
         # load config from json
 
@@ -135,13 +138,18 @@ class TriBot:
             for line in msg_list:
                 self.logger.log(level, "... " + line)
 
-    def init_reports(self, dir):
+    def init_reports(self, directory):
 
-        self.deals_file_id = utils.get_next_report_filename(dir, self.report_deals_filename)
+        self.deals_file_id = utils.get_next_report_filename(directory, self.report_deals_filename)
 
-        self.report_deals_filename = self.report_deals_filename % (dir, self.deals_file_id)
-        self.report_prev_tickers_filename = self.report_prev_tickers_filename % (dir, self.deals_file_id)
-        self.report_dir = dir
+        self.report_deals_filename = self.report_deals_filename % (directory, self.deals_file_id)
+        self.report_prev_tickers_filename = self.report_prev_tickers_filename % (directory, self.deals_file_id)
+        self.report_dir = directory
+
+    def init_remote_reports(self):
+        self.reporter = TkgReporter(self.server_id, self.exchange_id, self.session_uuid)
+        self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
+                              self.influxdb["measurement"])
 
     def init_timer(self):
         self.timer = timer.Timer()
@@ -153,7 +161,8 @@ class TriBot:
         # self.exchange = exchange({'apiKey': self.api_key["apiKey"], 'secret': self.api_key["secret"] })
         # self.exchange.load_markets()
 
-        self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"], self.api_key["secret"])
+        self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"],
+                                                                self.api_key["secret"])
 
     def load_markets(self):
         self.markets = self.exchange.get_markets()
@@ -163,8 +172,7 @@ class TriBot:
         self.basic_triangles = ta.get_basic_triangles_from_markets(self.markets)
         self.all_triangles = ta.get_all_triangles(self.basic_triangles, self.start_currency)
 
-
-        #return True
+        # return True
 
     def proceed_triangles(self):
 

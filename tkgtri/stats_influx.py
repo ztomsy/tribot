@@ -31,7 +31,7 @@ class TkgStatsInflux:
         return {"tags": tags, "fields": fields}
 
     # time should be a datetime type
-    def write_deal_info(self, deal_row:dict, time=None):
+    def write_deal_info(self, deal_row: dict, time=None):
 
         updtmsg = dict()
 
@@ -46,3 +46,20 @@ class TkgStatsInflux:
             updtmsg["time"] = time
 
         self.client.write_points([updtmsg], protocol="json")
+
+    def push_fields(self, fields: dict, time=None):
+
+        updtmsg = dict()
+
+        updtmsg["measurement"] = self.measurement
+
+        #stats_data = self.extract_tags_and_fields(deal_row)
+
+        updtmsg["tags"] = self.tags
+        updtmsg["fields"] = fields
+
+        if time is not None:
+            updtmsg["time"] = time
+
+        return self.client.write_points([updtmsg], protocol="json")
+

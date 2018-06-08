@@ -9,3 +9,4 @@ from .exchange_wrapper import ExchangeWrapperError
 from .tri_arb import *
 from .stats_influx import TkgStatsInflux
 from .datastorage import DataStorage
+from .reporter import TkgReporter

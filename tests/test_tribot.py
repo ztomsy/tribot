@@ -5,6 +5,7 @@ from .context import tkgtri
 import unittest
 import os
 import time
+import uuid
 
 
 # todo - tests for reports directories creation
@@ -30,6 +31,11 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(self.tribot.test_balance, 1)
 
         self.assertEqual(self.tribot.api_key["apiKey"], "testApiKey")
+        self.assertEqual(self.tribot.server_id, "PROD1")
+
+        uuid_obj = uuid.UUID(self.tribot.session_uuid)
+
+        self.assertEqual(self.tribot.session_uuid, str(uuid_obj))
 
         # todo: test for checking if log file created
 
@@ -82,6 +88,29 @@ class BasicTestSuite(unittest.TestCase):
 
         self.assertEqual(timer.notches[0]["name"], "start")
         self.assertAlmostEqual(timer.notches[1]["duration"], 0.1, 1)
+
+    def test_reporter_init(self):
+        self.tribot.load_config_from_file(self.default_config)
+
+        self.assertEqual(self.tribot.influxdb["measurement"], "tri_status")
+        self.tribot.init_remote_reports()
+
+        self.assertEqual(self.tribot.reporter.def_indicators["session_uuid"], self.tribot.session_uuid)
+
+        self.tribot.reporter.influx.set_tags(self.tribot.reporter.def_indicators)
+        self.assertDictEqual(self.tribot.reporter.def_indicators, self.tribot.reporter.influx.tags)
+
+        self.tribot.reporter.set_indicator("good_triangles", 100)
+
+        self.assertDictEqual(self.tribot.reporter.indicators, dict({"good_triangles": 100}))
+
+    @unittest.skip
+    def test_reporter_push_data(self):
+        self.tribot.load_config_from_file(self.default_config)
+        self.tribot.init_remote_reports()
+        self.tribot.reporter.set_indicator("good_triangles", 100)
+        r = self.tribot.reporter.push_to_influx()
+        self.assertEqual(r, True)
 
     def test_exchange_init(self):
         pass

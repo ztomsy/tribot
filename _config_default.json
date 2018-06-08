@@ -1,6 +1,6 @@
 {
-  "server": "1",
-  "script_id": "triarb_research",
+  "server_id": "PROD1",
+  "script_id": "triarb_production",
   "exchange_id":"binance",
 
   "start_currency":["ETH","BTC"],
@@ -32,6 +32,11 @@
   "good_consecutive_results_threshold":2,
   "lap_time" : 60,
   "max_transactions_per_lap": 850,
-  "test_balance":1
+  "test_balance":1,
 
+  "influxdb":
+          {"host": "13.231.173.161",
+            "port": 8086,
+            "db": "tkg_dev",
+            "measurement": "tri_status"}
 }
