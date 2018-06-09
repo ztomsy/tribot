@@ -16,6 +16,8 @@ class TriBot:
     def __init__(self, default_config, log_filename):
 
         self.session_uuid = str(uuid.uuid4())
+        self.fetch_number = 0
+        self.errors = 0
 
         self.config_filename = default_config
         self.exchange_id = str
@@ -183,6 +185,7 @@ class TriBot:
             self.balance = self.test_balance
 
     def fetch_tickers(self):
+        self.fetch_number += 1
         self.tickers = self.exchange.get_tickers()
 
     def get_good_triangles(self):
