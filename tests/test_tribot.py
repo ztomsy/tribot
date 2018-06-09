@@ -95,14 +95,13 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(self.tribot.influxdb["measurement"], "tri_status")
         self.tribot.init_remote_reports()
 
-        self.assertEqual(self.tribot.reporter.def_indicators["session_uuid"], self.tribot.session_uuid)
-
         self.tribot.reporter.influx.set_tags(self.tribot.reporter.def_indicators)
         self.assertDictEqual(self.tribot.reporter.def_indicators, self.tribot.reporter.influx.tags)
 
         self.tribot.reporter.set_indicator("good_triangles", 100)
+        self.tribot.reporter.set_indicator("session_uuid", 6666)
 
-        self.assertDictEqual(self.tribot.reporter.indicators, dict({"good_triangles": 100}))
+        self.assertDictEqual(self.tribot.reporter.indicators, dict({"good_triangles": 100, "session_uuid": 6666}))
 
     @unittest.skip
     def test_reporter_push_data(self):

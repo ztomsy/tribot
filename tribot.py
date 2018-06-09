@@ -103,6 +103,7 @@ while True:
 
         tribot.get_good_triangles()
 
+        tribot.reporter.set_indicator("session_uuid", tribot.session_uuid)
         tribot.reporter.set_indicator("good_triangles", len(tribot.tri_list_good))
         tribot.reporter.set_indicator("total_triangles",  len(tribot.tri_list))
         tribot.reporter.set_indicator("best_triangle", tribot.last_proceed_report["best_result"]["triangle"])

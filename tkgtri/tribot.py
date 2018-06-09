@@ -147,7 +147,7 @@ class TriBot:
         self.report_dir = directory
 
     def init_remote_reports(self):
-        self.reporter = TkgReporter(self.server_id, self.exchange_id, self.session_uuid)
+        self.reporter = TkgReporter(self.server_id, self.exchange_id)
         self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
                               self.influxdb["measurement"])
 

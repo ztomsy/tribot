@@ -8,7 +8,7 @@ class binance(ew.ccxtExchangeWrapper):
         self.wrapper_id = "binance"
 
     def _fetch_tickers(self):
-        return self._ccxt.fetch_bid_asks()
+        return self._ccxt.fetch_bids_asks()
 
     def get_exchange_wrapper_id(self):
         return self.wrapper_id
