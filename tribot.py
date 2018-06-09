@@ -84,7 +84,7 @@ while True:
             tribot.log(tribot.LOG_ERROR, "Error while fetching tickers {}".format(tribot.exchange_id))
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-            sys.exit()
+            continue
 
         # proceeding tickers
         try:
@@ -99,7 +99,7 @@ while True:
 
             exc_type, exc_value, exc_traceback = sys.exc_info()
             traceback.print_tb(exc_traceback)
-            sys.exit()
+            continue
 
         tribot.get_good_triangles()
 
