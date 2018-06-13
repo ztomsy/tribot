@@ -74,6 +74,15 @@ while True:
 
     while True:
         tribot.timer.reset_notches()
+
+        # exit when debugging and because of errors
+        if tribot.debug is True and tribot.errors > 0:
+            tribot.log(tribot.LOG_INFO, "Exit on errors, debugging")
+            sys.exit(666)
+
+        # resetting error
+        tribot.errors = 0
+
         # fetching tickers
         try:
             tribot.timer.check_timer()
@@ -115,15 +124,16 @@ while True:
 
             tribot.errors += 1
 
+        # reporting states:
         tribot.reporter.set_indicator("session_uuid", tribot.session_uuid)
         tribot.reporter.set_indicator("fetch_number", tribot.fetch_number)
         tribot.reporter.set_indicator("errors", tribot.errors)
 
         tribot.reporter.push_to_influx()
-        tribot.errors = 0
         tribot.timer.notch("duration_to_influx")
 
         print("Fetch_num: {}".format(tribot.fetch_number))
+        print("Errors: {}".format(tribot.errors))
         print("Good triangles: {} / {} ".format(len(tribot.tri_list_good),
                                                 len(tribot.tri_list)))
         print("Best triangle {}: {} ".format(tribot.last_proceed_report["best_result"]["triangle"],
@@ -131,6 +141,7 @@ while True:
         print("Tickers proceeded {} time".format(len(tribot.tickers)))
         print("Duration,s: " + str(tribot.timer.results_dict()))
         print("====================================================================================")
+
 
 tribot.log(tribot.LOG_INFO, "Total time:" + str((tribot.timer.notches[-1]["time"] - tribot.timer.start_time).total_seconds()))
 tribot.log(tribot.LOG_INFO, "Finished")
