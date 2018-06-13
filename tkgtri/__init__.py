@@ -14,3 +14,4 @@ from .orderbook import OrderBook
 from .orderbook import Order
 from .orderbook import Depth
 from .trade_orders import TradeOrder, OrderResult, OrderError
+from . import core

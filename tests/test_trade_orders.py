@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from .context import tkgtri
 import ccxt
-
 import unittest
 
 
