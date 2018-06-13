@@ -189,8 +189,8 @@ class TriBot:
         self.tickers = self.exchange.get_tickers()
 
     def get_good_triangles(self):
-        tri_list = list(filter(lambda x: x['result'] > 0, self.tri_list))
-        tri_list = sorted(tri_list, key=lambda k: k['result'], reverse=True)
+        # tri_list = list(filter(lambda x: x['result'] > 0, self.tri_list))
+        tri_list = sorted(self.tri_list, key=lambda k: k['result'], reverse=True)
 
         threshold = self.threshold
 
