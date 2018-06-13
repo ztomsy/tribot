@@ -16,7 +16,7 @@ class Timer:
         self.request_time = self.now
         self.timestamp_before_request = datetime(1, 1, 1, 1, 1, 0)
 
-        self.max_transactions_per_lap = int
+        self.max_requests_per_lap = int
         self.lap_time = int
 
 
@@ -34,9 +34,9 @@ class Timer:
         self.request_time = (self.now - self.timestamp_before_request).total_seconds()
         self.timestamp_before_request = self.now
 
-        if 1 / self.request_time > self.max_transactions_per_lap / self.lap_time:
-            print("Pause for:", self.lap_time / self.max_transactions_per_lap - self.request_time)
-            time.sleep(self.lap_time / self.max_transactions_per_lap - self.request_time)
+        if 1 / self.request_time > self.max_requests_per_lap / self.lap_time:
+            print("Pause for:", self.lap_time / self.max_requests_per_lap - self.request_time)
+            time.sleep(self.lap_time / self.max_requests_per_lap - self.request_time)
             self.timestamp_before_request = datetime.now()
 
 

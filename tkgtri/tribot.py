@@ -38,7 +38,7 @@ class TriBot:
         self.timer = ...  # type: timer.Timer
 
         self.lap_time = float
-        self.max_transactions_per_lap = float
+        self.max_requests_per_lap = float
         self.test_balance = float
 
         self.live = bool
@@ -155,7 +155,7 @@ class TriBot:
 
     def init_timer(self):
         self.timer = timer.Timer()
-        self.timer.max_transactions_per_lap = self.max_transactions_per_lap
+        self.timer.max_requests_per_lap = self.max_requests_per_lap
         self.timer.lap_time = self.lap_time
 
     def init_exchange(self):

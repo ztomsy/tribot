@@ -31,7 +31,7 @@
   "max_past_triangles" : 100,
   "good_consecutive_results_threshold":2,
   "lap_time" : 60,
-  "max_transactions_per_lap": 850,
+  "max_requests_per_lap": 850,
   "test_balance":1,
 
   "influxdb":

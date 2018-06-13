@@ -27,6 +27,12 @@ def get_cli_parameters(args):
                         type=float,
                         action="store", default=None)
 
+    parser.add_argument("--requests", help="maxumin requests to exchange per minute",
+                        dest="max_requests_per_lap",
+                        type=float,
+                        action="store", default=None)
+
+
     return parser.parse_args(args)
 
 
