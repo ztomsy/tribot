@@ -47,6 +47,8 @@ except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Error while exchange initialization {}".format(tribot.exchange_id))
     tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
     tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+    traceback.print_exc(file=sys.stdout)
+
     sys.exit(0)
 
 if len(tribot.markets) < 1:
@@ -107,8 +109,8 @@ while True:
             tribot.reporter.set_indicator("good_triangles", len(tribot.tri_list_good))
             tribot.reporter.set_indicator("total_triangles", len(tribot.tri_list))
 
-            tribot.reporter.set_indicator("best_triangle", tribot.tri_list[0]["triangle"])
-            tribot.reporter.set_indicator("best_result", tribot.tri_list[0]["result"])
+            tribot.reporter.set_indicator("best_triangle", tribot.last_proceed_report["best_result"]["triangle"])
+            tribot.reporter.set_indicator("best_result", tribot.last_proceed_report["best_result"]["result"])
 
             tribot.timer.notch("duration_proceed")
 
