@@ -25,7 +25,7 @@ def get_symbol(c1: str, c2: str, markets: dict):
 
 
 def get_order_type(source_cur: str, dest_cur: str, symbol: str):
-    a = "sell" if source_cur + "/" + dest_cur == symbol else "buy"
+    a = "buy" if source_cur + "/" + dest_cur == symbol else "sell"
     return a
 
 

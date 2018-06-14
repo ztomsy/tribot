@@ -14,7 +14,8 @@ class ExchangeWrapperOfflineFetchError(ExchangeWrapperError):
 
 
 class ccxtExchangeWrapper:
-    _ccxt = ...  # type: ccxt.base
+
+    _ccxt = ...  # type: ccxt.Exchange
 
     @classmethod
     def load_from_id(cls, exchange_id, api_key="", secret="", offline=False):
@@ -132,3 +133,7 @@ class ccxtExchangeWrapper:
         else:
             raise (ExchangeWrapperOfflineFetchError(
                 "Markets are not loaded".format(len(self._offline_tickers))))
+
+    def place_limit_order(self, symbol, type,  side, amount, price):
+        # create_order(self, symbol, type, side, amount, price=None, params={})
+        return self._ccxt.create_order(symbol, type, side, amount, price)

@@ -1,13 +1,16 @@
 import tkgtri
 
 
-eW = tkgtri.ccxtExchangeWrapper.load_from_id("binance",
-                                             "AmEkXUlAh3fW1XkxIOSLovMVia1B55bWI2937Y9ZGRu25uJj2XSCBbOGoI8bb8II",
-                                             "6yy8vrkUR3aOBJyUkzRtEHGYR01gxMmyYJ6jMHyt3HxY7AtXlKr54FmtPOLUsBvh")
+# eW = tkgtri.ccxtExchangeWrapper.load_from_id("binance",
+#                                              "AmEkXUlAh3fW1XkxIOSLovMVia1B55bWI2937Y9ZGRu25uJj2XSCBbOGoI8bb8II",
+#                                              "6yy8vrkUR3aOBJyUkzRtEHGYR01gxMmyYJ6jMHyt3HxY7AtXlKr54FmtPOLUsBvh")
+
+eW = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin",
+                                             "5b22b10709e5a14f2c125e3d", "11ec0073-8919-4863-a518-7e2468506752")
 
 eW.get_markets()
 
-balance = eW.get_balance()
+balance = eW._ccxt.fetch_balance()
 # eW.order.place_limit_order_for_start_amount(start_cur, dest_cur, amount_of_start_cur)
 # eW.order.time_to_fill = 380 # in seconds
 #
@@ -40,15 +43,22 @@ bal_to_bid = 0.1
 side = tkgtri.core.get_order_type(start_curr, dest_cur, eW.markets)
 symbol = tkgtri.core.get_symbol(start_curr, dest_cur, eW.markets)
 
-ob_array = eW._ccxt.fetch_ordebook()
+ob_array = eW._ccxt.fetch_order_book(symbol)
 ob = tkgtri.OrderBook(symbol, ob_array["asks"], ob_array['bids'])
 
-d = ob.get_depth_for_destination_currency(bal_to_bid, dest_cur)
+order = tkgtri.TradeOrder(symbol, bal_to_bid, side)
+d = order.fake_market_order(ob)
 
-price = d.total_price
+eW.place_limit_order(order.symbol, "limit", side, )
 
 
-amount = d.total_quantity
+# d = ob.(bal_to_bid, dest_cur)
+# price = d.total_price
+# amount = d.total_quantity
+
+
+
+pass
 
 
 

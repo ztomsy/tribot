@@ -27,6 +27,24 @@ class OrderResult:
         self.status = ""
         self.placed = False
 
+        # 'info': response,
+        # 'id': orderId,
+        # 'timestamp': timestamp,
+        # 'datetime': iso8601,
+        # 'lastTradeTimestamp': None,
+        # 'symbol': market['symbol'],
+        # 'type': type,
+        # 'side': side,
+        # 'amount': amount,
+        # 'filled': None,
+        # 'remaining': None,
+        # 'price': price,
+        # 'cost': cost,
+        # 'status': 'open',
+        # 'fee': None,
+        # 'trades': None,
+
+
 
 class TradeOrder:
 
@@ -58,6 +76,7 @@ class TradeOrder:
         self.side = side.upper()
         self.order_book = None
         self.result = OrderResult()
+        self.status = str
 
     def fake_market_order(self, orderbook=None, exchange=None):
 
@@ -94,6 +113,13 @@ class TradeOrder:
             if self.side == "BUY":
                 self.result.asset = self.symbol.split("/")[0]
                 self.result.amount = self.amount
+
+            return self.result
+
+    # def get_bid_from_start_currency(self, amount):
+
+
+
 
 
 
