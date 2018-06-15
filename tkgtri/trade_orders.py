@@ -58,6 +58,24 @@ class TradeOrder:
     # TradeOrder.order_from_asset(symbol, start_asset, amount, ticker_price, exchange )
     #
 
+    def create_order_from_start_amount(self, symbol, amount, side, price):
+        pass
+
+    def cancel_order(self):
+        pass
+
+    def update_order_status_from_exchange_data(self):
+        pass
+
+    def get_filled_amount_in_dest(self):
+        pass
+
+    def get_filled_amount_in_source(self):
+        pass
+
+    def recover_start_currency(self):
+        pass
+
     def __init__(self, symbol, amount, side):
         # todo add commission ?
 
