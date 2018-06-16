@@ -1,9 +1,23 @@
 
 from .orderbook import OrderBook
+from tkgtri import core
 
 
 class OrderError(Exception):
+    """Basic exception for errors raised by Orders"""
+    pass
+
+
+class OrderErrorSymbolNotFound(OrderError):
     """Basic exception for errors raised by cars"""
+    pass
+
+
+class OrderErrorBadPrice(OrderError):
+    pass
+
+
+class OrderErrorSideNotFound(OrderError):
     pass
 
 
@@ -45,8 +59,7 @@ class OrderResult:
         # 'trades': None,
 
 
-
-class TradeOrder:
+class TradeOrder(object):
 
     # todo create wrapper constructor for fake/real orders with any starting asset
     # different wrapper constructors for amount of available asset
@@ -58,8 +71,41 @@ class TradeOrder:
     # TradeOrder.order_from_asset(symbol, start_asset, amount, ticker_price, exchange )
     #
 
-    def create_order_from_start_amount(self, symbol, amount, side, price):
-        pass
+    def __init__(self, type, symbol, amount, side):
+
+        self.id = str
+        self.timestamp = None
+        self.symbol = symbol.upper()
+        self.type = type
+        self.side = side.lower()
+        self.amount = amount
+        self.status = str
+        self.order_book = None
+        self.result = OrderResult()
+
+        self.amount_start = float
+
+
+    @classmethod
+    def create_limit_order_from_start_amount(cls, markets, start_currency, amount_start, dest_currency, price):
+
+        symbol = core.get_symbol(start_currency, dest_currency, markets)
+        if not symbol:
+            raise OrderErrorSymbolNotFound("Symbol for {}, {} not found".format(start_currency, dest_currency))
+
+        side = core.get_order_type(start_currency, dest_currency, symbol)
+
+        if price <= 0:
+            raise(OrderErrorBadPrice("Wrong price. Symbol: {}, Side:{}, Price:{} ".format(symbol, side, price)))
+
+        if side == "sell":
+            amount = amount_start
+        elif side == "buy":
+            amount = amount_start / price
+
+        order = cls("limit", symbol, amount, side)
+        order.amount_start = amount_start
+        return order
 
     def cancel_order(self):
         pass
@@ -76,25 +122,7 @@ class TradeOrder:
     def recover_start_currency(self):
         pass
 
-    def __init__(self, symbol, amount, side):
-        # todo add commission ?
 
-
-        # if side is not None:
-        #     self.side = side.upper()
-        #
-        # elif start_asset is not None and ticker_price is not None:
-        #     self.side = "SELL" if symbol.split("/")[0] == start_asset else "BUY"
-        #
-        # else:
-        #     raise OrderError("side or start asset are not provided ")
-
-        self.symbol = symbol.upper()
-        self.amount = amount
-        self.side = side.upper()
-        self.order_book = None
-        self.result = OrderResult()
-        self.status = str
 
     def fake_market_order(self, orderbook=None, exchange=None):
 

@@ -13,5 +13,5 @@ from .reporter import TkgReporter
 from .orderbook import OrderBook
 from .orderbook import Order
 from .orderbook import Depth
-from .trade_orders import TradeOrder, OrderResult, OrderError
+from .trade_orders import *
 from . import core
