@@ -1,6 +1,7 @@
 
 from .orderbook import OrderBook
 from tkgtri import core
+from datetime import datetime
 
 
 class OrderError(Exception):
@@ -25,7 +26,7 @@ class OrderResult:
     def __init__(self):
         self.id = ""
 
-        self.amount = 0 # result amopunt if buy than base, if sell than quoote
+        self.amount = 0 # result amount if buy than base, if sell than quoote
         self.asset = "" # result asset
 
         self.quote_amount = 0
@@ -41,23 +42,6 @@ class OrderResult:
         self.status = ""
         self.placed = False
 
-        # 'info': response,
-        # 'id': orderId,
-        # 'timestamp': timestamp,
-        # 'datetime': iso8601,
-        # 'lastTradeTimestamp': None,
-        # 'symbol': market['symbol'],
-        # 'type': type,
-        # 'side': side,
-        # 'amount': amount,
-        # 'filled': None,
-        # 'remaining': None,
-        # 'price': price,
-        # 'cost': cost,
-        # 'status': 'open',
-        # 'fee': None,
-        # 'trades': None,
-
 
 class TradeOrder(object):
 
@@ -71,20 +55,32 @@ class TradeOrder(object):
     # TradeOrder.order_from_asset(symbol, start_asset, amount, ticker_price, exchange )
     #
 
+    UPDATE_FROM_EXCHANGE_FIELDS = ["id", "datetime", "timestamp", "lastTradeTimestamp", "status", "amount", "filled",
+                                   "remaining", "cost", "info"]
+
     def __init__(self, type, symbol, amount, side):
 
         self.id = str
-        self.timestamp = None
+        self.datetime = datetime  # datetime
+        self.timestamp = int  # order placing/opening Unix timestamp in milliseconds
+        self.lastTradeTimestamp = int  # Unix timestamp of the most recent trade on this order
+        self.status = str  # 'open', 'closed', 'canceled'
+
         self.symbol = symbol.upper()
-        self.type = type
-        self.side = side.lower()
-        self.amount = amount
-        self.status = str
+        self.type = str  # limit
+        self.side = side.lower()  # buy or sell
+        self.amount = amount  # ordered amount of base currency
+        self.filled = 0.0  # filled amount of base currency
+        self.remaining = 0.0  # remaining amount to fill
+        self.cost = 0.0  # 'filled' * 'price'
+
+        self.info = None # the original response from exchange
+
+
         self.order_book = None
-        self.result = OrderResult()
+        self.result = OrderResult
 
         self.amount_start = float
-
 
     @classmethod
     def create_limit_order_from_start_amount(cls, markets, start_currency, amount_start, dest_currency, price):
@@ -110,7 +106,14 @@ class TradeOrder(object):
     def cancel_order(self):
         pass
 
-    def update_order_status_from_exchange_data(self):
+    def update_order_status_from_exchange_data(self, exchange_data: dict):
+
+        for field in self.UPDATE_FROM_EXCHANGE_FIELDS:
+            field_value = getattr(exchange_data, field)
+
+            if field_value is not None:
+                setattr(self, field,field_value)
+
         pass
 
     def get_filled_amount_in_dest(self):
