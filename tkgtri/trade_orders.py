@@ -81,13 +81,12 @@ class TradeOrder(object):
         self.amount_start = float  # amount of start currency
 
     @classmethod
-    def create_limit_order_from_start_amount(cls, markets, start_currency, amount_start, dest_currency, price):
-
-        symbol = core.get_symbol(start_currency, dest_currency, markets)
-        if not symbol:
-            raise OrderErrorSymbolNotFound("Symbol for {}, {} not found".format(start_currency, dest_currency))
+    def create_limit_order_from_start_amount(cls, symbol, start_currency, amount_start, dest_currency, price):
 
         side = core.get_order_type(start_currency, dest_currency, symbol)
+
+        if not side:
+            raise OrderErrorSymbolNotFound("Worng symbol {} for trade {} - {}".format(symbol, start_currency, dest_currency))
 
         if price <= 0:
             raise (OrderErrorBadPrice("Wrong price. Symbol: {}, Side:{}, Price:{} ".format(symbol, side, price)))

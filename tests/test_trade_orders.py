@@ -17,28 +17,26 @@ class TradeOrderTestSuite(unittest.TestCase):
 
     def test_create_limit_order_from_start_amount(self):
 
-        markets = dict({"ETH/BTC": True})
+        symbol = "ETH/BTC"
 
-        order = TradeOrder.create_limit_order_from_start_amount(markets, "ETH", 1, "BTC", 0.08)
-        self.assertEqual(order.symbol, "ETH/BTC")
+        order = TradeOrder.create_limit_order_from_start_amount(symbol, "ETH", 1, "BTC", 0.08)
         self.assertEqual(order.side, "sell")
         self.assertEqual(order.amount, 1)
         self.assertEqual(order.amount_start, 1)
         self.assertEqual(type(order.id), type)
 
-        order = TradeOrder.create_limit_order_from_start_amount(markets, "BTC", 1, "ETH", 0.08)
-        self.assertEqual(order.symbol, "ETH/BTC")
+        order = TradeOrder.create_limit_order_from_start_amount(symbol, "BTC", 1, "ETH", 0.08)
         self.assertEqual(order.side, "buy")
         self.assertEqual(order.amount, 1/0.08)
         self.assertEqual(order.amount_start, 1)
 
         with self.assertRaises(OrderErrorSymbolNotFound) as cm:
-            TradeOrder.create_limit_order_from_start_amount(markets, "BTC", 1, "USD", 0.08)
+            TradeOrder.create_limit_order_from_start_amount(symbol, "BTC", 1, "USD", 0.08)
         e = cm.exception
         self.assertEqual(type(e), OrderErrorSymbolNotFound)
 
         with self.assertRaises(OrderErrorBadPrice) as cm:
-            TradeOrder.create_limit_order_from_start_amount(markets, "BTC", 1, "ETH", 0)
+            TradeOrder.create_limit_order_from_start_amount(symbol, "BTC", 1, "ETH", 0)
         e = cm.exception
         self.assertEqual(type(e), OrderErrorBadPrice)
 
