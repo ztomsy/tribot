@@ -54,10 +54,10 @@ class TradeOrder(object):
     #
 
     # fields to update from ccxt order placement response
-    UPDATE_FROM_EXCHANGE_FIELDS = ["id", "datetime", "timestamp", "lastTradeTimestamp", "status", "amount", "filled",
-                                   "remaining", "cost", "info"]
+    _UPDATE_FROM_EXCHANGE_FIELDS = ["id", "datetime", "timestamp", "lastTradeTimestamp", "status", "amount", "filled",
+                                   "remaining", "cost", "price", "info"]
 
-    def __init__(self, type, symbol, amount, side):
+    def __init__(self, type, symbol, amount, side, price=None ):
 
         self.id = str
         self.datetime = datetime  # datetime
@@ -66,9 +66,12 @@ class TradeOrder(object):
         self.status = str  # 'open', 'closed', 'canceled'
 
         self.symbol = symbol.upper()
-        self.type = str  # limit
+        self.type = type  # limit
         self.side = side.lower()  # buy or sell
         self.amount = amount  # ordered amount of base currency
+        self.init_price = price if price is not None else 0.0 # initial price, when create order
+        self.price = self.init_price  # placed price, could be updated from exchange
+
         self.filled = 0.0  # filled amount of base currency
         self.remaining = 0.0  # remaining amount to fill
         self.cost = 0.0  # 'filled' * 'price'
@@ -86,7 +89,7 @@ class TradeOrder(object):
         side = core.get_order_type(start_currency, dest_currency, symbol)
 
         if not side:
-            raise OrderErrorSymbolNotFound("Worng symbol {} for trade {} - {}".format(symbol, start_currency, dest_currency))
+            raise OrderErrorSymbolNotFound("Wrong symbol {} for trade {} - {}".format(symbol, start_currency, dest_currency))
 
         if price <= 0:
             raise (OrderErrorBadPrice("Wrong price. Symbol: {}, Side:{}, Price:{} ".format(symbol, side, price)))
@@ -96,7 +99,7 @@ class TradeOrder(object):
         elif side == "buy":
             amount = amount_start / price
 
-        order = cls("limit", symbol, amount, side)
+        order = cls("limit", symbol, amount, side, price)
         order.amount_start = amount_start
         return order
 
@@ -105,7 +108,7 @@ class TradeOrder(object):
 
     def update_order_from_exchange_resp(self, exchange_data: dict):
 
-        for field in self.UPDATE_FROM_EXCHANGE_FIELDS:
+        for field in self._UPDATE_FROM_EXCHANGE_FIELDS:
             if exchange_data[field] is not None:
                 setattr(self, field, exchange_data[field])
 

@@ -2,7 +2,7 @@ import ccxt
 import csv
 import json
 from . import exchanges
-
+from .trade_orders import TradeOrder
 
 class ExchangeWrapperError(Exception):
     """Basic exception for errors raised by ccxtExchangeWrapper"""
@@ -134,6 +134,16 @@ class ccxtExchangeWrapper:
             raise (ExchangeWrapperOfflineFetchError(
                 "Markets are not loaded".format(len(self._offline_tickers))))
 
-    def place_limit_order(self, symbol, type,  side, amount, price):
+    def _create_order(self, symbol, order_type, side, amount, price=None):
         # create_order(self, symbol, type, side, amount, price=None, params={})
-        return self._ccxt.create_order(symbol, type, side, amount, price)
+        return self._ccxt.create_order(symbol, order_type, side, amount, price)
+
+    def place_limit_order(self, order: TradeOrder):
+        # returns the ccxt response on order placement
+        return self._create_order(order.symbol, "limit", order.side, order.amount, order.price)
+
+    def _fetch_order(self, order_id):
+        return self._ccxt.fetch_order(order_id)
+
+    def get_order_update(self, order: TradeOrder):
+        return self._fetch_order(order.id)

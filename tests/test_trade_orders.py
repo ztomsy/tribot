@@ -51,12 +51,12 @@ class TradeOrderTestSuite(unittest.TestCase):
                'timestamp': 1529586827997, 'fee': None, 'symbol': 'ETH/BTC', 'id': '169675546',
                'datetime': '2018-06-21T13:13:48.997Z', 'lastTradeTimestamp': None, 'remaining': 0.0, 'amount': 0.05}
 
-        markets = dict({"ETH/BTC": True})
+        symbol = "ETH/BTC"
 
-        order = TradeOrder.create_limit_order_from_start_amount(markets, "ETH", 1, "BTC", 0.08)
+        order = TradeOrder.create_limit_order_from_start_amount(symbol, "ETH", 1, "BTC", 0.08)
 
         order.update_order_from_exchange_resp(binance_responce)
-        for field in order.UPDATE_FROM_EXCHANGE_FIELDS:
+        for field in order._UPDATE_FROM_EXCHANGE_FIELDS:
              if binance_responce[field] is not None:
                 self.assertEqual(binance_responce[field], getattr(order, field))
 

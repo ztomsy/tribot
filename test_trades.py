@@ -19,7 +19,7 @@ _keys = {"binance":
 exchange_id = "binance"
 start_curr = "ETH"
 dest_cur = "BTC"
-start_curr_amount = 0.05
+start_curr_amount = 0.05 / 3
 
 eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["key"],
                                              _keys[exchange_id]["secret"])
@@ -38,9 +38,17 @@ d = ob.get_depth_for_destination_currency(start_curr_amount, dest_cur)
 price = d.total_price
 amount = d.total_quantity / d.total_price if side == "sell" else d.total_quantity
 
-order_resp = eW.place_limit_order(symbol, "limit", side, amount, price )
+order = tkgtri.TradeOrder.create_limit_order_from_start_amount(symbol, start_curr, start_curr_amount, dest_cur, price)
 
-print(order_resp)
+# order_resp = eW.place_limit_order(order.symbol, order.side, order.amount/3, order.price)
+order_resp = eW.place_limit_order(order)
+order.update_order_from_exchange_resp(order_resp)
+
+print(order.id)
+update_resp = eW.get_order_update(order)
+
+print(update_resp)
+
 sys.exit(0)
 # d = ob.(bal_to_bid, dest_cur)
 # price = d.total_price
