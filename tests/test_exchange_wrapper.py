@@ -12,10 +12,15 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(exchange.get_exchange_wrapper_id(), "binance")
         self.assertEqual(exchange._ccxt.id, "binance")
 
-    def test_create_generic(self):
+    def test_create_wrapped2(self):
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin")
-        self.assertEqual(exchange.get_exchange_wrapper_id(), "generic")
+        self.assertEqual(exchange.get_exchange_wrapper_id(), "kucoin")
         self.assertEqual(exchange._ccxt.id, "kucoin")
+
+    def test_create_generic(self):
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("bitfinex")
+        self.assertEqual(exchange.get_exchange_wrapper_id(), "generic")
+        self.assertEqual(exchange._ccxt.id, "bitfinex")
 
     def test_fetch_ticker_wrapped(self):
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")

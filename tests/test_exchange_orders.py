@@ -36,7 +36,7 @@ class ExchangeOrderTestSuite(unittest.TestCase):
 
         self.ew.markets = dict({"ETH/BTC": True})
 
-        self.eo.order = TradeOrder.create_limit_order_from_start_amount(self.eo.exchange_wrapper.markets, "BTC", 1,
+        self.eo.order = TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "BTC", 1,
                                                                         "ETH", 0.07)
 
         self.eo.update_order_from_exchange(order_resp)
