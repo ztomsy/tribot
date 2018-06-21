@@ -42,7 +42,25 @@ class TradeOrderTestSuite(unittest.TestCase):
         e = cm.exception
         self.assertEqual(type(e), OrderErrorBadPrice)
 
+    def test_update_order_from_exchange_data(self):
 
+        binance_responce = {'price': 0.07946, 'trades': None, 'side': 'sell', 'type': 'limit', 'cost': 0.003973,
+                            'status': 'closed',
+               'info': {'symbol': 'ETHBTC', 'orderId': 169675546, 'side': 'SELL', 'timeInForce': 'GTC',
+                        'price': '0.07946000',
+                        'status': 'FILLED', 'clientOrderId': 'SwstQ0eZ0ZJKr2y4uPQin2', 'executedQty': '0.05000000',
+                        'origQty': '0.05000000', 'type': 'LIMIT', 'transactTime': 1529586827997}, 'filled': 0.05,
+               'timestamp': 1529586827997, 'fee': None, 'symbol': 'ETH/BTC', 'id': '169675546',
+               'datetime': '2018-06-21T13:13:48.997Z', 'lastTradeTimestamp': None, 'remaining': 0.0, 'amount': 0.05}
+
+        markets = dict({"ETH/BTC": True})
+
+        order = TradeOrder.create_limit_order_from_start_amount(markets, "ETH", 1, "BTC", 0.08)
+
+        order.update_order_from_exchange_resp(binance_responce)
+        for field in order.UPDATE_FROM_EXCHANGE_FIELDS:
+             if binance_responce[field] is not None:
+                self.assertEqual(binance_responce[field], getattr(order, field))
 
     #
     # def test_fake_trade_placement_exception(self):

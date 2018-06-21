@@ -1,4 +1,3 @@
-
 from .orderbook import OrderBook
 from tkgtri import core
 from datetime import datetime
@@ -26,8 +25,8 @@ class OrderResult:
     def __init__(self):
         self.id = ""
 
-        self.amount = 0 # result amount if buy than base, if sell than quoote
-        self.asset = "" # result asset
+        self.amount = 0  # result amount if buy than base, if sell than quoote
+        self.asset = ""  # result asset
 
         self.quote_amount = 0
         self.quote_asset = ""
@@ -44,7 +43,6 @@ class OrderResult:
 
 
 class TradeOrder(object):
-
     # todo create wrapper constructor for fake/real orders with any starting asset
     # different wrapper constructors for amount of available asset
     # so developer have not to implement the bid calculation
@@ -55,6 +53,7 @@ class TradeOrder(object):
     # TradeOrder.order_from_asset(symbol, start_asset, amount, ticker_price, exchange )
     #
 
+    # fields to update from ccxt order placement response
     UPDATE_FROM_EXCHANGE_FIELDS = ["id", "datetime", "timestamp", "lastTradeTimestamp", "status", "amount", "filled",
                                    "remaining", "cost", "info"]
 
@@ -74,13 +73,12 @@ class TradeOrder(object):
         self.remaining = 0.0  # remaining amount to fill
         self.cost = 0.0  # 'filled' * 'price'
 
-        self.info = None # the original response from exchange
-
+        self.info = None  # the original response from exchange
 
         self.order_book = None
         self.result = OrderResult
 
-        self.amount_start = float
+        self.amount_start = float  # amount of start currency
 
     @classmethod
     def create_limit_order_from_start_amount(cls, markets, start_currency, amount_start, dest_currency, price):
@@ -92,7 +90,7 @@ class TradeOrder(object):
         side = core.get_order_type(start_currency, dest_currency, symbol)
 
         if price <= 0:
-            raise(OrderErrorBadPrice("Wrong price. Symbol: {}, Side:{}, Price:{} ".format(symbol, side, price)))
+            raise (OrderErrorBadPrice("Wrong price. Symbol: {}, Side:{}, Price:{} ".format(symbol, side, price)))
 
         if side == "sell":
             amount = amount_start
@@ -106,13 +104,11 @@ class TradeOrder(object):
     def cancel_order(self):
         pass
 
-    def update_order_status_from_exchange_data(self, exchange_data: dict):
+    def update_order_from_exchange_resp(self, exchange_data: dict):
 
         for field in self.UPDATE_FROM_EXCHANGE_FIELDS:
-            field_value = getattr(exchange_data, field)
-
-            if field_value is not None:
-                setattr(self, field,field_value)
+            if exchange_data[field] is not None:
+                setattr(self, field, exchange_data[field])
 
         pass
 
@@ -124,8 +120,6 @@ class TradeOrder(object):
 
     def recover_start_currency(self):
         pass
-
-
 
     def fake_market_order(self, orderbook=None, exchange=None):
 
@@ -155,7 +149,7 @@ class TradeOrder(object):
             self.result.totalPrice = depth.total_price
             self.result.fills_depth = depth.depth
 
-            if self.side =="SELL":
+            if self.side == "SELL":
                 self.result.asset = self.symbol.split("/")[1]
                 self.result.amount = depth.total_quantity
 
@@ -166,28 +160,3 @@ class TradeOrder(object):
             return self.result
 
     # def get_bid_from_start_currency(self, amount):
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

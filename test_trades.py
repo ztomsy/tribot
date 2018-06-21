@@ -2,8 +2,8 @@ import tkgtri
 import sys
 
 _keys = {"binance":
-             {"key": "AmEkXUlAh3fW1XkxIOSLovMVia1B55bWI2937Y9ZGRu25uJj2XSCBbOGoI8bb8II",
-              "secret": "6yy8vrkUR3aOBJyUkzRtEHGYR01gxMmyYJ6jMHyt3HxY7AtXlKr54FmtPOLUsBvh"},
+             {"key": "O1hGc8oRK7BXfBS7ynXZPcXwjdnaz5fU5RJow9RM7sHCWfMJLgdBAnh6dopCFk5I",
+              "secret": "D4ddhpjcerL4F3Hhbwjp5lly1U7UGjVg4N7iyciDf4NwDN85uy262kU3ZeVhQO3X"},
          "kucoin":
              {"key": "5b22b10709e5a14f2c125e3d",
               "secret": "11ec0073-8919-4863-a518-7e2468506752"}
@@ -16,8 +16,8 @@ _keys = {"binance":
 # eW = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin",
 #                                              "5b22b10709e5a14f2c125e3d", "11ec0073-8919-4863-a518-7e2468506752")
 
-exchange_id = "kucoin"
-start_curr= "ETH"
+exchange_id = "binance"
+start_curr = "ETH"
 dest_cur = "BTC"
 start_curr_amount = 0.05
 
