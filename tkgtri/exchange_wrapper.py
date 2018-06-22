@@ -31,6 +31,8 @@ class ccxtExchangeWrapper:
 
         exchange = getattr(ccxt, exchange_id)
 
+        self.exchange_id = exchange_id
+
         self._ccxt = exchange({'apiKey': api_key, 'secret': secret})
         self.wrapper_id = "generic"
         self.offline = offline
@@ -41,6 +43,9 @@ class ccxtExchangeWrapper:
         self._offline_markets = dict()
         self._offline_tickers = dict()
         self._offline_tickers_current_index = 0
+
+        self._offline_order = dict()
+        self._offline_order_update_index = 0
 
         self.markets_json_file = str
         self.tickers_csv_file = str
@@ -72,7 +77,7 @@ class ccxtExchangeWrapper:
         return "generic"
 
     # init offline fetching
-    def set_offline_mode(self, markets_json_file: str, tickers_csv_file: str):
+    def set_offline_mode(self, markets_json_file: str, tickers_csv_file: str, orders_json_file: str = None):
 
         self.markets_json_file = markets_json_file
         self.tickers_csv_file = tickers_csv_file
@@ -82,6 +87,9 @@ class ccxtExchangeWrapper:
 
         self._offline_markets = self.load_markets_from_json_file(markets_json_file)
         self._offline_tickers = self.load_tickers_from_csv(tickers_csv_file)
+
+        if orders_json_file is not None:
+            self._offline_order = self.load_order_from_json(orders_json_file)
 
     @staticmethod
     def load_markets_from_json_file(markets_json_file):
@@ -116,6 +124,12 @@ class ccxtExchangeWrapper:
                                                                      "bidVolume": row_value["bidVolume"]})
         return tickers
 
+    @staticmethod
+    def load_order_from_json(order_jason_file):
+        with open(order_jason_file) as json_file:
+            json_data = json.load(json_file)
+        return json_data
+
     def _offline_fetch_tickers(self):
         if self._offline_tickers_current_index < len(self._offline_tickers):
             tickers = self._offline_tickers[self._offline_tickers_current_index]
@@ -125,6 +139,20 @@ class ccxtExchangeWrapper:
         else:
             raise(ExchangeWrapperOfflineFetchError(
                 "No more loaded tickers. Total tickers: {}".format(len(self._offline_tickers))))
+
+    def _offline_create_order(self):
+        return self._offline_order["create"]
+
+    def _offline_fetch_order(self):
+
+        if self._offline_order_update_index < len(self._offline_order["updates"]):
+            order_resp = self._offline_order["updates"][self._offline_order_update_index]
+            self._offline_order_update_index += 1
+            return order_resp
+
+        else:
+            raise(ExchangeWrapperOfflineFetchError(
+                "No more order updates in file. Total tickers: {}".format(len(self._offline_order["updates"]))))
 
     def _offline_load_markets(self):
         if self._offline_markets is not None and len(self._offline_markets):
@@ -140,10 +168,16 @@ class ccxtExchangeWrapper:
 
     def place_limit_order(self, order: TradeOrder):
         # returns the ccxt response on order placement
-        return self._create_order(order.symbol, "limit", order.side, order.amount, order.price)
+        if self.offline:
+            return self._offline_create_order()
+        else:
+            return self._create_order(order.symbol, "limit", order.side, order.amount, order.price)
 
-    def _fetch_order(self, order_id):
-        return self._ccxt.fetch_order(order_id)
+    def _fetch_order(self, order: TradeOrder):
+        return self._ccxt.fetch_order(order.id)
 
     def get_order_update(self, order: TradeOrder):
-        return self._fetch_order(order.id)
+        if self.offline:
+            return self._offline_fetch_order()
+        else:
+            return self._fetch_order(order)

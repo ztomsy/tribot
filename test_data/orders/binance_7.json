@@ -1,0 +1,65 @@
+{
+    "create": {
+        "amount": 0.016,
+        "info": {
+            "timeInForce": "GTC",
+            "clientOrderId": "b4wbCbqe0iLCpYWepe2ICP",
+            "executedQty": "0.00000000",
+            "price": "0.07620900",
+            "symbol": "ETHBTC",
+            "origQty": "0.01600000",
+            "status": "NEW",
+            "type": "LIMIT",
+            "transactTime": 1529675663270,
+            "side": "SELL",
+            "orderId": 170236686
+        },
+        "filled": 0.0,
+        "status": "open",
+        "price": 0.076209,
+        "symbol": "ETH/BTC",
+        "side": "sell",
+        "type": "limit",
+        "lastTradeTimestamp": null,
+        "fee": null,
+        "id": "170236686",
+        "timestamp": 1529675663270,
+        "datetime": "2018-06-22T13:54:23.270Z",
+        "remaining": 0.016,
+        "cost": 0.0
+    },
+    "updates": [
+        {
+            "amount": 0.016,
+            "info": {
+                "clientOrderId": "b4wbCbqe0iLCpYWepe2ICP",
+                "status": "FILLED",
+                "price": "0.07620900",
+                "symbol": "ETHBTC",
+                "origQty": "0.01600000",
+                "isWorking": true,
+                "type": "LIMIT",
+                "time": 1529675663270,
+                "side": "SELL",
+                "icebergQty": "0.00000000",
+                "executedQty": "0.01600000",
+                "timeInForce": "GTC",
+                "stopPrice": "0.00000000",
+                "orderId": 170236686
+            },
+            "filled": 0.016,
+            "status": "closed",
+            "price": 0.076209,
+            "symbol": "ETH/BTC",
+            "side": "sell",
+            "type": "limit",
+            "lastTradeTimestamp": null,
+            "fee": null,
+            "id": "170236686",
+            "timestamp": 1529675663270,
+            "datetime": "2018-06-22T13:54:23.270Z",
+            "remaining": 0.0,
+            "cost": 0.001219344
+        }
+    ]
+}

@@ -1,0 +1,33 @@
+{
+    "create": {
+        "side": "sell",
+        "id": "170253491",
+        "symbol": "ETH/BTC",
+        "type": "limit",
+        "cost": 0.0,
+        "amount": 0.016,
+        "timestamp": 1529677285311,
+        "status": "open",
+        "remaining": 0.016,
+        "info": {
+            "side": "SELL",
+            "executedQty": "0.00000000",
+            "type": "LIMIT",
+            "fills": [],
+            "origQty": "0.01600000",
+            "timeInForce": "GTC",
+            "symbol": "ETHBTC",
+            "clientOrderId": "Eekyt9oFWrNzhuBuubpf5q",
+            "status": "NEW",
+            "price": "0.07721000",
+            "orderId": 170253491,
+            "transactTime": 1529677285311
+        },
+        "datetime": "2018-06-22T14:21:25.311Z",
+        "fee": null,
+        "lastTradeTimestamp": null,
+        "price": 0.07721,
+        "filled": 0.0
+    },
+    "updates": []
+}

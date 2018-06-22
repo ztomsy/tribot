@@ -40,6 +40,7 @@ class TradeOrderTestSuite(unittest.TestCase):
         e = cm.exception
         self.assertEqual(type(e), OrderErrorBadPrice)
 
+    @unittest.skip
     def test_update_order_from_exchange_data(self):
 
         binance_responce = {'price': 0.07946, 'trades': None, 'side': 'sell', 'type': 'limit', 'cost': 0.003973,
@@ -57,7 +58,7 @@ class TradeOrderTestSuite(unittest.TestCase):
 
         order.update_order_from_exchange_resp(binance_responce)
         for field in order._UPDATE_FROM_EXCHANGE_FIELDS:
-             if binance_responce[field] is not None:
+            if binance_responce[field] is not None:
                 self.assertEqual(binance_responce[field], getattr(order, field))
 
     #

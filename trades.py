@@ -1,5 +1,7 @@
 import tkgtri
 import sys
+import json
+import collections
 
 _keys = {"binance":
              {"key": "O1hGc8oRK7BXfBS7ynXZPcXwjdnaz5fU5RJow9RM7sHCWfMJLgdBAnh6dopCFk5I",
@@ -35,8 +37,11 @@ ob_array = eW._ccxt.fetch_order_book(symbol)
 ob = tkgtri.OrderBook(symbol, ob_array["asks"], ob_array['bids'])
 
 d = ob.get_depth_for_destination_currency(start_curr_amount, dest_cur)
-price = d.total_price
+price = d.total_price*1.001
 amount = d.total_quantity / d.total_price if side == "sell" else d.total_quantity
+
+order_history_file_name = tkgtri.utils.get_next_filename_index("test_data/orders/{}.json".format(eW.exchange_id))
+order_resps = collections.OrderedDict()
 
 order = tkgtri.TradeOrder.create_limit_order_from_start_amount(symbol, start_curr, start_curr_amount, dest_cur, price)
 
@@ -44,10 +49,29 @@ order = tkgtri.TradeOrder.create_limit_order_from_start_amount(symbol, start_cur
 order_resp = eW.place_limit_order(order)
 order.update_order_from_exchange_resp(order_resp)
 
-print(order.id)
-update_resp = eW.get_order_update(order)
+order_resps["create"] = order_resp
+order_resps["updates"] = list()
 
-print(update_resp)
+print("Oder id{}".format(order.id))
+tick = 0
+
+while order.status != "closed" and order.status != "canceled":
+    try:
+        update_resp = eW.get_order_update(order)
+        order.update_order_from_exchange_resp(update_resp)
+        order_resps["updates"].append(update_resp)
+    except Exception as e:
+        print("Exception: {}".format(type(e).__name__))
+        print("Exception body:", e.args)
+
+    finally:
+
+        print("Tick {}: Order {} updated".format(tick, order.id))
+
+        with open(order_history_file_name, 'w') as outfile:
+            json.dump(order_resps, outfile, indent=4)
+
+    tick += 1
 
 sys.exit(0)
 # d = ob.(bal_to_bid, dest_cur)
@@ -55,15 +79,4 @@ sys.exit(0)
 # amount = d.total_quantity
 
 
-
 pass
-
-
-
-
-
-
-
-
-
-
