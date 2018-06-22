@@ -37,7 +37,7 @@ ob_array = eW._ccxt.fetch_order_book(symbol)
 ob = tkgtri.OrderBook(symbol, ob_array["asks"], ob_array['bids'])
 
 d = ob.get_depth_for_destination_currency(start_curr_amount, dest_cur)
-price = d.total_price*1.001
+price = d.total_price*0.9
 amount = d.total_quantity / d.total_price if side == "sell" else d.total_quantity
 
 order_history_file_name = tkgtri.utils.get_next_filename_index("test_data/orders/{}.json".format(eW.exchange_id))
@@ -51,6 +51,9 @@ order.update_order_from_exchange_resp(order_resp)
 
 order_resps["create"] = order_resp
 order_resps["updates"] = list()
+
+with open(order_history_file_name, 'w') as outfile:
+    json.dump(order_resps, outfile, indent=4)
 
 print("Oder id{}".format(order.id))
 tick = 0
