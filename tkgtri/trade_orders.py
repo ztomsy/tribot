@@ -82,6 +82,12 @@ class TradeOrder(object):
         self.result = OrderResult
 
         self.amount_start = float  # amount of start currency
+        self.amount_dest = float # amount of dest currency
+
+        self.update_requests_count = 0  # number of updates of order. should be in correspondence with API requests
+
+        self.filled_src_amount = 0.0  # filled amount of start currency
+        self.filled_dest_amount = 0.0  # filled amount of dest currency
 
     @classmethod
     def create_limit_order_from_start_amount(cls, symbol, start_currency, amount_start, dest_currency, price):
@@ -96,11 +102,17 @@ class TradeOrder(object):
 
         if side == "sell":
             amount = amount_start
+            amount_dest = amount_start * price
+
         elif side == "buy":
             amount = amount_start / price
+            amount_dest = amount
 
         order = cls("limit", symbol, amount, side, price)
+
         order.amount_start = amount_start
+        order.amount_dest = amount_dest
+
         return order
 
     def cancel_order(self):
@@ -112,7 +124,16 @@ class TradeOrder(object):
             if exchange_data[field] is not None:
                 setattr(self, field, exchange_data[field])
 
-        pass
+        if self.side == "buy":
+            self.filled_src_amount = self.cost
+            self.filled_dest_amount = self.filled
+
+        elif self.side == "sell":
+            self.filled_src_amount = self.filled
+            self.filled_dest_amount = self.cost
+
+        self.update_requests_count += 1
+
 
     def get_filled_amount_in_dest(self):
         pass

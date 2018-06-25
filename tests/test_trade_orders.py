@@ -61,6 +61,120 @@ class TradeOrderTestSuite(unittest.TestCase):
             if binance_responce[field] is not None:
                 self.assertEqual(binance_responce[field], getattr(order, field))
 
+    def test_offline_sell_order(self):
+
+        ex = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        ex.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv",
+                            "test_data/orders_binance.json")
+
+        self.assertEqual(len(ex._offline_order["updates"]), 4)
+        self.assertEqual(ex._offline_order["create"]["id"], "170254693")
+
+        ex.get_markets()
+        ex.get_tickers()
+
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.05 / 3, "BTC", 0.077212)
+
+        order_resp = ex.place_limit_order(order)
+        order.update_order_from_exchange_resp(order_resp)
+
+        self.assertEqual(order.filled, 0)
+        self.assertEqual(order.status, "open")
+
+        order_resps = dict()
+        order_resps["updates"] = list()
+
+        tick = 0
+        while order.status != "closed" and order.status != "canceled":
+            update_resp = ex.get_order_update(order)
+            order.update_order_from_exchange_resp(update_resp)
+            order_resps["updates"].append(update_resp)
+            tick += 1
+
+        self.assertEqual(len(order_resps["updates"]), 4)
+        self.assertEqual(order.status, "closed")
+        self.assertEqual(order.filled, 0.016)
+
+        self.assertEqual(order.filled_src_amount, order.filled)
+        self.assertEqual(order.filled_dest_amount, order.cost)
+
+        self.assertListEqual(order_resps["updates"], ex._offline_order["updates"])
+
+    def test_offline_buy_order(self):
+
+        ex = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin")
+        ex.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv",
+                            "test_data/orders_kucoin_buy.json")
+
+        ex.get_markets()
+        ex.get_tickers()
+
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "BTC", 0.05, "ETH",
+                                                                       0.07381590480571001)
+
+        order_resp = ex.place_limit_order(order)
+        order.update_order_from_exchange_resp(order_resp)
+
+        order_resps = dict()
+        order_resps["updates"] = list()
+
+        tick = 0
+        while order.status != "closed" and order.status != "canceled":
+            update_resp = ex.get_order_update(order)
+            order.update_order_from_exchange_resp(update_resp)
+            order_resps["updates"].append(update_resp)
+            tick += 1
+
+        # self.assertEqual(len(order_resps["updates"]), 4)
+        self.assertEqual(order.status, "closed")
+        self.assertEqual(order.filled, order.filled_dest_amount)
+
+        self.assertEqual(order.filled_src_amount, order.cost)
+        self.assertEqual(order.filled_dest_amount, order.filled)
+
+        self.assertListEqual(order_resps["updates"], ex._offline_order["updates"])
+
+    def test_offline_sell_multi(self):
+
+        ex = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin")
+        ex.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv",
+                            "test_data/orders_kucoin_multi.json")
+
+        ex.get_markets()
+        ex.get_tickers()
+
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",
+                                                                       0.06633157807472399)
+
+        order_resp = ex.place_limit_order(order)
+        order.update_order_from_exchange_resp(order_resp)
+
+        order_resps = dict()
+        order_resps["updates"] = list()
+
+        tick = 0
+        while order.status != "closed" and order.status != "canceled":
+            update_resp = ex.get_order_update(order)
+            order.update_order_from_exchange_resp(update_resp)
+            order_resps["updates"].append(update_resp)
+
+            self.assertEqual(order.filled_src_amount, order.filled)
+            self.assertEqual(order.filled_dest_amount, order.cost)
+
+            tick += 1
+
+        # self.assertEqual(len(order_resps["updates"]), 4)
+        self.assertEqual(order.status, "closed")
+
+        self.assertEqual(order.filled_src_amount, order.filled)
+        self.assertEqual(order.filled_dest_amount, order.cost)
+
+        self.assertListEqual(order_resps["updates"], ex._offline_order["updates"])
+
+
+
+
+
     #
     # def test_fake_trade_placement_exception(self):
     #

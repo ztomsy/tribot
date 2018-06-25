@@ -18,17 +18,18 @@ _keys = {"binance":
 # eW = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin",
 #                                              "5b22b10709e5a14f2c125e3d", "11ec0073-8919-4863-a518-7e2468506752")
 
-exchange_id = "binance"
-start_curr = "ETH"
-dest_cur = "BTC"
-start_curr_amount = 0.05 / 3
+exchange_id = "kucoin"
+start_curr = "BTC"
+dest_cur = "ETH"
+# start_curr_amount = 0.05 / 3
+start_curr_amount = 0.05
 
 eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["key"],
                                              _keys[exchange_id]["secret"])
 
 eW.get_markets()
-
-balance_start_curr = eW._ccxt.fetch_balance()[start_curr]["free"]
+balance = eW._ccxt.fetch_balance()
+balance_start_curr = balance[start_curr]["free"]
 
 symbol = tkgtri.core.get_symbol(start_curr, dest_cur, eW.markets)
 side = tkgtri.core.get_order_type(start_curr, dest_cur, symbol)
@@ -37,7 +38,7 @@ ob_array = eW._ccxt.fetch_order_book(symbol)
 ob = tkgtri.OrderBook(symbol, ob_array["asks"], ob_array['bids'])
 
 d = ob.get_depth_for_destination_currency(start_curr_amount, dest_cur)
-price = d.total_price*0.9
+price = d.total_price*1
 amount = d.total_quantity / d.total_price if side == "sell" else d.total_quantity
 
 order_history_file_name = tkgtri.utils.get_next_filename_index("test_data/orders/{}.json".format(eW.exchange_id))
