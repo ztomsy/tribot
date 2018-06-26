@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from .context import tkgtri
-from tkgtri.trade_orders import *
-from tkgtri import OrderManagerError
+from tkgtri import OrderManagerError, OrderManagerErrorUnFilled, OrderManagerErrorSkip
 import ccxt
 import unittest
 
@@ -82,7 +81,7 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
         self.assertEqual(order.filled_dest_amount, 6.029e-05)
         self.assertEqual(om.last_response["action"], "cancel")
 
-    def test_order_manager_fok_zamotay(self):
+    def test_order_manager_fok_skip(self):
         limits = {"BTC": 0.0002, "ETH": 0.02, "BNB": 1, "USDT": 20}
 
         order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",
@@ -108,6 +107,77 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
         self.assertEqual(order.filled_dest_amount, 0.000006633)
         self.assertEqual(om.last_response["action"], "skip")
 
+    def test_order_manager_run_ok(self):
+
+        limits = {"BTC": 0.0002, "ETH": 0.02, "BNB": 1, "USDT": 20}
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",
+                                                                       0.06633157807472399)
+        ex = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin")
+        ex.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv",
+                            "test_data/orders_kucoin_multi.json")
+        ex.get_markets()
+        ex.get_tickers()
+
+        om = tkgtri.OrderManagerFok(order, limits, 100)
+
+        om.run_order_(ex)
+
+        self.assertEqual(order.status, "closed")
+        self.assertEqual(order.filled_dest_amount, 0.5 * order.price)
+
+        self.assertEqual(om.last_response["action"], "complete_order")
+        self.assertEqual(om.last_response["action"], "complete_order")
+
+    def test_order_manager_run_cancell(self):
+        limits = {"BTC": 0.0002, "ETH": 0.02, "BNB": 1, "USDT": 20}
+
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",
+                                                                       0.06633157807472399)
+        ex = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin")
+        ex.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv",
+                            "test_data/orders_kucoin_multi.json")
+
+        ex.get_markets()
+        ex.get_tickers()
+
+        om = tkgtri.OrderManagerFok(order, limits, 4)
+
+        with self.assertRaises(OrderManagerErrorUnFilled) as cm:
+            om.run_order_(ex)
+
+        e = cm.exception
+
+        self.assertEqual(type(e), OrderManagerErrorUnFilled)
+        self.assertEqual(order.status, "open")
+        self.assertEqual(om.last_response["action"], "cancel")
+        self.assertEqual(order.filled_src_amount, 0.000818)
+        self.assertEqual(order.filled_dest_amount, 6.029e-05)
+
+    def test_order_manager_run_skip(self):
+
+        limits = {"BTC": 0.0002, "ETH": 0.02, "BNB": 1, "USDT": 20}
+
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",
+                                                                       0.06633157807472399)
+        ex = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin")
+        ex.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv",
+                            "test_data/orders_kucoin_multi.json")
+
+        ex.get_markets()
+        ex.get_tickers()
+
+        om = tkgtri.OrderManagerFok(order, limits, 3)
+
+        with self.assertRaises(OrderManagerErrorSkip) as cm:
+            om.run_order_(ex)
+
+        e = cm.exception
+
+        self.assertEqual(type(e), OrderManagerErrorSkip)
+        self.assertEqual(order.status, "open")
+        self.assertEqual(order.filled_src_amount, 0.0001)
+        self.assertEqual(order.filled_dest_amount, 0.000006633)
+        self.assertEqual(om.last_response["action"], "skip")
 
 if __name__ == '__main__':
     unittest.main()

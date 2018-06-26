@@ -1,7 +1,16 @@
 from tkgtri import TradeOrder
+from tkgtri import ccxtExchangeWrapper
 
 
 class OrderManagerError(Exception):
+    pass
+
+
+class OrderManagerErrorUnFilled(Exception):
+    pass
+
+
+class OrderManagerErrorSkip(Exception):
     pass
 
 
@@ -34,7 +43,7 @@ class OrderManagerFok(object):
         self.min_filled_amount = float  # min amount of filled quote currency. should check cost in order to maintain
         self.set_filled_min_amount(limits)
 
-        self.last_response = dict
+        self.last_response = dict()
 
     def set_filled_min_amount(self, limits: dict):
         self.limits = limits
@@ -73,3 +82,35 @@ class OrderManagerFok(object):
         self.last_response = response
         return response
 
+    def create_order(self, exchange_wrapper: ccxtExchangeWrapper):
+        return exchange_wrapper.place_limit_order(self.order)
+
+    def create_order_legacy(self, exchange):
+        return exchange.create_order(self.order.symbol, self.order.type, self.order.side, self.order.amount,
+                                     self.order.price)
+
+    def update_order(self, exchange_wrapper: ccxtExchangeWrapper):
+        return exchange_wrapper.get_order_update(self.order)
+
+    def cancel_order(self):
+        pass
+
+    def run_order_(self, exchange):
+
+        order_resp = self.create_order(exchange)
+        self.order.update_order_from_exchange_resp(order_resp)
+
+        while self.proceed_update()["action"] == "hold":
+            update_resp = self.update_order(exchange)
+            self.order.update_order_from_exchange_resp(update_resp)
+
+        if self.last_response["action"] == "complete_order":
+            return True
+
+        if self.last_response["action"] == "cancel":
+            raise OrderManagerErrorUnFilled("Order not filled: {}".format(self.last_response["reason"]))
+
+        if self.last_response["action"] == "skip":
+            raise OrderManagerErrorSkip("Order could not be : {}".format(self.last_response["reason"]))
+
+        raise OrderManagerError("Order not filled: Unknown error")

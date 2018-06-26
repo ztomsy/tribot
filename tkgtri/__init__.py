@@ -14,5 +14,5 @@ from .orderbook import OrderBook
 from .orderbook import Order
 from .orderbook import Depth
 from .trade_orders import *
-from trade_manager import *
+from .trade_manager import *
 from . import core
