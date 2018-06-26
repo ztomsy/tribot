@@ -73,7 +73,7 @@
         {
             "timestamp": 1529946468000,
             "datetime": "2018-06-25T17:07:48.000Z",
-            "remaining": 0.5,
+            "remaining": 0.4999,
             "symbol": "ETH/BTC",
             "amount": 0.5,
             "info": {
@@ -110,8 +110,8 @@
             "side": "sell",
             "status": "open",
             "price": 0.06633157,
-            "cost": 0.033165785,
-            "filled": 0.0,
+            "cost": 0.000006633,
+            "filled": 0.0001,
             "type": "limit"
         },
         {

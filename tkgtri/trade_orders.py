@@ -89,6 +89,12 @@ class TradeOrder(object):
         self.filled_src_amount = 0.0  # filled amount of start currency
         self.filled_dest_amount = 0.0  # filled amount of dest currency
 
+        self.start_currency = self.symbol.split("/")[1] if side == "buy" else self.symbol.split("/")[0]
+        self.dest_currency = self.symbol.split("/")[0] if side == "buy" else self.symbol.split("/")[1]
+
+
+
+
     @classmethod
     def create_limit_order_from_start_amount(cls, symbol, start_currency, amount_start, dest_currency, price):
 

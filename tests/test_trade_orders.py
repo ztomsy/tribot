@@ -15,6 +15,21 @@ class TradeOrderTestSuite(unittest.TestCase):
         self.assertEqual(trade_order.symbol, "ETH/BTC")
         self.assertEqual(trade_order.amount, 1)
 
+        self.assertEqual(trade_order.start_currency, "BTC")
+        self.assertEqual(trade_order.dest_currency, "ETH")
+
+        trade_order = TradeOrder("limit", "ETH/BTC", 1, "sell")
+
+        self.assertEqual(trade_order.side, "sell")
+        self.assertEqual(trade_order.symbol, "ETH/BTC")
+        self.assertEqual(trade_order.amount, 1)
+
+        self.assertEqual(trade_order.start_currency, "ETH")
+        self.assertEqual(trade_order.dest_currency, "BTC")
+
+
+
+
     def test_create_limit_order_from_start_amount(self):
 
         symbol = "ETH/BTC"
