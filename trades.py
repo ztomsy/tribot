@@ -1,3 +1,8 @@
+#
+# utility to trace order execution
+# orders are saved to test_data/orders/<exchange_id>_<num>.json
+#
+
 import tkgtri
 import sys
 import json
@@ -18,11 +23,11 @@ _keys = {"binance":
 # eW = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin",
 #                                              "5b22b10709e5a14f2c125e3d", "11ec0073-8919-4863-a518-7e2468506752")
 
-exchange_id = "kucoin"
+exchange_id = "binance"
 start_curr = "BTC"
 dest_cur = "ETH"
 # start_curr_amount = 0.05 / 3
-start_curr_amount = 0.05
+start_curr_amount = 0.08639340
 
 eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["key"],
                                              _keys[exchange_id]["secret"])
@@ -70,12 +75,14 @@ while order.status != "closed" and order.status != "canceled":
 
     finally:
 
-        print("Tick {}: Order {} updated".format(tick, order.id))
+        print("Tick {}: Order {} updated. Filled dest curr:{} ".format(tick, order.id, order.filled_dest_amount))
 
         with open(order_history_file_name, 'w') as outfile:
             json.dump(order_resps, outfile, indent=4)
 
     tick += 1
+
+
 
 sys.exit(0)
 # d = ob.(bal_to_bid, dest_cur)

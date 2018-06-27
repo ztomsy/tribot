@@ -52,6 +52,19 @@ class OrderManagerFok(object):
         else:
             raise OrderManagerError("Limit for {} not found".format(self.order.symbol))
 
+    def on_order_update(self):
+        print("Tick {}: Order {} updated. Filled dest curr:{} / {} ".format(self.order.update_requests_count,
+                                                                            self.order.id,
+                                                                            self.order.filled_dest_amount,
+                                                                            self.order.amount_dest))
+        return True
+
+    def on_order_update_error(self, exception):
+        print("Error on order_id: {}".format(self.order.id))
+        print("Exception: {}".format(type(exception).__name__))
+        print("Exception body:", exception.args)
+        return True
+
     def proceed_update(self):
         response = dict()
 
@@ -85,10 +98,6 @@ class OrderManagerFok(object):
     def create_order(self, exchange_wrapper: ccxtExchangeWrapper):
         return exchange_wrapper.place_limit_order(self.order)
 
-    def create_order_legacy(self, exchange):
-        return exchange.create_order(self.order.symbol, self.order.type, self.order.side, self.order.amount,
-                                     self.order.price)
-
     def update_order(self, exchange_wrapper: ccxtExchangeWrapper):
         return exchange_wrapper.get_order_update(self.order)
 
@@ -99,10 +108,16 @@ class OrderManagerFok(object):
 
         order_resp = self.create_order(exchange)
         self.order.update_order_from_exchange_resp(order_resp)
+        self.on_order_update()
 
         while self.proceed_update()["action"] == "hold":
-            update_resp = self.update_order(exchange)
-            self.order.update_order_from_exchange_resp(update_resp)
+            try:
+                update_resp = self.update_order(exchange)
+                self.order.update_order_from_exchange_resp(update_resp)
+                self.on_order_update()
+
+            except Exception as e:
+                self.on_order_update_error(e)
 
         if self.last_response["action"] == "complete_order":
             return True
