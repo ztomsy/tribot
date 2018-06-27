@@ -57,7 +57,7 @@ class TradeOrder(object):
     _UPDATE_FROM_EXCHANGE_FIELDS = ["id", "datetime", "timestamp", "lastTradeTimestamp", "status", "amount", "filled",
                                    "remaining", "cost", "price", "info"]
 
-    def __init__(self, type, symbol, amount, side, price=None ):
+    def __init__(self, type, symbol, amount, side, price=None):
 
         self.id = str
         self.datetime = datetime  # datetime
@@ -92,8 +92,19 @@ class TradeOrder(object):
         self.start_currency = self.symbol.split("/")[1] if side == "buy" else self.symbol.split("/")[0]
         self.dest_currency = self.symbol.split("/")[0] if side == "buy" else self.symbol.split("/")[1]
 
+        # if not side:
+        #     raise OrderErrorSymbolNotFound("Wrong symbol {} for trade {} - {}".format(symbol, start_currency,
+        # dest_currency))
 
+        if price is not None:
+            if side == "sell":
 
+                self. amount_start = amount
+                self.amount_dest = self.amount_start * price
+
+            elif side == "buy":
+                self.amount_start = price * self.amount
+                self.amount_dest = amount
 
     @classmethod
     def create_limit_order_from_start_amount(cls, symbol, start_currency, amount_start, dest_currency, price):
@@ -108,16 +119,16 @@ class TradeOrder(object):
 
         if side == "sell":
             amount = amount_start
-            amount_dest = amount_start * price
+            # amount_dest = amount_start * price
 
         elif side == "buy":
             amount = amount_start / price
-            amount_dest = amount
+            # amount_dest = amount
 
         order = cls("limit", symbol, amount, side, price)
 
-        order.amount_start = amount_start
-        order.amount_dest = amount_dest
+        # order.amount_start = amount_start
+        # order.amount_dest = amount_dest
 
         return order
 

@@ -11,9 +11,9 @@ import ccxt
 from tkgtri import OrderManagerError, OrderManagerErrorUnFilled, OrderManagerErrorSkip
 
 
-def tkg_order_fok(order_symbol, start_currency, start_currency_amount, dest_currency, order_price):
-    order = tkgtri.TradeOrder.create_limit_order_from_start_amount(order_symbol, start_currency, start_currency_amount, dest_currency,
-                                                                   order_price)
+def tkg_order_fok(order_symbol, order_amount, side, order_price):
+
+    order = tkgtri.TradeOrder("limit", order_symbol, order_amount, side, order_price)
 
     print("Order created")
     print("Symbol:{}".format(order.symbol))
@@ -27,34 +27,39 @@ def tkg_order_fok(order_symbol, start_currency, start_currency_amount, dest_curr
     except OrderManagerErrorUnFilled as e:
         print("Unfilled order. Should cancel and recover/continue")
 
+        max_cancel_attempts = 5
+        cancel_attempt = 0
+
         while order.status != "canceled" and order.status != "closed":
+            cancel_attempt += 1
             try:
                 om.cancel_order(ccxt_exchange)
-
             except Exception as e:
                 print("Cancel Error")
                 print(type(e).__name__, "!!!", e.args, ' ')
-
             finally:
                 resp = om.update_order(ccxt_exchange)
-                order.update_order_from_exchange_resp(resp)
-                pass
 
-        print("Cancel OK")
+                try:
+                    order.update_order_from_exchange_resp(resp)
+                except Exception as e1:
+                    om.on_order_update_error(e1)
+
+                if cancel_attempt >= max_cancel_attempts:
+                    break
+
         print("Order status: {}".format(order.status))
 
-    except OrderManagerErrorSkip as e:
+    except OrderManagerErrorSkip:
         print("Not reached minimum amount")
 
-    except OrderManagerError as e:
+    except OrderManagerError:
         print("Unknown error")
 
     except Exception as e:
         print(type(e).__name__, "!!!", e.args, ' ')
 
-
     return order
-
 
 
 _keys = {"binance":
@@ -76,7 +81,7 @@ exchange_id = "binance"
 start_curr = "BTC"
 dest_cur = "ETH"
 # start_curr_amount = 0.05 / 3
-start_curr_amount = 0.106797
+start_curr_amount = 0.10634407
 
 limits = {"BTC": 0.0002, "ETH": 0.02, "BNB": 1, "USDT": 20}
 
@@ -94,7 +99,9 @@ ob = tkgtri.OrderBook(symbol, ob_array["asks"], ob_array['bids'])
 d = ob.get_depth_for_destination_currency(start_curr_amount, dest_cur)
 price = d.total_price*1
 
-o = tkg_order_fok(symbol, start_curr, start_curr_amount, dest_cur, price)
+o_temp = tkgtri.TradeOrder.create_limit_order_from_start_amount(symbol, start_curr, start_curr_amount, dest_cur, price)
+
+o = tkg_order_fok(o_temp.symbol, o_temp.amount, o_temp.side, price)
 
 print("=====================================")
 print("Symbol:{}".format(o.symbol))
