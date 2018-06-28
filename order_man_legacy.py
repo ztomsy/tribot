@@ -19,7 +19,7 @@ def tkg_order_fok(order_symbol, order_amount, side, order_price):
     print("Symbol:{}".format(order.symbol))
     print("Amount:{}".format(order.amount))
 
-    om = tkgtri.OrderManagerFokLegacyBinance(order, limits, 3)
+    om = tkgtri.OrderManagerFokLegacyBinance(order, limits, 10)
 
     try:
         om.run_order_(ccxt_exchange)
@@ -78,10 +78,10 @@ _keys = {"binance":
 #                                              "5b22b10709e5a14f2c125e3d", "11ec0073-8919-4863-a518-7e2468506752")
 
 exchange_id = "binance"
-start_curr = "BTC"
-dest_cur = "ETH"
+start_curr = "ETH"
+dest_cur = "BTC"
 # start_curr_amount = 0.05 / 3
-start_curr_amount = 0.10634407
+start_curr_amount = 12
 
 limits = {"BTC": 0.0002, "ETH": 0.02, "BNB": 1, "USDT": 20}
 
@@ -109,7 +109,7 @@ print("Side:{}".format(o.side))
 print("Amount:{}".format(o.amount))
 print("Status:{}".format(o.status))
 print("Filled dest amount: {} of {}".format(o.filled_dest_amount, o.amount_dest))
-print("Filled order amount: {} of {}".format(o.amount, o.filled))
+print("Filled order amount: {} of {}".format(o.filled, o.amount))
 
 
 
