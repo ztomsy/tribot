@@ -17,3 +17,4 @@ from .trade_orders import *
 from .trade_manager import *
 from .trade_manager_legacy import OrderManagerFokLegacyBinance
 from . import core
+from .analyzer import Deal, Analyzer
