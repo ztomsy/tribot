@@ -158,3 +158,18 @@ class OrderBook:
             return self.get_depth(init_amount, "sell", "base")
 
         return False
+
+    #
+    # get orderbook price and result for trade side (buy or sell) of initial amount of start currency
+    # if buy - on start we have quote currency  and result will be for base
+    # if sell - we have base currency and result in quote
+    #
+    def get_depth_for_trade_side(self, start_amount:float, side:str):
+
+        if side == "buy":
+            return self.get_depth(start_amount, "buy", "quote")
+
+        if side == "sell":
+            return self.get_depth(start_amount, "sell", "base")
+
+        return False

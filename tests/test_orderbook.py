@@ -113,7 +113,7 @@ class OrderBookTestSuite(unittest.TestCase):
         self.assertEqual("buy", orderbook.get_trade_direction_to_currency("ETH"))
         self.assertEqual(False, orderbook.get_trade_direction_to_currency("XYZ"))
 
-    def test_order_book_depth_for_trade(self):
+    def test_order_book_depth_for_destination_currency(self):
 
         ob = dict()
         ob["asks"] = [[0.0963510000, 2],
@@ -142,6 +142,27 @@ class OrderBookTestSuite(unittest.TestCase):
                              total_price=0.09633040000000001,
                              depth=3,
                              currency="quote"))
+
+    def test_order_book_depth_for_side(self):
+
+        ob = dict()
+        ob["asks"] = [[0.0963510000, 2],
+                      [0.0963880000, 2],
+                      [0.0964390000, 3]]
+
+        ob["bids"] = [[0.0963360000, 1],
+                      [0.0963300000, 2],
+                      [0.0963280000, 3]]
+
+        orderbook = tkgtri.OrderBook("ETH/BTC", ob["asks"], ob["bids"])
+
+        self.assertEqual(orderbook.get_depth_for_trade_side(0.1, "buy"),
+                         tkgtri.Depth(total_quantity=1.037871947359135, total_price=0.096351, depth=1, currency="base"))
+
+        self.assertEqual(orderbook.get_depth_for_trade_side(1, "sell"),
+                         tkgtri.Depth(total_quantity=0.0963360000, total_price=0.0963360000, depth=1,
+                                      currency="quote"))
+
 
 if __name__ == '__main__':
     unittest.main()
