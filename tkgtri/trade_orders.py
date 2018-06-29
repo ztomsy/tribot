@@ -99,7 +99,7 @@ class TradeOrder(object):
         if price is not None:
             if side == "sell":
 
-                self. amount_start = amount
+                self.amount_start = amount
                 self.amount_dest = self.amount_start * price
 
             elif side == "buy":
