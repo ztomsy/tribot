@@ -77,9 +77,9 @@ class OrderManagerFok(object):
             return response
 
         elif self.order.update_requests_count >= self.updates_to_kill > 0 and \
-                (self.order.filled < self.min_filled_amount) and (self.order.status != "closed" or
-                                                                  self.order.status != "canceled"):
-            response["action"] = "skip"
+                (self.order.cost < self.min_filled_amount) and (self.order.status != "closed" or
+                                                                self.order.status != "canceled"):
+            response["action"] = "cancel"
             response["reason"] = "max number of updates reached and min amount have not reached"
             self.last_response = response
             return response
@@ -124,8 +124,5 @@ class OrderManagerFok(object):
 
         if self.last_response["action"] == "cancel":
             raise OrderManagerErrorUnFilled("Order not filled: {}".format(self.last_response["reason"]))
-
-        if self.last_response["action"] == "skip":
-            raise OrderManagerErrorSkip("Order could not be : {}".format(self.last_response["reason"]))
 
         raise OrderManagerError("Order not filled: Unknown error")

@@ -105,7 +105,7 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
         self.assertEqual(order.status, "open")
         self.assertEqual(order.filled_src_amount, 0.0001)
         self.assertEqual(order.filled_dest_amount, 0.000006633)
-        self.assertEqual(om.last_response["action"], "skip")
+        self.assertEqual(om.last_response["action"], "cancel")
 
     def test_order_manager_run_ok(self):
 
@@ -150,10 +150,13 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
         self.assertEqual(type(e), OrderManagerErrorUnFilled)
         self.assertEqual(order.status, "open")
         self.assertEqual(om.last_response["action"], "cancel")
+
+        self.assertIn("min amount reached", om.last_response["reason"])
+
         self.assertEqual(order.filled_src_amount, 0.000818)
         self.assertEqual(order.filled_dest_amount, 6.029e-05)
 
-    def test_order_manager_run_skip(self):
+    def test_order_manager_run_less_than_min(self):
 
         limits = {"BTC": 0.0002, "ETH": 0.02, "BNB": 1, "USDT": 20}
 
@@ -168,16 +171,18 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
 
         om = tkgtri.OrderManagerFok(order, limits, 3)
 
-        with self.assertRaises(OrderManagerErrorSkip) as cm:
+        with self.assertRaises(OrderManagerErrorUnFilled) as cm:
             om.run_order_(ex)
 
         e = cm.exception
 
-        self.assertEqual(type(e), OrderManagerErrorSkip)
+        self.assertEqual(type(e), OrderManagerErrorUnFilled)
         self.assertEqual(order.status, "open")
         self.assertEqual(order.filled_src_amount, 0.0001)
         self.assertEqual(order.filled_dest_amount, 0.000006633)
-        self.assertEqual(om.last_response["action"], "skip")
+        self.assertEqual(om.last_response["action"], "cancel")
+        self.assertIn("min amount have not reached", om.last_response["reason"])
+
 
 if __name__ == '__main__':
     unittest.main()

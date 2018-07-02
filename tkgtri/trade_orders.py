@@ -74,7 +74,7 @@ class TradeOrder(object):
 
         self.filled = 0.0  # filled amount of base currency
         self.remaining = 0.0  # remaining amount to fill
-        self.cost = 0.0  # 'filled' * 'price'
+        self.cost = 0.0  # filled amount of quote currency 'filled' * 'price'
 
         self.info = None  # the original response from exchange
 
