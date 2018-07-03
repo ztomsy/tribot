@@ -69,7 +69,7 @@ class OrderManagerFok(object):
         response = dict()
 
         if self.order.update_requests_count >= self.updates_to_kill > 0 and\
-                (self.order.filled > self.min_filled_amount) and (self.order.status != "closed" or
+                (self.order.cost > self.min_filled_amount) and (self.order.status != "closed" or
                                                                   self.order.status != "canceled"):
             response["action"] = "cancel"
             response["reason"] = "max number of updates and min amount reached"
