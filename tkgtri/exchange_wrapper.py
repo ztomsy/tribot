@@ -154,6 +154,11 @@ class ccxtExchangeWrapper:
             raise(ExchangeWrapperOfflineFetchError(
                 "No more order updates in file. Total tickers: {}".format(len(self._offline_order["updates"]))))
 
+    def _offline_cancel_order(self):
+        if "cancel" not in self._offline_order:
+            self._offline_order["cancel"] = True
+        return self._offline_order["cancel"]
+
     def _offline_load_markets(self):
         if self._offline_markets is not None and len(self._offline_markets):
             return self._offline_markets
@@ -166,6 +171,12 @@ class ccxtExchangeWrapper:
         # create_order(self, symbol, type, side, amount, price=None, params={})
         return self._ccxt.create_order(symbol, order_type, side, amount, price)
 
+    def _fetch_order(self, order: TradeOrder):
+        return self._ccxt.fetch_order(order.id)
+
+    def _cancel_order(self, order: TradeOrder):
+        return self._ccxt.cancel_order(order.id)
+
     def place_limit_order(self, order: TradeOrder):
         # returns the ccxt response on order placement
         if self.offline:
@@ -173,11 +184,15 @@ class ccxtExchangeWrapper:
         else:
             return self._create_order(order.symbol, "limit", order.side, order.amount, order.price)
 
-    def _fetch_order(self, order: TradeOrder):
-        return self._ccxt.fetch_order(order.id)
-
     def get_order_update(self, order: TradeOrder):
         if self.offline:
             return self._offline_fetch_order()
         else:
             return self._fetch_order(order)
+
+    def cancel_order(self, order: TradeOrder):
+        if self.offline:
+            return self._offline_cancel_order()
+        else:
+            return self._cancel_order(order)
+

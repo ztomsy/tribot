@@ -17,6 +17,9 @@ class binance(ew.ccxtExchangeWrapper):
     def _fetch_order(self, order):
         return self._ccxt.fetch_order(order.id, order.symbol)
 
+    def _cancel_order(self, order):
+        return self._ccxt.cancel_order(order.id, order.symbol)
+
     def get_exchange_wrapper_id(self):
         return self.wrapper_id
 

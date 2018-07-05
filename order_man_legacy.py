@@ -23,7 +23,7 @@ def tkg_order_fok(exchange, max_order_update_requests, max_cancel_attempts, trad
     om = tkgtri.OrderManagerFokLegacyBinance(order, trade_limits, max_order_update_requests)
 
     try:
-        om.run_order_(exchange)
+        om.fill_order(exchange)
 
     except OrderManagerErrorUnFilled as e:
         print("Unfilled order. Should cancel and recover/continue")
@@ -39,7 +39,7 @@ def tkg_order_fok(exchange, max_order_update_requests, max_cancel_attempts, trad
                 print("Cancel Error")
                 print(type(e).__name__, "!!!", e.args, ' ')
             finally:
-                resp = om.update_order(exchange)
+                resp = om._update_order(exchange)
 
                 try:
                     order.update_order_from_exchange_resp(resp)
