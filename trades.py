@@ -29,8 +29,7 @@ exchange_id = "kucoin"
 start_curr = "BTC"
 dest_cur = "ETH"
 # start_curr_amount = 0.05 / 3
-start_curr_amount = 0.02
-
+start_curr_amount = 0.01
 eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["key"],
                                              _keys[exchange_id]["secret"])
 
@@ -84,7 +83,14 @@ except OrderManagerError:
 except Exception as e:
     print(type(e).__name__, "!!!", e.args, ' ')
 
-
+print("=====================================")
+print("Symbol:{}".format(order.symbol))
+print("Side:{}".format(order.side))
+print("Amount:{}".format(order.amount))
+print("Status:{}".format(order.status))
+print("Filled dest amount: {} of {}".format(order.filled_dest_amount, order.amount_dest))
+print("Filled order amount: {} of {}".format(order.filled, order.amount))
+print("Filled src amount: {} of {}".format(order.filled_src_amount, order.amount_start))
 
 
 sys.exit(0)
