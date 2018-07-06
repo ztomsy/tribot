@@ -8,12 +8,14 @@ import sys
 import json
 import collections
 
+from tkgtri.trade_manager import *
+
 _keys = {"binance":
              {"key": "O1hGc8oRK7BXfBS7ynXZPcXwjdnaz5fU5RJow9RM7sHCWfMJLgdBAnh6dopCFk5I",
               "secret": "D4ddhpjcerL4F3Hhbwjp5lly1U7UGjVg4N7iyciDf4NwDN85uy262kU3ZeVhQO3X"},
          "kucoin":
-             {"key": "5b22b10709e5a14f2c125e3d",
-              "secret": "11ec0073-8919-4863-a518-7e2468506752"}
+             {"key": "5b3f8876cbdbf7242da8c517",
+              "secret": "135e2242-30ce-4552-9d0e-74264e041200"}
          }
 
 # eW = tkgtri.ccxtExchangeWrapper.load_from_id("binance",
@@ -23,11 +25,11 @@ _keys = {"binance":
 # eW = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin",
 #                                              "5b22b10709e5a14f2c125e3d", "11ec0073-8919-4863-a518-7e2468506752")
 
-exchange_id = "binance"
+exchange_id = "kucoin"
 start_curr = "BTC"
 dest_cur = "ETH"
 # start_curr_amount = 0.05 / 3
-start_curr_amount = 0.08639340
+start_curr_amount = 0.02
 
 eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["key"],
                                              _keys[exchange_id]["secret"])
@@ -52,35 +54,36 @@ order_resps = collections.OrderedDict()
 order = tkgtri.TradeOrder.create_limit_order_from_start_amount(symbol, start_curr, start_curr_amount, dest_cur, price)
 
 # order_resp = eW.place_limit_order(order.symbol, order.side, order.amount/3, order.price)
-order_resp = eW.place_limit_order(order)
-order.update_order_from_exchange_resp(order_resp)
+# order_resp = eW.place_limit_order(order)
+# order.update_order_from_exchange_resp(order_resp)
+#
+# order_resps["create"] = order_resp
+# order_resps["updates"] = list()
+#
+# with open(order_history_file_name, 'w') as outfile:
+#     json.dump(order_resps, outfile, indent=4)
+#
+# print("Oder id{}".format(order.id))
+# tick = 0
 
-order_resps["create"] = order_resp
-order_resps["updates"] = list()
+om = tkgtri.OrderManagerFok(order, None, 100, 10)
 
-with open(order_history_file_name, 'w') as outfile:
-    json.dump(order_resps, outfile, indent=4)
+try:
+    om.fill_order(eW)
 
-print("Oder id{}".format(order.id))
-tick = 0
-
-while order.status != "closed" and order.status != "canceled":
+except OrderManagerErrorUnFilled as e:
+    print("Unfilled order. Should cancel and recover/continue")
     try:
-        update_resp = eW.get_order_update(order)
-        order.update_order_from_exchange_resp(update_resp)
-        order_resps["updates"].append(update_resp)
-    except Exception as e:
-        print("Exception: {}".format(type(e).__name__))
-        print("Exception body:", e.args)
+        print("Cancelling....")
+        om.cancel_order(eW)
+    except OrderManagerCancelAttemptsExceeded:
+        print("Could not cancel")
 
-    finally:
+except OrderManagerError:
+    print("Unknown error")
+except Exception as e:
+    print(type(e).__name__, "!!!", e.args, ' ')
 
-        print("Tick {}: Order {} updated. Filled dest curr:{} ".format(tick, order.id, order.filled_dest_amount))
-
-        with open(order_history_file_name, 'w') as outfile:
-            json.dump(order_resps, outfile, indent=4)
-
-    tick += 1
 
 
 

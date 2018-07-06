@@ -87,8 +87,8 @@ class OrderManagerFok(object):
         #     self.last_response = response
         #     return response
 
-        if self.order_update_requests >= self.updates_to_kill > 0 and (self.order.status != "closed" or
-                                                                       self.order.status != "canceled"):
+        if (self.order_update_requests >= self.updates_to_kill) and\
+                (self.order.status != "closed" or self.order.status != "canceled"):
             response["action"] = "cancel"
             response["reason"] = "max number of updates reached"
             response["status"] = self.order.status
@@ -111,7 +111,6 @@ class OrderManagerFok(object):
         return exchange_wrapper.place_limit_order(self.order)
 
     def _update_order(self, exchange_wrapper: ccxtExchangeWrapper):
-        self.order_update_requests += 1
         return exchange_wrapper.get_order_update(self.order)
 
     def _cancel_order(self, exchange_wrapper: ccxtExchangeWrapper):
@@ -150,8 +149,8 @@ class OrderManagerFok(object):
         self.order.update_order_from_exchange_resp(order_resp)
         self.on_order_create()
 
-        while self.proceed_update()["action"] == "hold":
-
+        while  self.proceed_update()["action"] == "hold":
+            self.order_update_requests += 1
             try:
                 update_resp = self._update_order(exchange)
                 self.order.update_order_from_exchange_resp(update_resp)

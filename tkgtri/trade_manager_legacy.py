@@ -5,13 +5,14 @@ from tkgtri.trade_manager import *
 class OrderManagerFokLegacyBinance(OrderManagerFok):
 
     def _create_order(self, exchange):
-        return exchange._create_order(self.order.symbol, self.order.type, self.order.side, self.order.amount,
-                                      self.order.price, {"newOrderRespType": "FULL"})
+        return exchange.create_order(self.order.symbol, self.order.type, self.order.side, self.order.amount,
+                                     self.order.price, {"newOrderRespType": "FULL"})
 
     def _update_order(self, exchange):
         return exchange.fetch_order(self.order.id, self.order.symbol)
 
-    def cancel_order(self, exchange):
+    def _cancel_order(self, exchange):
+        print("... cancel request to binance")
         return exchange.cancel_order(self.order.id, self.order.symbol)
 
     def emulate_order(self):
