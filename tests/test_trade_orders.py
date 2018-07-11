@@ -186,6 +186,37 @@ class TradeOrderTestSuite(unittest.TestCase):
 
         self.assertListEqual(order_resps["updates"], ex._offline_order["updates"])
 
+    def test_total_amounts_from_trades(self):
+        ex = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin")
+        ex.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv",
+                            "test_data/orders_kucoin_multi.json")
+
+        ex.get_markets()
+
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",
+                                                                       0.06633157807472399)
+
+        order_resp = ex.place_limit_order(order)
+        order.update_order_from_exchange_resp(order_resp)
+
+        while order.status != "closed" and order.status != "canceled":
+            update_resp = ex.get_order_update(order)
+            order.update_order_from_exchange_resp(update_resp)
+
+        total = order.total_amounts_from_trades(order.trades)
+        print("total")
+        pass
+
+
+
+
+
+
+
+
+
+
+
 
 
 

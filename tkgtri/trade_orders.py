@@ -55,9 +55,9 @@ class TradeOrder(object):
 
     # fields to update from ccxt order placement response
     _UPDATE_FROM_EXCHANGE_FIELDS = ["id", "datetime", "timestamp", "lastTradeTimestamp", "status", "amount", "filled",
-                                   "remaining", "cost", "price", "info"]
+                                   "remaining", "cost", "price", "info", "trades"]
 
-    def __init__(self, type, symbol, amount, side, price=None):
+    def __init__(self, type, symbol, amount, side, price=None, precision_amount=None, precision_price=None):
 
         self.id = str
         self.datetime = datetime  # datetime
@@ -71,6 +71,10 @@ class TradeOrder(object):
         self.amount = amount  # ordered amount of base currency
         self.init_price = price if price is not None else 0.0 # initial price, when create order
         self.price = self.init_price  # placed price, could be updated from exchange
+
+        self.precision_amount = precision_amount
+        self.price_precision = precision_price
+
 
         self.filled = 0.0  # filled amount of base currency
         self.remaining = 0.0  # remaining amount to fill
@@ -160,6 +164,27 @@ class TradeOrder(object):
 
     def recover_start_currency(self):
         pass
+
+    # will return the dict:
+    # "amount" - total amount of base currency filled
+    # "cost" - total amount of quote currency filled
+    # "price" - total (average) price of fills = cost / amount
+    def total_amounts_from_trades(self, trades):
+
+        total = dict()
+        total["amount"] = 0.0
+        total["cost"] = 0.0
+        total["price"] = 0.0
+        total["_cost_from_ccxt"] =0.0
+
+        for trade in trades:
+            if trade["order"] == self.id:
+                total["amount"] += trade["amount"]
+                total["cost"] += trade["amount"] * trade["price"]
+                total["_cost_from_ccxt"] += trade["cost"]
+
+        total["price"] = total["cost"] / total["amount"]
+        return total
 
     def fake_market_order(self, orderbook=None, exchange=None):
 
