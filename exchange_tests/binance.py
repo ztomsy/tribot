@@ -29,6 +29,13 @@ order.update_order_from_exchange_resp(order_data)
 
 trades = eW._ccxt.fetch_my_trades(order.symbol, order.timestamp)
 
+trades_result = order.total_amounts_from_trades(trades)
+
+precise_amount = eW._ccxt.amount_to_precision(order.symbol, trades_result["amount"])
+precise_cost = eW._ccxt.cost_to_precision(order.symbol, trades_result["cost"])
+precise_price = eW._ccxt.price_to_precision(order.symbol, trades_result["price"])
+
+
 
 sys.exit()
 
