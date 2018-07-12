@@ -47,6 +47,8 @@ class ccxtExchangeWrapper:
         self._offline_order = dict()
         self._offline_order_update_index = 0
 
+        self._offline_trades = list()
+
         self.markets_json_file = str
         self.tickers_csv_file = str
 
@@ -195,4 +197,23 @@ class ccxtExchangeWrapper:
             return self._offline_cancel_order()
         else:
             return self._cancel_order(order)
+
+    def offline_load_trades_from_file(self, trades_json_file):
+        with open(trades_json_file) as json_file:
+            json_data = json.load(json_file)
+        self._offline_trades = json_data["trades"]
+
+    def _offline_fetch_trades(self):
+        if self._offline_trades is not None :
+            return self._offline_trades
+
+        else:
+            raise ExchangeWrapperOfflineFetchError(
+                "Offline trades are not loaded")
+
+    def get_trades(self, order):
+        if self.offline:
+            return self._offline_fetch_trades()
+        else:
+            return self._ccxt.fetch_order_trades(order.id)
 

@@ -98,6 +98,13 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(tickers["ETH/BTC"]["bidVolume"], 10.011)
         self.assertEqual(len(tickers), len(markets))
 
+    def test_offline_load_trades(self):
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
+        exchange.offline_load_trades_from_file("test_data/orders_trades_kucoin.json")
+        self.assertEqual(len(exchange._offline_trades), 3)
+        trades = exchange.get_trades(None)
+        self.assertListEqual(exchange._offline_trades, trades)
 
 
 if __name__ == '__main__':

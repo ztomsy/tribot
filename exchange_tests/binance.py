@@ -1,8 +1,3 @@
-#
-# utility to trace order execution
-# orders are saved to test_data/orders/<exchange_id>_<num>.json
-#
-
 import tkgtri
 import sys
 import json
@@ -12,18 +7,9 @@ from tkgtri.trade_manager import *
 
 _keys = {"binance":
              {"key": "M1lHFjmqzixs1S8IqST9lXP2DvzJuqNTR4lgpuv1PmutDTwxIAXRdjayTTVOR3SX",
-              "secret": "Scov95f2UtBmtDb8J8PsWGXxVohNzWGC50CebPkriRHV1M6S6KVqYforOLNRYYXE"},
-         "kucoin":
-             {"key": "5b3f8876cbdbf7242da8c517",
-              "secret": "135e2242-30ce-4552-9d0e-74264e041200"}
+              "secret": "Scov95f2UtBmtDb8J8PsWGXxVohNzWGC50CebPkriRHV1M6S6KVqYforOLNRYYXE"}
          }
 
-# eW = tkgtri.ccxtExchangeWrapper.load_from_id("binance",
-#                                              "AmEkXUlAh3fW1XkxIOSLovMVia1B55bWI2937Y9ZGRu25uJj2XSCBbOGoI8bb8II",
-#                                              "6yy8vrkUR3aOBJyUkzRtEHGYR01gxMmyYJ6jMHyt3HxY7AtXlKr54FmtPOLUsBvh")
-
-# eW = tkgtri.ccxtExchangeWrapper.load_from_id("kucoin",
-#                                              "5b22b10709e5a14f2c125e3d", "11ec0073-8919-4863-a518-7e2468506752")
 
 exchange_id = "binance"
 start_curr = "BTC"
@@ -34,6 +20,19 @@ eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["ke
                                              _keys[exchange_id]["secret"])
 
 eW.get_markets()
+
+order_data = eW._ccxt.fetch_order('16018976', "HSR/ETH")
+
+order = TradeOrder(order_data["type"], order_data["symbol"], order_data["amount"], order_data["side"])
+
+order.update_order_from_exchange_resp(order_data)
+
+trades = eW._ccxt.fetch_my_trades(order.symbol, order.timestamp)
+
+
+sys.exit()
+
+
 balance = eW._ccxt.fetch_balance()
 balance_start_curr = balance[start_curr]["free"]
 
@@ -84,6 +83,3 @@ sys.exit(0)
 # d = ob.(bal_to_bid, dest_cur)
 # price = d.total_price
 # amount = d.total_quantity
-
-
-pass
