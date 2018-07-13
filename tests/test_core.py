@@ -24,6 +24,18 @@ class CoreFuncTestSuite(unittest.TestCase):
         self.assertEqual("sell", core.get_order_type("ETH", "BTC", symbol))
         self.assertEqual(False, core.get_order_type("BTC", "USD", symbol))
 
+    def test_amount_to_precision(self):
+        self.assertEqual(1.399, core.amount_to_precision(1.399, 3))
+        self.assertEqual(1, core.amount_to_precision(1.3999))
+        self.assertEqual(1, core.amount_to_precision(1.9999))
+        self.assertEqual(1.99, core.amount_to_precision(1.9999, 2))
+
+    def test_price_to_precision(self):
+        self.assertEqual(1.399, core.price_to_precision(1.399, 3))
+        self.assertEqual(1.3999, core.price_to_precision(1.3999))
+        self.assertEqual(1.9999, core.price_to_precision(1.9999))
+        self.assertEqual(2, core.price_to_precision(1.9999, 2))
+
 
 if __name__ == '__main__':
     unittest.main()

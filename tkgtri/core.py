@@ -1,5 +1,5 @@
 # for  basic exchange operations
-
+import math
 
 def get_trade_direction_to_currency(symbol: str, dest_currency: str):
     cs = symbol.split("/")
@@ -57,6 +57,19 @@ def get_symbol_order_price_from_tickers(source_cur: str, dest_cur: str, tickers:
 
     a = dict({"symbol": symbol, "order_type": order_type, "price_type": price_type, "price": price})
     return a
+
+
+def price_to_precision(fee, precision=8):
+    return float(('{:.' + str(precision) + 'f}').format(float(fee)))
+
+
+def amount_to_precision(amount, precision=0):
+    if precision > 0:
+        decimal_precision = math.pow(10, precision)
+        return math.trunc(amount * decimal_precision) / decimal_precision
+    else:
+        return float(('%d' % amount))
+
 
 
 

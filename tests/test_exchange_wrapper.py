@@ -31,14 +31,12 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertIsNot(exchange.get_tickers()["ETH/BTC"]["last"], None)
 
     def test_load_markets_from_file(self):
-
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
         markets = exchange.load_markets_from_json_file("test_data/markets_binance.json")
 
         self.assertEqual(markets["ETH/BTC"]["active"], True)
 
     def test_load_tickers_from_csv(self):
-
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
         tickers = exchange.load_tickers_from_csv("test_data/tickers_binance.csv")
 
@@ -54,7 +52,6 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(exchange._offline_markets["ETH/BTC"]["active"], True)
 
     def test_offline_tickers_fetch(self):
-
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
         tickers = list()
@@ -73,7 +70,6 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(type(e), tkgtri.ExchangeWrapperOfflineFetchError)
 
     def test_offline_load_markets(self):
-
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
         markets = exchange._offline_load_markets()
@@ -88,7 +84,6 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(type(e), tkgtri.ExchangeWrapperOfflineFetchError)
 
     def test_offline_mode(self):
-
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
 
@@ -105,6 +100,36 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(len(exchange._offline_trades), 3)
         trades = exchange.get_trades(None)
         self.assertListEqual(exchange._offline_trades, trades)
+
+    def test_precision(self):
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
+        exchange.get_markets()
+        symbol = "ETH/BTC"  # amount precision =3, price_precision = 6
+
+        self.assertEqual(1.399, exchange.amount_to_precision(symbol, 1.399))
+        self.assertEqual(1.399, exchange.amount_to_precision(symbol, 1.3999))
+
+        self.assertEqual(1.399, exchange.price_to_precision(symbol, 1.399))
+        self.assertEqual(1.3999, exchange.price_to_precision(symbol, 1.3999))
+        self.assertEqual(1.123457, exchange.price_to_precision(symbol, 1.123456789))
+
+        exchange.markets["ETH/BTC"] = None  # default precisions for price and amount 8
+
+        self.assertEqual(1.12345678, exchange.amount_to_precision(symbol, 1.123456789))
+        self.assertEqual(1.12345678, exchange.amount_to_precision(symbol, 1.123456789))
+
+    def test_precision_online(self):
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.get_markets()
+        symbol = "GNT/ETH"
+
+        self.assertEqual(exchange.amount_to_precision(symbol, 1.3999999),
+                         exchange._ccxt.amount_to_precision(symbol, 1.3999999))
+
+        self.assertEqual(exchange.price_to_precision(symbol, 1.123456789),
+                         exchange._ccxt.price_to_precision(symbol, 1.123456789)
+                         )
 
 
 if __name__ == '__main__':

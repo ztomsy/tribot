@@ -2,6 +2,7 @@ import ccxt
 import csv
 import json
 from . import exchanges
+from . import core
 from .trade_orders import TradeOrder
 
 class ExchangeWrapperError(Exception):
@@ -16,6 +17,8 @@ class ExchangeWrapperOfflineFetchError(ExchangeWrapperError):
 class ccxtExchangeWrapper:
 
     _ccxt = ...  # type: ccxt.Exchange
+    _PRECISION_AMOUNT = 8  # default amount precision for offline mode
+    _PRECISION_PRICE = 8  # default price precision for offline mode
 
     @classmethod
     def load_from_id(cls, exchange_id, api_key="", secret="", offline=False):
@@ -217,3 +220,22 @@ class ccxtExchangeWrapper:
         else:
             return self._ccxt.fetch_order_trades(order.id)
 
+    def amount_to_precision(self, symbol, amount):
+        if self._ccxt is not None and not self.offline:
+            return self._ccxt.amount_to_precision(symbol, amount)
+
+        elif self.markets is not None and symbol in self.markets and self.markets[symbol] is not None \
+                and "precision" in self.markets[symbol]:
+            return core.amount_to_precision(amount, self.markets[symbol]["precision"]["amount"])
+
+        else:
+            return core.amount_to_precision(amount, self._PRECISION_AMOUNT)
+
+    def price_to_precision(self, symbol, amount):
+        if self._ccxt is not None and not self.offline:
+            return self._ccxt.price_to_precision(symbol, amount)
+        elif self.markets is not None and symbol in self.markets and self.markets[symbol] is not None \
+                and "precision" in self.markets[symbol]:
+            return core.price_to_precision(amount, self.markets[symbol]["precision"]["price"])
+        else:
+            return core.price_to_precision(amount, self._PRECISION_PRICE)
