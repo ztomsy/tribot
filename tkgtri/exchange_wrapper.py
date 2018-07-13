@@ -214,11 +214,43 @@ class ccxtExchangeWrapper:
             raise ExchangeWrapperOfflineFetchError(
                 "Offline trades are not loaded")
 
+    def _fetch_order_trades(self, order):
+        self._ccxt.fetch_order_trades(order.id)
+
     def get_trades(self, order):
         if self.offline:
             return self._offline_fetch_trades()
         else:
-            return self._ccxt.fetch_order_trades(order.id)
+            return self._fetch_order_trades(order)
+    #
+    # fetch or (get from order) the trades within the order and return the result calculated by trades:
+    # dict = {
+    #       "trades": dict of trades from ccxt
+    #       "amount" : filled amount of order (base currency)
+    #       "cost": filled amount if quote currency
+    #       "price" : total order price
+    #       "dest_amount" : amount of received destination currency
+    #       "src_amount" :  amount of spent source currency
+
+    def get_trades_results(self, order: TradeOrder):
+
+        trades = self.get_trades(order)
+        results = order.total_amounts_from_trades(trades)
+        results["trades"] = trades
+        results["amount"] = self.amount_to_precision(order.symbol, results["amount"])
+        results["cost"] = self.price_to_precision(order.symbol, results["cost"])
+
+        results["price"] = self.price_to_precision(order.symbol, results["cost"] / results["amount"])
+
+        if order.side == "buy":
+            results["dest_amount"] = results["amount"]
+            results["src_amount"] = results["cost"]
+
+        elif order.side == "sell":
+            results["dest_amount"] = results["cost"]
+            results["src_amount"] = results["amount"]
+
+        return results
 
     def amount_to_precision(self, symbol, amount):
         if self._ccxt is not None and not self.offline:
@@ -233,7 +265,7 @@ class ccxtExchangeWrapper:
 
     def price_to_precision(self, symbol, amount):
         if self._ccxt is not None and not self.offline:
-            return self._ccxt.price_to_precision(symbol, amount)
+            return float(self._ccxt.price_to_precision(symbol, amount))
         elif self.markets is not None and symbol in self.markets and self.markets[symbol] is not None \
                 and "precision" in self.markets[symbol]:
             return core.price_to_precision(amount, self.markets[symbol]["precision"]["price"])

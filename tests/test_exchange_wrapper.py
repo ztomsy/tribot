@@ -22,7 +22,8 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(exchange.get_exchange_wrapper_id(), "generic")
         self.assertEqual(exchange._ccxt.id, "bitfinex")
 
-    def test_fetch_ticker_wrapped(self):
+    @unittest.skip
+    def test_online_fetch_ticker_wrapped(self):
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
         self.assertEqual(exchange.get_tickers()["ETH/BTC"]["last"], None)
 
@@ -101,6 +102,37 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         trades = exchange.get_trades(None)
         self.assertListEqual(exchange._offline_trades, trades)
 
+    def test_get_trades(self):
+
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv",
+                                  "test_data/orders_kucoin_multi.json")
+
+        exchange.offline_load_trades_from_file("test_data/orders_trades_kucoin.json")
+
+        # sell order
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",
+                                                                       0.06633157807472399)
+
+        om = tkgtri.OrderManagerFok(order)
+        om.fill_order(exchange)
+
+        result = exchange.get_trades_results(order)
+        self.assertEqual(result["amount"], 0.5)
+        self.assertEqual(result["cost"], 0.03685088)
+        self.assertEqual(result["dest_amount"], 0.03685088)
+        self.assertEqual(result["src_amount"], 0.5)
+        self.assertGreaterEqual(result["price"], 0.03685088/0.5)
+
+        order.side = "buy"
+
+        result = exchange.get_trades_results(order)
+        self.assertEqual(result["amount"], 0.5)
+        self.assertEqual(result["cost"], 0.03685088)
+        self.assertEqual(result["dest_amount"], 0.5)
+        self.assertEqual(result["src_amount"], 0.03685088)
+        self.assertGreaterEqual(result["price"], 0.03685088 / 0.5)
+
     def test_precision(self):
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
@@ -119,6 +151,7 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(1.12345678, exchange.amount_to_precision(symbol, 1.123456789))
         self.assertEqual(1.12345678, exchange.amount_to_precision(symbol, 1.123456789))
 
+    @unittest.skip
     def test_precision_online(self):
         exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
         exchange.get_markets()
