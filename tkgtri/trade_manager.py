@@ -1,5 +1,6 @@
 from tkgtri import TradeOrder
 from tkgtri import ccxtExchangeWrapper
+from datetime import datetime
 
 
 class OrderManagerError(Exception):
@@ -53,6 +54,8 @@ class OrderManagerFok(object):
 
         self.last_response = dict()
 
+        self.last_update_time = datetime(1, 1, 1, 1, 1, 1, 1)
+
     def set_filled_min_amount(self, limits: dict):
         self.limits = limits
         if self.order.symbol.split("/")[1] in limits:
@@ -68,6 +71,7 @@ class OrderManagerFok(object):
     def on_order_update(self):
         print("Order {} updated. Filled dest curr:{} / {} ".format(self.order.id, self.order.filled_dest_amount,
                                                                    self.order.amount_dest))
+
         return True
 
     def on_order_update_error(self, exception):
