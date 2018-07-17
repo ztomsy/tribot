@@ -12,7 +12,6 @@ class OrderManagerFokLegacyBinance(OrderManagerFok):
         return exchange.fetch_order(self.order.id, self.order.symbol)
 
     def _cancel_order(self, exchange):
-        print("... cancel request to binance")
         return exchange.cancel_order(self.order.id, self.order.symbol)
 
     def emulate_order(self):
