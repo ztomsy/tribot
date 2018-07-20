@@ -29,13 +29,16 @@ exchange_id = "binance"
 start_curr = "BTC"
 dest_cur = "ETH"
 # start_curr_amount = 0.05 / 3
-start_curr_amount = 0.01
+start_curr_amount = 0.20866492
 eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["key"],
                                              _keys[exchange_id]["secret"])
 
 eW.get_markets()
 balance = eW._ccxt.fetch_balance()
 balance_start_curr = balance[start_curr]["free"]
+
+non_zero_balances = {k: v for (k, v) in balance.items() if "free" in v and v["free"] > 0}
+
 
 symbol = tkgtri.core.get_symbol(start_curr, dest_cur, eW.markets)
 side = tkgtri.core.get_order_type(start_curr, dest_cur, symbol)

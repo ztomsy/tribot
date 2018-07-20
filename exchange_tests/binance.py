@@ -2,6 +2,7 @@ import tkgtri
 import sys
 import json
 import collections
+import jsonpickle
 
 from tkgtri.trade_manager import *
 
@@ -15,7 +16,7 @@ exchange_id = "binance"
 start_curr = "ETH"
 dest_cur = "BTC"
 # start_curr_amount = 0.05 / 3
-start_curr_amount = 12
+start_curr_amount = 0.06207444
 
 eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["key"],
                                              _keys[exchange_id]["secret"])
@@ -67,6 +68,10 @@ except Exception as e:
 
 results = eW.get_trades_results(order)
 
+print("Order resp:")
+print(json.dumps(jsonpickle.encode(om.order), indent=4))
+print("Trades resp:{}".format(results))
+
 print("=====================================")
 print("Symbol:{}".format(order.symbol))
 print("Side:{}".format(order.side))
@@ -80,6 +85,7 @@ print("Filled dest amount: {} of {}".format(results["dest_amount"], order.filled
 print("Filled src amount: {} of {}".format(results["src_amount"], order.amount_start))
 print("Price Fact vs Order price  : {} of {}".format(results["price"], order.init_price))
 print("Trades count: {}".format(len(results["trades"])))
+
 
 
 sys.exit(0)
