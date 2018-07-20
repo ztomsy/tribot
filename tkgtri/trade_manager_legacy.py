@@ -9,7 +9,9 @@ class OrderManagerFokLegacyBinance(OrderManagerFok):
                                      self.order.price, {"newOrderRespType": "FULL"})
 
     def _update_order(self, exchange):
-        return exchange.fetch_order(self.order.id, self.order.symbol)
+        resp = exchange.fetch_order(self.order.id, self.order.symbol)
+        resp["cost"] = resp["info"]["cummulativeQuoteQty"]
+        return resp
 
     def _cancel_order(self, exchange):
         return exchange.cancel_order(self.order.id, self.order.symbol)

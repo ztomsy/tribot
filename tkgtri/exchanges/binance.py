@@ -12,7 +12,9 @@ class binance(ew.ccxtExchangeWrapper):
 
     def _create_order(self, symbol, order_type, side, amount, price=None):
         # create_order(self, symbol, type, side, amount, price=None, params={})
-        return self._ccxt.create_order(symbol, order_type, side, amount, price, {"newOrderRespType": "FULL"})
+        resp = self._ccxt.create_order(symbol, order_type, side, amount, price, {"newOrderRespType": "FULL"})
+        resp["cost"] = resp["info"]["cummulativeQuoteQty"]
+        return resp
 
     def _fetch_order(self, order):
             resp = self._ccxt.fetch_order(order.id, order.symbol)
@@ -20,7 +22,9 @@ class binance(ew.ccxtExchangeWrapper):
             return resp
 
     def _cancel_order(self, order):
-        return self._ccxt.cancel_order(order.id, order.symbol)
+        resp = self._ccxt.cancel_order(order.id, order.symbol)
+        resp["cost"] = resp["info"]["cummulativeQuoteQty"]
+        return resp
 
     def _fetch_order_trades(self, order):
         return self._ccxt.fetch_my_trades(order.symbol, order.timestamp)
