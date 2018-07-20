@@ -13,10 +13,10 @@ _keys = {"binance":
 
 
 exchange_id = "binance"
-start_curr = "ETH"
-dest_cur = "BTC"
+start_curr = "BTC"
+dest_cur = "ETH"
 # start_curr_amount = 0.05 / 3
-start_curr_amount = 0.06207444
+start_curr_amount = 0.02414550
 
 eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["key"],
                                              _keys[exchange_id]["secret"])

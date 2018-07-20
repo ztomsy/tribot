@@ -91,7 +91,7 @@ class OrderManagerFok(object):
         #     self.last_response = response
         #     return response
 
-        if (self.order_update_requests >= self.updates_to_kill) and\
+        if (self.order_update_requests +1 >= self.updates_to_kill) and\
                 (self.order.status != "closed" or self.order.status != "canceled"):
             response["action"] = "cancel"
             response["reason"] = "max number of updates reached"

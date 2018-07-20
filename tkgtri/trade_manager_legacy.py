@@ -5,16 +5,19 @@ from tkgtri.trade_manager import *
 class OrderManagerFokLegacyBinance(OrderManagerFok):
 
     def _create_order(self, exchange):
-        return exchange.create_order(self.order.symbol, self.order.type, self.order.side, self.order.amount,
+        resp = exchange.create_order(self.order.symbol, self.order.type, self.order.side, self.order.amount,
                                      self.order.price, {"newOrderRespType": "FULL"})
+        resp["cost"] = float(resp["info"]["cummulativeQuoteQty"])
+        return resp
 
     def _update_order(self, exchange):
         resp = exchange.fetch_order(self.order.id, self.order.symbol)
-        resp["cost"] = resp["info"]["cummulativeQuoteQty"]
+        resp["cost"] = float(resp["info"]["cummulativeQuoteQty"])
         return resp
 
     def _cancel_order(self, exchange):
-        return exchange.cancel_order(self.order.id, self.order.symbol)
+        resp = exchange.cancel_order(self.order.id, self.order.symbol)
+        return resp
 
     def emulate_order(self):
         binance_order = dict()
