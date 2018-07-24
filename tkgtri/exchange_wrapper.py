@@ -1,4 +1,6 @@
 import ccxt
+import ccxt.async as accxt
+import asyncio
 import csv
 import json
 from . import exchanges
@@ -17,6 +19,7 @@ class ExchangeWrapperOfflineFetchError(ExchangeWrapperError):
 class ccxtExchangeWrapper:
 
     _ccxt = ...  # type: ccxt.Exchange
+    _async_ccxt = ...  # type accxt.Exchange
     _PRECISION_AMOUNT = 8  # default amount precision for offline mode
     _PRECISION_PRICE = 8  # default price precision for offline mode
 
@@ -271,3 +274,37 @@ class ccxtExchangeWrapper:
             return core.price_to_precision(amount, self.markets[symbol]["precision"]["price"])
         else:
             return core.price_to_precision(amount, self._PRECISION_PRICE)
+
+    @staticmethod
+    async def _async_load_markets(exchange):
+        await exchange.load_markets()
+
+    async def _get_order_book_async(self, symbol):
+        ob = await self._async_ccxt.fetch_order_book(symbol)
+        return ob
+
+    def init_async_exchange(self):
+        """
+        init async ccxt exchange object and load markets
+        :return: none
+        """
+        exchange_async = getattr(accxt, self.exchange_id)
+        self._async_ccxt = exchange_async()
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self._async_load_markets(self._async_ccxt))
+
+    def get_oder_books_async(self, symbols):
+        loop = asyncio.get_event_loop()
+        tasks = list()
+
+        for s in symbols:
+            tasks.append(self._get_order_book_async(s))
+
+        ob_array = loop.run_until_complete(asyncio.gather(*tasks))
+        return ob_array
+
+
+
+
+
