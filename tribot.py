@@ -102,11 +102,10 @@ while True:
         # proceeding tickers
         try:
             tribot.proceed_triangles()
-            tribot.get_good_triangles()
+            tribot.tri_list_good = tribot.get_good_triangles()
 
             tribot.reporter.set_indicator("good_triangles", len(tribot.tri_list_good))
             tribot.reporter.set_indicator("total_triangles", len(tribot.tri_list))
-
             tribot.reporter.set_indicator("best_triangle", tribot.tri_list[0]["triangle"])
             tribot.reporter.set_indicator("best_result", tribot.tri_list[0]["result"])
 
@@ -123,6 +122,26 @@ while True:
             traceback.print_tb(exc_traceback)
 
             tribot.errors += 1
+
+        # checking the good triangles, orderbooks, getting the
+        if len(tribot.tri_list_good) > 0:
+            tribot.working_triangle = tribot.tri_list_good[0]
+            if tribot.get_result_from_orderbooks(tribot.working_triangle["symbol1"], tribot.working_triangle["symbol2"],
+                                    tribot.working_triangle["symbol3"]) > tribot.threshold_order_book :
+
+                tribot.get_start_amount()
+                tribot.run_trades(tribot.working_triangle)
+
+
+
+
+
+
+
+
+
+
+
 
         # reporting states:
         tribot.reporter.set_indicator("session_uuid", tribot.session_uuid)
