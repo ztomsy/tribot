@@ -1,5 +1,5 @@
 import ccxt
-import ccxt.async as accxt
+import ccxt.async_support as accxt
 import asyncio
 import csv
 import json
