@@ -66,7 +66,7 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
         ex.get_markets()
         ex.get_tickers()
 
-        om = tkgtri.OrderManagerFok(order, None, 3)
+        om = tkgtri.OrderManagerFok(order, None, 4)
 
         order_resp = ex.place_limit_order(order)
         order.update_order_from_exchange_resp(order_resp)
