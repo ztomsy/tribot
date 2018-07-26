@@ -142,7 +142,7 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
         ex.get_markets()
         ex.get_tickers()
 
-        om = tkgtri.OrderManagerFok(order, None, 3)
+        om = tkgtri.OrderManagerFok(order, None, 4)
 
         with self.assertRaises(OrderManagerErrorUnFilled) as cm:
             om.fill_order(ex)
