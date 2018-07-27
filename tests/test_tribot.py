@@ -28,7 +28,7 @@ class BasicTestSuite(unittest.TestCase):
         self.tribot.load_config_from_file(self.default_config)
 
         self.assertEqual(self.tribot.start_currency, ["ETH", "BTC"])
-        self.assertEqual(self.tribot.test_balance, 1)
+        # self.assertEqual(self.tribot.test_balance, 1)
 
         self.assertEqual(self.tribot.api_key["apiKey"], "testApiKey")
         self.assertEqual(self.tribot.server_id, "PROD1")
@@ -166,7 +166,7 @@ class BasicTestSuite(unittest.TestCase):
         self.tribot.fetch_tickers()  # 2nd fetch have good results
         self.tribot.proceed_triangles()
 
-        good_results = self.tribot.get_good_triangles()
+        self.tribot.tri_list_good = self.tribot.get_good_triangles()
 
         good_triangles = ["ETH-BNB-AMB", "ETH-BTC-TRX", 'BTC-TRX-ETH']
 
@@ -187,10 +187,21 @@ class BasicTestSuite(unittest.TestCase):
 
         good_results = self.tribot.get_good_triangles()
 
-        self.assertEqual(good_results, 0)
+        self.assertEqual(len(good_results), 0)
         self.assertEqual(len(self.tribot.tri_list_good), 0)
         self.assertEqual(self.tribot.last_proceed_report["best_result"]["triangle"], 'BTC-ETH-USDT')
 
+    def test_get_max_balance_to_bid(self):
+        self.tribot.load_config_from_file(self.default_config)
+
+        self.assertEqual(self.tribot.get_max_balance_to_bid("ETH", 1, 1.006, 1.006), 1)
+        self.assertEqual(self.tribot.get_max_balance_to_bid("ETH", 20, 1.006, 1.006), 5)
+        self.assertEqual(self.tribot.get_max_balance_to_bid("ETH", 20, 1.01, 1.01), 10)
+
+        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 1, 1.001, 1.001), None)  # threshold too low
+        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 1, 1.005, 1.005), 0.5)   # 1st threshold
+        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 0.7, 1.01, 1.01), 0.7)   # 2nd threshold
+        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 2, 1.01, 1.01), 1)       # 2nd max balance cap
 
 if __name__ == '__main__':
     unittest.main()

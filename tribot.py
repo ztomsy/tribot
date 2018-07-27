@@ -7,14 +7,13 @@ TriBot.print_logo("TriBot v0.5")
 #
 # set default parameters
 #
-tribot = TriBot("_config_default.json", "_tri.log")
+tribot = TriBot("_config.json", "_tri.log")
 
 tribot.report_all_deals_filename = "%s/_all_deals.csv"  # full path will be exchange_id/all_deals.csv
 tribot.report_tickers_filename = "%s/all_tickers_%s.csv"
 tribot.report_deals_filename = "%s/deals_%s.csv"
 tribot.report_prev_tickers_filename = "%s/deals_%s_tickers.csv"
 
-tribot.test_balance = 1
 tribot.debug = True
 tribot.live = True
 
@@ -67,11 +66,20 @@ if len(tribot.all_triangles) < 1:
 
 tribot.log(tribot.LOG_INFO, "Triangles found: {}".format(len(tribot.all_triangles)))
 
+# outer main loop
 while True:
 
-    tribot.load_balance()
-    tribot.log(tribot.LOG_INFO, "Balance: {}".format(tribot.balance))
+    # fetching the balance for first start currency or taking test balance from the cli/config
+    try:
+        tribot.load_balance()
+        tribot.log(tribot.LOG_INFO, "Balance: {}".format(tribot.balance))
+    except Exception as e:
+        tribot.log(tribot.LOG_ERROR, "Error while fetching balance {}".format(tribot.exchange_id))
+        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+        tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+        continue
 
+    # main loop
     while True:
         tribot.timer.reset_notches()
 
@@ -125,21 +133,19 @@ while True:
 
         # checking the good triangles, orderbooks, getting the
         if len(tribot.tri_list_good) > 0:
-            tribot.working_triangle = tribot.tri_list_good[0]
-            if tribot.get_result_from_orderbooks(tribot.working_triangle["symbol1"], tribot.working_triangle["symbol2"],
-                                    tribot.working_triangle["symbol3"]) > tribot.threshold_order_book :
-
-                tribot.get_start_amount()
-                tribot.run_trades(tribot.working_triangle)
+            working_triangle = tribot.tri_list_good[0]
 
 
-
-
-
-
-
-
-
+            # order_books_result = tribot.get_result_from_orderbooks(tribot.working_triangle["symbol1"], tribot.working_triangle["symbol2"],
+            #                         tribot.working_triangle["symbol3"])
+            #
+            # if tribot.get_result_from_orderbooks(tribot.working_triangle["symbol1"], tribot.working_triangle["symbol2"],
+            #                         tribot.working_triangle["symbol3"]) > tribot.threshold_order_book:
+            #
+            #     tribot.get_max_start_amount_from_order_books()
+            #     tribot.get_max_balance_to_bid
+            #
+            #     tribot.run_trades(tribot.working_triangle)
 
 
 

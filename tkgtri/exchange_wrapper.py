@@ -304,7 +304,5 @@ class ccxtExchangeWrapper:
         ob_array = loop.run_until_complete(asyncio.gather(*tasks))
         return ob_array
 
-
-
-
-
+    def fetch_free_balance(self):
+        return self._ccxt.fetch_free_balance()

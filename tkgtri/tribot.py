@@ -9,6 +9,7 @@ import tkgtri
 from . import tri_arb as ta
 import uuid
 from .reporter import TkgReporter
+import bisect
 
 
 class TriBot:
@@ -26,7 +27,7 @@ class TriBot:
         self.start_currency = list
         self.share_balance_to_bid = float
         self.max_recovery_attempts = int
-        self.lot_limits = dict
+        self.min_amounts = dict
         self.commission = float
         self.threshold = float
         self.threshold_order_book = float
@@ -37,9 +38,10 @@ class TriBot:
 
         self.timer = ...  # type: timer.Timer
 
-        self.lap_time = float
-        self.max_requests_per_lap = float
-        self.test_balance = float
+        self.lap_time = 0.0
+        self.max_requests_per_lap = 0.0
+        0
+        self.test_balance = float()
 
         self.live = bool
         self.debug = bool
@@ -78,7 +80,7 @@ class TriBot:
         self.tickers = dict
 
         self.tri_list = list
-        self.tri_list_good = list
+        self.tri_list_good = list()
 
         self.balance = float
 
@@ -181,14 +183,62 @@ class TriBot:
         self.tri_list = ta.fill_triangles(self.all_triangles, self.start_currency, self.tickers, self.commission)
 
     def load_balance(self):
-        if self.test_balance is not None:
+        if self.test_balance > 0:
             self.balance = self.test_balance
+            return self.test_balance
+        else:
+            self.balance = self.exchange.fetch_free_balance()[self.start_currency[0]]
+            return self.balance
+
+    #
+    # get maximum balance to bid in respect to thresholds set in config
+    #
+    def get_max_balance_to_bid(self, currency=None, balance=None, result=None, ob_result=None):
+
+        currency = self.start_currency[0] if currency is None else currency
+        balance = self.balance if balance is None else balance
+        result = self.tri_list_good[0]["result"] if result is None else result
+        ob_result = self.tri_list_good[0]["ob_result"]  if ob_result is None else ob_result
+
+        balance_results_thresholds_config = self.balance_bid_thresholds[currency]
+
+        balance_results_thresholds_config = dict()
+
+        for l in self.balance_bid_thresholds[currency]:
+            balance_results_thresholds_config[float(l["max_bid"])] = l
+
+        balance_thresholds = sorted(list(balance_results_thresholds_config.keys()))
+
+        try:
+            i = bisect.bisect_left(balance_thresholds, balance)
+        except IndexError:
+            i = 0
+
+        if i >= len(balance_thresholds):
+            i = len(balance_thresholds) - 1
+
+        while i >= 0:
+            if result >= balance_results_thresholds_config[balance_thresholds[i]]['result_threshold'] and \
+                    ob_result >= balance_results_thresholds_config[balance_thresholds[i]]["orderbook_result_threshold"]:
+                to_bid = min(balance, balance_thresholds[i])
+                return to_bid
+
+            else:
+                i = i - 1
+        return None
+
+
+
 
     def fetch_tickers(self):
         self.fetch_number += 1
         self.tickers = self.exchange.get_tickers()
 
     def get_good_triangles(self):
+        """
+
+        :return: sorted by result list of good triangles
+        """
         # tri_list = list(filter(lambda x: x['result'] > 0, self.tri_list))
         tri_list = sorted(self.tri_list, key=lambda k: k['result'], reverse=True)
 
@@ -199,11 +249,11 @@ class TriBot:
                    x['result'] is not None and x['result'] > threshold,
                    tri_list))
 
-        self.tri_list_good = tri_list_good
+        # self.tri_list_good = tri_list_good
         self.last_proceed_report = dict()
         self.last_proceed_report["best_result"] = tri_list[0]
 
-        return len(tri_list_good)
+        return tri_list_good
 
     def get_status_report(self):
 
