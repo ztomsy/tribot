@@ -21,32 +21,34 @@ class TriBot:
         self.errors = 0
 
         self.config_filename = default_config
-        self.exchange_id = str
-        self.server_id = str
-        self.script_id = str
-        self.start_currency = list
-        self.share_balance_to_bid = float
-        self.max_recovery_attempts = int
-        self.min_amounts = dict
-        self.commission = float
-        self.threshold = float
-        self.threshold_order_book = float
-        self.balance_bid_thresholds = dict
-        self.api_key = dict
-        self.max_past_triangles = int
-        self.good_consecutive_results_threshold = int
+        self.exchange_id = ""
+        self.server_id = ""
+        self.script_id = ""
+        self.start_currency = list()
+        self.share_balance_to_bid = float()
+        self.max_recovery_attempts = int()
+        self.min_amounts = dict()
+        self.commission = float()
+        self.threshold = float()
+        self.threshold_order_book = float()
+        self.balance_bid_thresholds = dict()
+        self.api_key = dict()
+        self.max_past_triangles = int()
+        self.good_consecutive_results_threshold = int()
 
         self.timer = ...  # type: timer.Timer
 
-        self.lap_time = 0.0
+        self.lap_time = float()
         self.max_requests_per_lap = 0.0
-        0
+
         self.test_balance = float()
+        self.force_start_amount = float()
 
-        self.live = bool
-        self.debug = bool
+        self.force_best_tri = bool()
+        self.debug = bool()
+        self.run_once = False
 
-        self.tickers_file = str
+        self.tickers_file = str()
 
         self.logger = logging
         self.log_filename = log_filename
@@ -58,34 +60,34 @@ class TriBot:
         self.LOG_ERROR = logging.ERROR
         self.LOG_CRITICAL = logging.CRITICAL
 
-        self.report_all_deals_filename = str
-        self.report_tickers_filename = str
-        self.report_deals_filename = str
-        self.report_prev_tickers_filename = str
+        self.report_all_deals_filename = str()
+        self.report_tickers_filename = str()
+        self.report_deals_filename = str()
+        self.report_prev_tickers_filename = str()
 
-        self.report_dir = str
-        self.deals_file_id = int
+        self.report_dir = str()
+        self.deals_file_id = int()
 
-        self.influxdb = dict
+        self.influxdb = dict()
         self.reporter = ...  # type: tkgtri.TkgReporter
 
         self.exchange = ...  # type: tkgtri.ccxtExchangeWrapper
 
-        self.basic_triangles = list
-        self.basic_triangles_count = int
+        self.basic_triangles = list()
+        self.basic_triangles_count = int()
 
-        self.all_triangles = list
+        self.all_triangles = list()
 
-        self.markets = dict
-        self.tickers = dict
+        self.markets = dict()
+        self.tickers = dict()
 
-        self.tri_list = list
+        self.tri_list = list()
         self.tri_list_good = list()
 
-        self.balance = float
+        self.balance = float()
 
         self.time = timer.Timer
-        self.last_proceed_report = dict
+        self.last_proceed_report = dict()
 
         # load config from json
 
@@ -96,7 +98,7 @@ class TriBot:
 
         for i in cnf:
             attr_val = cnf[i]
-            if type(getattr(self, i)) == type and attr_val is not None:
+            if not bool(getattr(self, i)) and attr_val is not None:
                 setattr(self, i, attr_val)
 
     # parse cli
@@ -168,6 +170,7 @@ class TriBot:
         self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"],
                                                                 self.api_key["secret"])
 
+
     def load_markets(self):
         self.markets = self.exchange.get_markets()
 
@@ -227,8 +230,19 @@ class TriBot:
                 i = i - 1
         return None
 
+    def get_order_books_async(self, symbols: list):
+        """
+        returns the dict of {"symbol": OrderBook}
+        :param symbols: list of symbols to get orderbooks
+        :return: returns the dict of {"symbol": OrderBook}
+        """
 
+        ob_array = self.exchange.get_order_books_async(symbols)
+        order_books = dict()
+        for ob in ob_array:
+            order_books[ob["symbol"]] = tkgtri.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
+        return order_books
 
     def fetch_tickers(self):
         self.fetch_number += 1
@@ -240,18 +254,18 @@ class TriBot:
         :return: sorted by result list of good triangles
         """
         # tri_list = list(filter(lambda x: x['result'] > 0, self.tri_list))
-        tri_list = sorted(self.tri_list, key=lambda k: k['result'], reverse=True)
+        self.tri_list = sorted(self.tri_list, key=lambda k: k['result'], reverse=True)
 
         threshold = self.threshold
 
         tri_list_good = list(
             filter(lambda x:
                    x['result'] is not None and x['result'] > threshold,
-                   tri_list))
+                   self.tri_list))
 
         # self.tri_list_good = tri_list_good
         self.last_proceed_report = dict()
-        self.last_proceed_report["best_result"] = tri_list[0]
+        self.last_proceed_report["best_result"] = self.tri_list[0]
 
         return tri_list_good
 

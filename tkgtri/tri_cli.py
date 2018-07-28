@@ -13,25 +13,35 @@ def get_cli_parameters(args):
                         default=True,
                         action="store_false")
 
-    parser.add_argument("--nolive", help="going into deals after max_past_triangles",
-                        dest="live",
-                        default=True,
-                        action="store_false")
+    parser.add_argument("--force", help="going into deals after max_past_triangles with the best tri",
+                        dest="force_best_tri",
+                        default=False,
+                        action="store_true")
 
     parser.add_argument("--exchange", help="Seth the exchange_id. Ignore config file. ",
                         dest='exchange_id',
                         action="store", default=None)
 
-    parser.add_argument("--balance", help="staring balance for fake deals. Default is 1",
+    parser.add_argument("--balance", help="staring balance for fake deals",
                         dest="test_balance",
                         type=float,
                         action="store", default=None)
 
-    parser.add_argument("--requests", help="maxumin requests to exchange per minute",
+    parser.add_argument("--requests", help="maximum requests to exchange per minute",
                         dest="max_requests_per_lap",
                         type=float,
                         action="store", default=None)
 
+    parser.add_argument("--runonce", help="run only one set of deals and finish",
+                        dest="run_once",
+                        default=False,
+                        action="store_true")
+
+    parser.add_argument("--force_start_bid", help="ignore max amount for order books and use this amount to start deals",
+                        dest="force_start_amount",
+                        default=None,
+                        type=float,
+                        action="store")
 
     return parser.parse_args(args)
 

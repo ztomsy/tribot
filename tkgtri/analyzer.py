@@ -24,7 +24,7 @@ class Analyzer:
 
             if deal_row["leg" + str(i) + "-order"] == "buy":
                 d[i] = order_books[i].get_depth(bid_qty, "buy", "quote")
-                d[i].total_quantity = float(exchange.amount_to_lots(deal_row["symbol" + str(i)], d[i].total_quantity))
+                d[i].total_quantity = float(exchange.amount_to_precision(deal_row["symbol" + str(i)], d[i].total_quantity))
 
             if deal_row["leg" + str(i) + "-order"] == "sell":
                 d[i] = order_books[i].get_depth(bid_qty, "sell", "base")
@@ -75,11 +75,13 @@ class Analyzer:
         return False
 
     @staticmethod
-    def get_maximum_start_amount(exchange, data_row, order_books, maximum_bid, intervals=10):
+    def get_maximum_start_amount(exchange, data_row, order_books, maximum_bid, intervals=10, start_amount = None):
 
-        if maximum_bid > float(data_row["min-namnt"]):
+        if start_amount is None: start_amount = data_row["min-namnt"]
 
-            amount_to_check = np.linspace(float(data_row["min-namnt"]), maximum_bid, intervals)
+        if maximum_bid > float(start_amount):
+
+            amount_to_check = np.linspace(float(start_amount), maximum_bid, intervals)
 
             results = list(map(
                 lambda x: float(x) * (Analyzer.order_book_results(exchange, data_row, order_books, float(x))["result"] - 1),

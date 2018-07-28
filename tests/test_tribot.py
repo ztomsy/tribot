@@ -42,19 +42,22 @@ class BasicTestSuite(unittest.TestCase):
     def test_cli_overrides_config_file(self):
 
         self.tribot.debug = True
-        self.tribot.live = True
+        self.tribot.force_best_tri = True
 
-        self.tribot.set_from_cli("--config _config_default.json --balance 2 --nodebug --nolive --exchange kraken".split(" "))
+        self.tribot.set_from_cli("--config _config_default.json --balance 2 --nodebug --force --exchange kraken "
+                                 "--runonce --force_start_bid 666".split(" "))
 
         self.tribot.load_config_from_file(self.tribot.config_filename)
 
         self.assertEqual(self.tribot.debug, False)
-        self.assertEqual(self.tribot.live, False)
+        self.assertEqual(self.tribot.run_once, True)
+        self.assertEqual(self.tribot.force_best_tri, True)
 
         self.assertEqual(self.tribot.exchange_id, "kraken")
 
         self.assertEqual(self.tribot.config_filename, "_config_default.json")
         self.assertEqual(self.tribot.test_balance, 2)
+        self.assertEqual(self.tribot.force_start_amount, 666)
 
         self.assertEqual(self.tribot.api_key["apiKey"], "testApiKey")
 

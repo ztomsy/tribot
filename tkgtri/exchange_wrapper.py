@@ -281,6 +281,7 @@ class ccxtExchangeWrapper:
 
     async def _get_order_book_async(self, symbol):
         ob = await self._async_ccxt.fetch_order_book(symbol)
+        ob["symbol"] = symbol
         return ob
 
     def init_async_exchange(self):
@@ -294,7 +295,7 @@ class ccxtExchangeWrapper:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._async_load_markets(self._async_ccxt))
 
-    def get_oder_books_async(self, symbols):
+    def get_order_books_async(self, symbols):
         loop = asyncio.get_event_loop()
         tasks = list()
 

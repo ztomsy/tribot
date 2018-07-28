@@ -60,7 +60,7 @@ def async():
 
 
 def async_exchangeWrapper():
-    exchange.get_oder_books_async(order_books)
+    exchange.get_order_books_async(order_books)
 
 
 order_books = ["ETH/BTC", "ETH/USDT", "BTC/USDT"]
