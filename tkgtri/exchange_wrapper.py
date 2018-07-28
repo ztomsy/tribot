@@ -280,7 +280,7 @@ class ccxtExchangeWrapper:
         await exchange.load_markets()
 
     async def _get_order_book_async(self, symbol):
-        ob = await self._async_ccxt.fetch_order_book(symbol)
+        ob = await self._async_ccxt.fetch_order_book(symbol, 100)
         ob["symbol"] = symbol
         return ob
 

@@ -47,6 +47,7 @@ class TriBot:
         self.force_best_tri = bool()
         self.debug = bool()
         self.run_once = False
+        self.noauth = False
 
         self.tickers_file = str()
 
@@ -166,10 +167,11 @@ class TriBot:
         # exchange = getattr(ccxt, self.exchange_id)
         # self.exchange = exchange({'apiKey': self.api_key["apiKey"], 'secret': self.api_key["secret"] })
         # self.exchange.load_markets()
-
-        self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"],
+        if not self.noauth:
+            self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"],
                                                                 self.api_key["secret"])
-
+        else:
+            self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id)
 
     def load_markets(self):
         self.markets = self.exchange.get_markets()

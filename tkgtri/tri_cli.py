@@ -43,6 +43,13 @@ def get_cli_parameters(args):
                         type=float,
                         action="store")
 
+    parser.add_argument("--noauth",
+                        help="do not use the credentianls for exchange",
+                        dest="noauth",
+                        default=False,
+                        action="store_true")
+
+
     return parser.parse_args(args)
 
 
