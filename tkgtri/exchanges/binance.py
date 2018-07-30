@@ -23,7 +23,7 @@ class binance(ew.ccxtExchangeWrapper):
 
     def _cancel_order(self, order):
         resp = self._ccxt.cancel_order(order.id, order.symbol)
-        resp["cost"] = resp["info"]["cummulativeQuoteQty"]
+
         return resp
 
     def _fetch_order_trades(self, order):

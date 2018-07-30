@@ -250,38 +250,53 @@ while True:
         tribot.log(tribot.LOG_INFO, "Expected amount: {}".format(expected_amount))
         tribot.log(tribot.LOG_INFO, "Expected result: {}".format(expected_result))
 
+        tribot.assign_updates_functions_for_order_manager()
 
         orders = list()
         price = tribot.exchange.price_to_precision(working_triangle["symbol1"],
                                                    order_books[working_triangle["symbol1"]].get_depth_for_trade_side(
                                                        bal_to_bid, working_triangle["leg1-order"]).total_price)
 
-        order = TradeOrder.create_limit_order_from_start_amount(working_triangle["symbol1"],
-                                                                working_triangle["cur1"],
-                                                                bal_to_bid, working_triangle["cur2"], price)
+        tribot.log(tribot.LOG_INFO, "Trade 1/3: from {}-{}->{}".format(working_triangle["cur1"],
+                                                                       working_triangle["leg1-order"],
+                                                                       working_triangle["cur2"]))
 
-        OrderManagerFok.on_order_create = lambda _order_manager: tribot.log_order_create(_order_manager)
-        OrderManagerFok.on_order_update = lambda _order_manager: tribot.log_order_update(_order_manager)
-        OrderManagerFok.on_order_update_error = lambda _order_manager, _exception: tribot.log_on_order_update_error(
-            _order_manager, _exception)
+        tribot.log(tribot.LOG_INFO,"Price: {}. Src Amount {}".format(price, bal_to_bid))
 
-        order_manager = OrderManagerFok(order)
+        order1 = tribot.do_trade(working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
+                                 bal_to_bid, working_triangle["leg1-order"], price)
 
-        try:
-            order_manager.fill_order(tribot.exchange)
-        except OrderManagerErrorUnFilled:
-            try:
-                order_manager.cancel_order(tribot.exchange)
+        price2 = tribot.exchange.price_to_precision(working_triangle["symbol2"],
+                                                   order_books[working_triangle["symbol2"]].get_depth_for_trade_side(
+                                                       order1.filled_dest_amount,
+                                                       working_triangle["leg2-order"]).total_price)
 
-            except OrderManagerCancelAttemptsExceeded:
-                tribot.log(tribot.LOG_ERROR, "Could not cancel order")
-                tribot.errors += 1
+        tribot.log(tribot.LOG_INFO, "Trade 2/3: from {}-{}->{}".format(working_triangle["cur2"],
+                                                                       working_triangle["leg2-order"],
+                                                                       working_triangle["cur3"]))
 
-        except Exception as e:
-            tribot.log(tribot.LOG_ERROR, "Order error")
-            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-            tribot.errors += 1
+        tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price2, order1.filled_src_amount))
+
+        order2 = tribot.do_trade(working_triangle["symbol2"], working_triangle["cur2"], working_triangle["cur3"],
+                                 order1.filled_dest_amount, working_triangle["leg2-order"], price2)
+
+        price3 = tribot.exchange.price_to_precision(working_triangle["symbol3"],
+                                                    order_books[working_triangle["symbol3"]].get_depth_for_trade_side(
+                                                        order2.filled_dest_amount,
+                                                        working_triangle["leg3-order"]).total_price)
+
+        tribot.log(tribot.LOG_INFO, "Trade 3/3: from {}-{}->{}".format(working_triangle["cur3"],
+                                                                       working_triangle["leg3-order"],
+                                                                       working_triangle["cur1"]))
+
+        tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price3, order2.filled_src_amount))
+
+        order3 = tribot.do_trade(working_triangle["symbol3"], working_triangle["cur3"], working_triangle["cur1"],
+                                 order2.filled_dest_amount, working_triangle["leg3-order"], price3)
+
+        tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
+        tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order1.filled_src_amount - order3.filled_dest_amount))
+        tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount/order1.filled_src_amount))
 
         # reporting states:
         tribot.reporter.set_indicator("session_uuid", tribot.session_uuid)

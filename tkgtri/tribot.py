@@ -12,6 +12,8 @@ from .reporter import TkgReporter
 import bisect
 import datetime
 import time
+from .trade_orders import *
+from .trade_manager import *
 
 class TriBot:
 
@@ -293,7 +295,7 @@ class TriBot:
             order_manager.order.filled_dest_amount,
             order_manager.order.amount_dest))
 
-        now_order = datetime.datetime.now()
+        now_order = datetime.now()
 
         if order_manager.order.status == "open" and \
                 order_manager.order.update_requests_count >= self.order_update_requests_for_time_out:
@@ -308,7 +310,7 @@ class TriBot:
                     self.log(self.LOG_INFO, "...sleeping while order update for {}".format(self.order_update_time_out))
                     time.sleep(self.order_update_time_out)
 
-                order_manager.last_update_time = datetime.datetime.now()
+                order_manager.last_update_time = datetime.now()
 
     def log_on_order_update_error(self, order_manager, exception):
         self.log(self.LOG_ERROR, "Error updating  order_id: {}".format(order_manager.order.id))
@@ -318,6 +320,42 @@ class TriBot:
             self.log(self.LOG_ERROR,type(exception).__name__ + ll)
 
         return True
+
+    def assign_updates_functions_for_order_manager(self):
+        OrderManagerFok.on_order_create = lambda _order_manager: self.log_order_create(_order_manager)
+        OrderManagerFok.on_order_update = lambda _order_manager: self.log_order_update(_order_manager)
+        OrderManagerFok.on_order_update_error = lambda _order_manager, _exception: self.log_on_order_update_error(
+            _order_manager, _exception)
+
+    def do_trade(self,symbol, start_currency, dest_currency, amount, side, price):
+
+        order = TradeOrder.create_limit_order_from_start_amount(symbol,
+                                                                 start_currency,
+                                                                 amount, dest_currency, price)
+
+        order_manager = OrderManagerFok(order)
+
+        try:
+             order_manager.fill_order(self.exchange)
+        except OrderManagerErrorUnFilled:
+            try:
+                order_manager.cancel_order(self.exchange)
+
+            except OrderManagerCancelAttemptsExceeded:
+                 self.log(self.LOG_ERROR, "Could not cancel order")
+                 self.errors += 1
+
+        except Exception as e:
+            self.log(self.LOG_ERROR, "Order error")
+            self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            self.log(self.LOG_ERROR, "Exception body:", e.args)
+            self.log(self.LOG_ERROR, order.info)
+
+            self.errors += 1
+
+        return order
+
+
 
     def get_status_report(self):
 
