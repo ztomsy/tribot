@@ -10,7 +10,8 @@ from . import tri_arb as ta
 import uuid
 from .reporter import TkgReporter
 import bisect
-
+import datetime
+import time
 
 class TriBot:
 
@@ -35,6 +36,9 @@ class TriBot:
         self.api_key = dict()
         self.max_past_triangles = int()
         self.good_consecutive_results_threshold = int()
+
+        self.order_update_requests_for_time_out = 0.0
+        self.order_update_time_out = 1
 
         self.timer = ...  # type: timer.Timer
 
@@ -270,6 +274,50 @@ class TriBot:
         self.last_proceed_report["best_result"] = self.tri_list[0]
 
         return tri_list_good
+
+    def log_order_create(self, order_manager: tkgtri.OrderManagerFok):
+        self.log(self.LOG_INFO, "Tick {}: Order {} created. Filled dest curr:{} / {} ".format(
+            order_manager.order.update_requests_count,
+            order_manager.order.id,
+            order_manager.order.filled_dest_amount,
+            order_manager.order.amount_dest))
+
+    # here is the sleep between updates is implemented! needed to be fixed
+    def log_order_update(self, order_manager: tkgtri.OrderManagerFok):
+        self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled dest curr:{} / {} ".format(
+            order_manager.order.id,
+            order_manager.order.update_requests_count,
+            order_manager.updates_to_kill,
+            self.order_update_requests_for_time_out,
+            order_manager.order.status,
+            order_manager.order.filled_dest_amount,
+            order_manager.order.amount_dest))
+
+        now_order = datetime.datetime.now()
+
+        if order_manager.order.status == "open" and \
+                order_manager.order.update_requests_count >= self.order_update_requests_for_time_out:
+
+            if order_manager.order.update_requests_count >= order_manager.updates_to_kill:
+                self.log(self.LOG_INFO, "...last update will no sleep")
+
+            else:
+                self.log(self.LOG_INFO, "...reached the number of order updates for timeout")
+
+                if (now_order - order_manager.last_update_time).total_seconds() < self.order_update_time_out:
+                    self.log(self.LOG_INFO, "...sleeping while order update for {}".format(self.order_update_time_out))
+                    time.sleep(self.order_update_time_out)
+
+                order_manager.last_update_time = datetime.datetime.now()
+
+    def log_on_order_update_error(self, order_manager, exception):
+        self.log(self.LOG_ERROR, "Error updating  order_id: {}".format(order_manager.order.id))
+        self.log(self.LOG_ERROR,"Exception: {}".format(type(exception).__name__))
+
+        for ll in exception.args:
+            self.log(self.LOG_ERROR,type(exception).__name__ + ll)
+
+        return True
 
     def get_status_report(self):
 

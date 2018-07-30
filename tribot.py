@@ -1,5 +1,8 @@
 from tkgtri import TriBot
 from tkgtri import Analyzer
+from tkgtri import TradeOrder
+from tkgtri import OrderManagerFok
+from tkgtri.trade_manager import *
 import sys
 import traceback
 
@@ -226,6 +229,7 @@ while True:
                                                          2: order_books[working_triangle["symbol2"]],
                                                          3: order_books[working_triangle["symbol3"]]},
                                                         bal_to_bid)["result"]
+
             except Exception as e:
                 tribot.log(tribot.LOG_ERROR,
                            "Error calc the result and amount on order books exchange_id{}: session_uuid:{}"
@@ -239,8 +243,45 @@ while True:
                 continue
 
         # going to deals
-        tribot.log(tribot.LOG_INFO, "Amount to bid:{}".format(bal_to_bid))
-        tribot.log(tribot.LOG_INFO, "Expected result:{}".format(expected_result))
+        expected_amount = tribot.exchange.price_to_precision(working_triangle["symbol3"],
+                                                             bal_to_bid * expected_result)
+
+        tribot.log(tribot.LOG_INFO, "Start amount:{}".format(bal_to_bid))
+        tribot.log(tribot.LOG_INFO, "Expected amount: {}".format(expected_amount))
+        tribot.log(tribot.LOG_INFO, "Expected result: {}".format(expected_result))
+
+
+        orders = list()
+        price = tribot.exchange.price_to_precision(working_triangle["symbol1"],
+                                                   order_books[working_triangle["symbol1"]].get_depth_for_trade_side(
+                                                       bal_to_bid, working_triangle["leg1-order"]).total_price)
+
+        order = TradeOrder.create_limit_order_from_start_amount(working_triangle["symbol1"],
+                                                                working_triangle["cur1"],
+                                                                bal_to_bid, working_triangle["cur2"], price)
+
+        OrderManagerFok.on_order_create = lambda _order_manager: tribot.log_order_create(_order_manager)
+        OrderManagerFok.on_order_update = lambda _order_manager: tribot.log_order_update(_order_manager)
+        OrderManagerFok.on_order_update_error = lambda _order_manager, _exception: tribot.log_on_order_update_error(
+            _order_manager, _exception)
+
+        order_manager = OrderManagerFok(order)
+
+        try:
+            order_manager.fill_order(tribot.exchange)
+        except OrderManagerErrorUnFilled:
+            try:
+                order_manager.cancel_order(tribot.exchange)
+
+            except OrderManagerCancelAttemptsExceeded:
+                tribot.log(tribot.LOG_ERROR, "Could not cancel order")
+                tribot.errors += 1
+
+        except Exception as e:
+            tribot.log(tribot.LOG_ERROR, "Order error")
+            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+            tribot.errors += 1
 
         # reporting states:
         tribot.reporter.set_indicator("session_uuid", tribot.session_uuid)

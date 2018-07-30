@@ -1,4 +1,3 @@
-from tkgtri.tribot import TriBot
 from .tri_cli import *
 from .timer import Timer
 from .utils import *
@@ -18,3 +17,5 @@ from .trade_manager import *
 from .trade_manager_legacy import OrderManagerFokLegacyBinance
 from . import core
 from .analyzer import Deal, Analyzer
+from .tribot import TriBot
+

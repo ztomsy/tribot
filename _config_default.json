@@ -36,5 +36,9 @@
           {"host": "13.231.173.161",
             "port": 8086,
             "db": "tkg_dev",
-            "measurement": "tri_status"}
+            "measurement": "tri_status"},
+
+  "order_update_requests_for_time_out": 5,
+  "order_update_time_out": 1
+
 }
