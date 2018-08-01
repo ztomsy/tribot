@@ -24,7 +24,7 @@ class ccxtExchangeWrapper:
     _PRECISION_PRICE = 8  # default price precision for offline mode
 
     @classmethod
-    def load_from_id(cls, exchange_id, api_key="", secret="", offline=False):
+    def load_from_id(cls, exchange_id, api_key=None, secret=None, offline=False):
 
         try:
             exchange = getattr(exchanges, exchange_id)
@@ -218,14 +218,40 @@ class ccxtExchangeWrapper:
                 "Offline trades are not loaded")
 
     def _fetch_order_trades(self, order):
-        self._ccxt.fetch_order_trades(order.id)
+        if self.offline:
+            return self._offline_fetch_trades()
+        else:
+            return self._ccxt.fetch_order_trades(order.id)
 
     def get_trades(self, order):
         if self.offline:
             return self._offline_fetch_trades()
         else:
             return self._fetch_order_trades(order)
-    #
+
+    @staticmethod
+    def get_total_fees(order: TradeOrder):
+        """
+        returns the dict of cumulative fee as ["<CURRENCY>"]["amount"]
+
+        :param order: TradeOrder
+        :return:  the dict of cumulative fee as ["<CURRENCY>"]["amount"]
+        """
+        trades = order.trades
+        total_fee = dict()
+
+        for t in trades["trades"]:
+            if t["fee"]["currency"] not in total_fee:
+                total_fee[t["fee"]["currency"]] = dict()
+                total_fee[t["fee"]["currency"]]["amount"] = 0
+
+            total_fee[t["fee"]["currency"]]["amount"] += t["fee"]["cost"]
+
+        for c in order.start_currency, order.dest_currency:
+            if c not in total_fee:
+                total_fee[c] = dict({"amount":0.0})
+
+        return total_fee    #
     # fetch or (get from order) the trades within the order and return the result calculated by trades:
     # dict = {
     #       "trades": dict of trades from ccxt

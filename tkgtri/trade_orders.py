@@ -55,7 +55,7 @@ class TradeOrder(object):
 
     # fields to update from ccxt order placement response
     _UPDATE_FROM_EXCHANGE_FIELDS = ["id", "datetime", "timestamp", "lastTradeTimestamp", "status", "amount", "filled",
-                                   "remaining", "cost", "price", "info", "trades"]
+                                   "remaining", "cost", "price", "info", "trades", "fee"]
 
     def __init__(self, type, symbol, amount, side, price=None, precision_amount=None, precision_price=None):
 

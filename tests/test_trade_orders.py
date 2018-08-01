@@ -186,6 +186,14 @@ class TradeOrderTestSuite(unittest.TestCase):
 
         self.assertListEqual(order_resps["updates"], ex._offline_order["updates"])
 
+        trades = ex.get_trades(order)
+
+        self.assertListEqual(trades, order.trades)
+
+
+
+
+
     def test_total_amounts_from_trades(self):
 
         order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",

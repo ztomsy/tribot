@@ -87,10 +87,11 @@ def test_trade(start_cur, dest_cur, start_amount):
     results = list()
     i = 0
     while bool(results) is not True and i < 100:
-        print("retrying to get trades #{}".format(i))
+        print("getting trades #{}".format(i))
         try:
             results = bot.exchange.get_trades_results(order1)
-        except:
+        except Exception as e:
+            print(type(e).__name__, "!!!", e.args, ' ')
             print("retrying to get trades...")
         i += 1
 
@@ -100,7 +101,8 @@ def test_trade(start_cur, dest_cur, start_amount):
     balance_after_order1 = dict(init_balance)
 
     i = 0
-    while balance_after_order1[start_cur] == init_balance[start_cur] and i < 50:
+    while (balance_after_order1[start_cur] == init_balance[start_cur] or
+           balance_after_order1[dest_cur] == init_balance[dest_cur]) and i < 50:
         try:
             balance = dict(bot.exchange.fetch_free_balance())
             balance_after_order1[start_cur], balance_after_order1[dest_cur] = balance[start_cur], balance[dest_cur]
@@ -126,44 +128,67 @@ def test_trade(start_cur, dest_cur, start_amount):
     all_data["balance_after_order1"] = balance_after_order1
     all_data["balance_diff_start_cur"] = init_balance[start_cur] - balance_after_order1[start_cur]
     all_data["balance_diff_dest_cur"] = init_balance[dest_cur] - balance_after_order1[dest_cur]
-    all_data["check_balance_dest_curr_diff_eq_filled_dest_minus_fee"] = True \
-        if balance_after_order1[dest_cur] == init_balance[dest_cur] + \
-           order1.filled_dest_amount - order1.fees[dest_cur]["amount"] else False
+    all_data["check_balance_dest_curr_diff_eq_filled_dest_minus_fee"] = round(
+        balance_after_order1[dest_cur] - (init_balance[dest_cur] + order1.filled_dest_amount -
+                                          order1.fees[dest_cur]["amount"]),
+        bot.exchange._ccxt.currencies[dest_cur]["precision"])
 
-    all_data["check_balance_src_curr_diff_eq_filled_src"] = True \
-        if balance_after_order1[start_cur] == init_balance[start_cur] - order1.filled_src_amount else False
+    all_data["check_balance_src_curr_diff_eq_filled_src"] =round(
+        balance_after_order1[start_cur] - (init_balance[start_cur] - order1.filled_src_amount
+                                           - order1.fees[start_cur]["amount"]),
+
+        bot.exchange._ccxt.currencies[dest_cur]["precision"])
+
+    # check if deal results are consistent with amount and fees
+    if all_data["check_balance_dest_curr_diff_eq_filled_dest_minus_fee"] == 0 \
+            and all_data["check_balance_src_curr_diff_eq_filled_src"] == 0:
+        all_data["_check_trades_amount_fees"] = True
+    else:
+        all_data["_check_trades_amount_fees"] = False
 
     return all_data
 
 
 report = dict()
 
+print("Trade 1")
+print("======================")
 report["trade1"] = test_trade(start_cur, dest_cur, bot.min_amounts[start_cur])
+print("======================")
+print("Trade 2")
+report["trade2"] = test_trade(dest_cur, start_cur,
+                              report["trade1"]["order1"].filled_dest_amount -
+                              report["trade1"]["order1"].fees[dest_cur]["amount"])
+
+
+print("Check Trade 1:{}".format(report["trade1"]["_check_trades_amount_fees"]))
+print("Check Trade 2:{}".format(report["trade2"]["_check_trades_amount_fees"]))
 
 j = jsonpickle.encode(report)
 
-s = json.dumps(json.loads(j), indent=4)
+s = json.dumps(json.loads(j), indent=4, sort_keys=True)
+
 
 with open(order_history_file_name, "w") as file:
     file.writelines(s)
 
-print("Order resp:")
-print(s)
-print("Trades resp:{}".format(results))
-
-print("=====================================")
-print("Symbol:{}".format(order1.symbol))
-print("Side:{}".format(order1.side))
-print("Amount:{}".format(order1.amount))
-print("Price:{}".format(order1.init_price))
-print("Status:{}".format(order1.status))
-print(" - - - -")
-print("Result:")
-print("Filled order amount: {} of {}".format(order1.filled, order1.amount))
-print("Filled dest amount: {} of {}".format(results["dest_amount"], order1.filled_dest_amount))
-print("Filled src amount: {} of {}".format(results["src_amount"], order1.amount_start))
-print("Price Fact vs Order price  : {} of {}".format(results["price"], order1.init_price))
-print("Trades count: {}".format(len(results["trades"])))
+# print("Order resp:")
+# print(s)
+# print("Trades resp:{}".format(results))
+#
+# print("=====================================")
+# print("Symbol:{}".format(order1.symbol))
+# print("Side:{}".format(order1.side))
+# print("Amount:{}".format(order1.amount))
+# print("Price:{}".format(order1.init_price))
+# print("Status:{}".format(order1.status))
+# print(" - - - -")
+# print("Result:")
+# print("Filled order amount: {} of {}".format(order1.filled, order1.amount))
+# print("Filled dest amount: {} of {}".format(results["dest_amount"], order1.filled_dest_amount))
+# print("Filled src amount: {} of {}".format(results["src_amount"], order1.amount_start))
+# print("Price Fact vs Order price  : {} of {}".format(results["price"], order1.init_price))
+# print("Trades count: {}".format(len(results["trades"])))
 
 sys.exit(0)
 # d = ob.(bal_to_bid, dest_cur)
