@@ -231,7 +231,6 @@ class ccxtExchangeWrapper:
         if self.offline:
             return self._offline_fetch_trades()
         else:
-            resp = dict()
             amount_from_trades = 0
             if order.trades is not None:
                 amount_from_trades = sum(item['amount'] for item in order.trades)
@@ -248,28 +247,28 @@ class ccxtExchangeWrapper:
                 raise self.ExchangeWrapperError("Amount in Trades is not matching Order Amount")
 
     @staticmethod
-    def get_total_fees(order: TradeOrder):
+    def fees_from_order(order:TradeOrder):
         """
         returns the dict of cumulative fee as ["<CURRENCY>"]["amount"]
 
-        :param order: TradeOrder
+        :param trades: list of ccxt trades
         :return:  the dict of cumulative fee as ["<CURRENCY>"]["amount"]
         """
-        trades = order.trades
+        #trades = trades
         total_fee = dict()
 
-        for t in trades["trades"]:
+        for t in order.trades:
             if t["fee"]["currency"] not in total_fee:
                 total_fee[t["fee"]["currency"]] = dict()
                 total_fee[t["fee"]["currency"]]["amount"] = 0
 
             total_fee[t["fee"]["currency"]]["amount"] += t["fee"]["cost"]
 
-        for c in order.start_currency, order.dest_currency:
-            if c not in total_fee:
-                total_fee[c] = dict({"amount":0.0})
+        # for c in order.start_currency, order.dest_currency:
+        #     if c not in total_fee:
+        #         total_fee[c] = dict({"amount": 0.0})
 
-        return total_fee    #
+        return total_fee
     # fetch or (get from order) the trades within the order and return the result calculated by trades:
     # dict = {
     #       "trades": dict of trades from ccxt

@@ -16,10 +16,10 @@ class kucoin(ew.ccxtExchangeWrapper):
         if "trades" in resp and len(resp["trades"]) > 0:
             return resp["trades"]
 
-        return False
+        return list()
 
     @staticmethod
-    def get_total_fees(order: TradeOrder):
+    def fees_from_order(order: TradeOrder):
         """
         returns the dict of cumulative fee as ["<CURRENCY>"]["amount"]
 
@@ -29,7 +29,7 @@ class kucoin(ew.ccxtExchangeWrapper):
         trades = order.trades
         total_fee = dict()
 
-        for t in trades["trades"]:
+        for t in trades:
             t["fee"]["currency"] = order.dest_currency  # fee in dest currency
 
             if t["fee"]["currency"] not in total_fee:
@@ -40,7 +40,7 @@ class kucoin(ew.ccxtExchangeWrapper):
 
         for c in order.start_currency, order.dest_currency:
             if c not in total_fee:
-                total_fee[c] = dict({"amount":0.0})
+                total_fee[c] = dict({"amount": 0.0})
 
         return total_fee
 

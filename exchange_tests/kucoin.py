@@ -95,8 +95,8 @@ def test_trade(start_cur, dest_cur, start_amount):
             print("retrying to get trades...")
         i += 1
 
-    order1.trades = results
-    order1.fees = bot.exchange.get_total_fees(order1)
+    order1.update_order_from_exchange_resp(results)
+    order1.fees = bot.exchange.fees_from_order(order1)
 
     balance_after_order1 = dict(init_balance)
 
@@ -135,7 +135,7 @@ def test_trade(start_cur, dest_cur, start_amount):
 
     all_data["check_balance_src_curr_diff_eq_filled_src"] =round(
         balance_after_order1[start_cur] - (init_balance[start_cur] - order1.filled_src_amount
-                                           - order1.fees[start_cur]["amount"]),
+                                           ),
 
         bot.exchange._ccxt.currencies[dest_cur]["precision"])
 

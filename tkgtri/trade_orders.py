@@ -55,11 +55,11 @@ class TradeOrder(object):
 
     # fields to update from ccxt order placement response
     _UPDATE_FROM_EXCHANGE_FIELDS = ["id", "datetime", "timestamp", "lastTradeTimestamp", "status", "amount", "filled",
-                                   "remaining", "cost", "price", "info", "trades", "fee"]
+                                   "remaining", "cost", "price", "info", "trades", "fee", "fees"]
 
     def __init__(self, type, symbol, amount, side, price=None, precision_amount=None, precision_price=None):
 
-        self.id = str
+        self.id = str()
         self.datetime = datetime  # datetime
         self.timestamp = int  # order placing/opening Unix timestamp in milliseconds
         self.lastTradeTimestamp = int  # Unix timestamp of the most recent trade on this order
@@ -72,9 +72,11 @@ class TradeOrder(object):
         self.init_price = price if price is not None else 0.0 # initial price, when create order
         self.price = self.init_price  # placed price, could be updated from exchange
 
+        self.trades = dict()
+        self.fees = dict()
+
         self.precision_amount = precision_amount
         self.price_precision = precision_price
-
 
         self.filled = 0.0  # filled amount of base currency
         self.remaining = 0.0  # remaining amount to fill
