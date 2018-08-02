@@ -266,9 +266,20 @@ while True:
         order1 = tribot.do_trade(working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
                                  bal_to_bid, working_triangle["leg1-order"], price)
 
+        if order1.filled_dest_amount > 0:
+            resp_trades = tribot.get_trade_results(order1)
+            order1.update_order_from_exchange_resp(resp_trades)
+            order1.fees = tribot.exchange.fees_from_order(order1)
+
+        else:
+            tribot.log(tribot.LOG_ERROR, "Order1 have not filled. Skipping")
+            continue
+
+        order2_amount = order1.filled_dest_amount - order1.fees[order1.dest_currency]["amount"]
+
         price2 = tribot.exchange.price_to_precision(working_triangle["symbol2"],
                                                    order_books[working_triangle["symbol2"]].get_depth_for_trade_side(
-                                                       order1.filled_dest_amount,
+                                                       order2_amount,
                                                        working_triangle["leg2-order"]).total_price)
 
         tribot.log(tribot.LOG_INFO, "Trade 2/3: from {}-{}->{}".format(working_triangle["cur2"],
@@ -278,11 +289,21 @@ while True:
         tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price2, order1.filled_src_amount))
 
         order2 = tribot.do_trade(working_triangle["symbol2"], working_triangle["cur2"], working_triangle["cur3"],
-                                 order1.filled_dest_amount, working_triangle["leg2-order"], price2)
+                                 order2_amount, working_triangle["leg2-order"], price2)
+
+        if order2.filled_dest_amount > 0:
+            resp_trades = tribot.get_trade_results(order2)
+            order2.update_order_from_exchange_resp(resp_trades)
+            order2.fees = tribot.exchange.fees_from_order(order2)
+        else:
+            # recover from order2
+            pass
+
+        order3_amount = order2.filled_dest_amount - order2.fees[order2.dest_currency]["amount"]
 
         price3 = tribot.exchange.price_to_precision(working_triangle["symbol3"],
                                                     order_books[working_triangle["symbol3"]].get_depth_for_trade_side(
-                                                        order2.filled_dest_amount,
+                                                        order3_amount,
                                                         working_triangle["leg3-order"]).total_price)
 
         tribot.log(tribot.LOG_INFO, "Trade 3/3: from {}-{}->{}".format(working_triangle["cur3"],
@@ -293,6 +314,14 @@ while True:
 
         order3 = tribot.do_trade(working_triangle["symbol3"], working_triangle["cur3"], working_triangle["cur1"],
                                  order2.filled_dest_amount, working_triangle["leg3-order"], price3)
+
+        if order3.filled_dest_amount > 0:
+            resp_trades = tribot.get_trade_results(order3)
+            order3.update_order_from_exchange_resp(resp_trades)
+            order3.fees = tribot.exchange.fees_from_order(order3)
+        else:
+            # recover from order2
+            pass
 
         tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
         tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order1.filled_src_amount - order3.filled_dest_amount))

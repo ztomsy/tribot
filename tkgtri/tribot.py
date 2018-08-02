@@ -39,6 +39,8 @@ class TriBot:
         self.max_past_triangles = int()
         self.good_consecutive_results_threshold = int()
 
+        self.max_trades_updates = 10
+
         self.order_update_requests_for_time_out = 0.0
         self.order_update_time_out = 1
 
@@ -353,9 +355,24 @@ class TriBot:
 
             self.errors += 1
 
+
+
         return order
 
+    def get_trade_results(self, order: TradeOrder):
 
+        results = list()
+        i = 0
+        while bool(results) is not True and i < self.max_trades_updates:
+            self.log(self.LOG_INFO, "getting trades #{}".format(i))
+            try:
+                results = self.exchange.get_trades_results(order)
+            except Exception as e:
+                self.log(self.LOG_ERROR, type(e).__name__, "!!!", e.args, ' ')
+                self.log(self.LOG_INFO, "retrying to get trades...")
+            i += 1
+
+        return results
 
     def get_status_report(self):
 
