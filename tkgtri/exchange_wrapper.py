@@ -218,16 +218,34 @@ class ccxtExchangeWrapper:
                 "Offline trades are not loaded")
 
     def _fetch_order_trades(self, order):
-        if self.offline:
-            return self._offline_fetch_trades()
-        else:
-            return self._ccxt.fetch_order_trades(order.id)
+        pass
 
-    def get_trades(self, order):
+    def get_trades(self, order: TradeOrder):
+        """
+        get trades and checks if amount in trades equal to order's filled amount
+        :param order:
+        :return: dict of trades as in ccxt:
+            amount:
+            trades: list of trades
+        """
         if self.offline:
             return self._offline_fetch_trades()
         else:
-            return self._fetch_order_trades(order)
+            resp = dict()
+            amount_from_trades = 0
+            if order.trades is not None:
+                amount_from_trades = sum(item['amount'] for item in order.trades)
+
+            if len(order.trades) <= 0 or (order.amount != amount_from_trades):
+                resp = self._fetch_order_trades(order)
+                amount_from_trades = sum(item['amount'] for item in resp)
+            else:
+                resp = order.trades
+
+            if len(resp) > 0 and order.amount == amount_from_trades:
+                return resp
+            else:
+                raise self.ExchangeWrapperError("Amount in Trades is not matching Order Amount")
 
     @staticmethod
     def get_total_fees(order: TradeOrder):

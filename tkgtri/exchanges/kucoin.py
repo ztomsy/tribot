@@ -11,22 +11,10 @@ class kucoin(ew.ccxtExchangeWrapper):
         return self._ccxt.fetch_order(order.id, order.symbol, {"type": order.side.upper()})
 
     def _fetch_order_trades(self, order):
-        resp = dict()
-        amount_from_trades = 0
-        if order.trades is not None and "amount" in order.trades:
-            amount_from_trades = order.trades["amount"]
 
-        if len(order.trades) <= 0 or (order.amount != amount_from_trades):
-            resp = self._ccxt.fetch_order(order.id, order.symbol, {"type": order.side.upper()})
-            amount_from_trades = resp["amount"]
-        else:
-            resp["trades"] = order.trades
-
-        if len(resp["trades"]) > 0 and order.amount == amount_from_trades:
-            # order.trades = resp["trades"]
+        resp = self._ccxt.fetch_order(order.id, order.symbol, {"type": order.side.upper()})
+        if "trades" in resp and len(resp["trades"]) > 0:
             return resp["trades"]
-        else:
-            raise ew.ExchangeWrapperError("Amount in Trades is not matching Order Amount")
 
         return False
 
