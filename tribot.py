@@ -275,6 +275,9 @@ while True:
             tribot.log(tribot.LOG_ERROR, "Order1 have not filled. Skipping")
             continue
 
+        tribot.log(tribot.LOG_INFO, "Order1: filled {} with fee {}".format(
+            order1.filled_dest_amount, order1.fees[order1.dest_currency]["amount"]))
+
         order2_amount = order1.filled_dest_amount - order1.fees[order1.dest_currency]["amount"]
 
         price2 = tribot.exchange.price_to_precision(working_triangle["symbol2"],
@@ -286,7 +289,7 @@ while True:
                                                                        working_triangle["leg2-order"],
                                                                        working_triangle["cur3"]))
 
-        tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price2, order1.filled_src_amount))
+        tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price2, order2_amount))
 
         order2 = tribot.do_trade(working_triangle["symbol2"], working_triangle["cur2"], working_triangle["cur3"],
                                  order2_amount, working_triangle["leg2-order"], price2)
@@ -298,6 +301,8 @@ while True:
         else:
             # recover from order2
             pass
+        tribot.log(tribot.LOG_INFO, "Order2: filled {} with fee {}".format(
+            order2.filled_dest_amount, order2.fees[order2.dest_currency]["amount"]))
 
         order3_amount = order2.filled_dest_amount - order2.fees[order2.dest_currency]["amount"]
 
@@ -310,10 +315,10 @@ while True:
                                                                        working_triangle["leg3-order"],
                                                                        working_triangle["cur1"]))
 
-        tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price3, order2.filled_src_amount))
+        tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price3, order3_amount))
 
         order3 = tribot.do_trade(working_triangle["symbol3"], working_triangle["cur3"], working_triangle["cur1"],
-                                 order2.filled_dest_amount, working_triangle["leg3-order"], price3)
+                                 order3_amount, working_triangle["leg3-order"], price3)
 
         if order3.filled_dest_amount > 0:
             resp_trades = tribot.get_trade_results(order3)
@@ -322,6 +327,9 @@ while True:
         else:
             # recover from order2
             pass
+
+        tribot.log(tribot.LOG_INFO, "Order3: filled {} with fee {}".format(
+            order3.filled_dest_amount, order3.fees[order3.dest_currency]["amount"]))
 
         tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
         tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order1.filled_src_amount - order3.filled_dest_amount))

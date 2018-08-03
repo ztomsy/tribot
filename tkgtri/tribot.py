@@ -368,7 +368,8 @@ class TriBot:
             try:
                 results = self.exchange.get_trades_results(order)
             except Exception as e:
-                self.log(self.LOG_ERROR, type(e).__name__, "!!!", e.args, ' ')
+                self.log(self.LOG_ERROR, type(e).__name__ )
+                self.log(self.LOG_ERROR, e.args)
                 self.log(self.LOG_INFO, "retrying to get trades...")
             i += 1
 

@@ -1,7 +1,8 @@
-from .. import exchange_wrapper as ew
-from  ..trade_orders import TradeOrder
+from ..exchange_wrapper import *
+from ..trade_orders import TradeOrder
 
-class kucoin(ew.ccxtExchangeWrapper):
+
+class kucoin(ccxtExchangeWrapper):
 
     def __init__(self, exchange_id, api_key ="", secret ="" ):
         super(kucoin, self).__init__(exchange_id, api_key, secret )
@@ -9,6 +10,9 @@ class kucoin(ew.ccxtExchangeWrapper):
 
     def _fetch_order(self, order):
         return self._ccxt.fetch_order(order.id, order.symbol, {"type": order.side.upper()})
+
+    def _cancel_order(self, order: TradeOrder):
+        return self._ccxt.cancel_order(order.id, order.symbol, {"type": order.side.upper()})
 
     def _fetch_order_trades(self, order):
 

@@ -7,9 +7,11 @@ from . import exchanges
 from . import core
 from .trade_orders import TradeOrder
 
+
 class ExchangeWrapperError(Exception):
     """Basic exception for errors raised by ccxtExchangeWrapper"""
     pass
+
 
 class ExchangeWrapperOfflineFetchError(ExchangeWrapperError):
     """Exception for Offline fetching errors"""
@@ -232,19 +234,20 @@ class ccxtExchangeWrapper:
             return self._offline_fetch_trades()
         else:
             amount_from_trades = 0
-            if order.trades is not None:
+
+            if len(order.trades) > 0:
                 amount_from_trades = sum(item['amount'] for item in order.trades)
 
-            if len(order.trades) <= 0 or (order.amount != amount_from_trades):
+            if len(order.trades) <= 0 or (order.filled != amount_from_trades):
                 resp = self._fetch_order_trades(order)
                 amount_from_trades = sum(item['amount'] for item in resp)
             else:
                 resp = order.trades
 
-            if len(resp) > 0 and order.amount == amount_from_trades:
+            if len(resp) > 0 and order.filled == amount_from_trades:
                 return resp
             else:
-                raise self.ExchangeWrapperError("Amount in Trades is not matching Order Amount")
+                raise ExchangeWrapperError("Amount in Trades is not matching order filled Amount")
 
     @staticmethod
     def fees_from_order(order:TradeOrder):
