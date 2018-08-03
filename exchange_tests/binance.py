@@ -23,13 +23,6 @@ eW = tkgtri.ccxtExchangeWrapper.load_from_id(exchange_id, _keys[exchange_id]["ke
 
 eW.get_markets()
 
-# order_data = eW._ccxt.fetch_order(179058187, 'ETH/BTC')
-# order = TradeOrder(order_data["type"], order_data["symbol"], order_data["amount"], order_data["side"])
-# order.update_order_from_exchange_resp(order_data)
-# trades = eW.get_trades(order)
-# trades_result = eW.get_trades_results(order)
-# sys.exit()
-
 balance = eW._ccxt.fetch_balance()
 balance_start_curr = balance[start_curr]["free"]
 
@@ -66,7 +59,7 @@ except OrderManagerError:
 except Exception as e:
     print(type(e).__name__, "!!!", e.args, ' ')
 
-results = eW.get_trades_results(order)
+results = eW.results_from_trades(order)
 
 print("Order resp:")
 print(json.dumps(jsonpickle.encode(om.order), indent=4))

@@ -180,10 +180,10 @@ class TradeOrder(object):
         # total["_cost_from_ccxt"] = 0.0
 
         for trade in trades:
-            if trade["order"] == self.id:
-                total["amount"] += trade["amount"]
-                total["cost"] += trade["amount"] * trade["price"]
-                # total["_cost_from_ccxt"] += trade["cost"]
+            #if trade["order"] == self.id:
+            total["amount"] += trade["amount"]
+            total["cost"] += trade["amount"] * trade["price"]
+            # total["_cost_from_ccxt"] += trade["cost"]
 
         total["price"] = total["cost"] / total["amount"]
 

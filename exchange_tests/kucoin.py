@@ -11,8 +11,8 @@ from tkgtri.trade_manager import *
 import  ccxt
 
 exchange_id = "kucoin"
-start_cur = "BTC"
-dest_cur = "ETH"
+start_cur = "ETH"
+dest_cur = "BTC"
 
 bot = tkgtri.TriBot("../_kucoin.json", "kucoin_test.log")
 bot.load_config_from_file(bot.config_filename)

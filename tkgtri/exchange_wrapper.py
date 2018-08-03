@@ -236,11 +236,12 @@ class ccxtExchangeWrapper:
             amount_from_trades = 0
 
             if len(order.trades) > 0:
-                amount_from_trades = sum(item['amount'] for item in order.trades)
+                amount_from_trades = self.amount_to_precision(order.symbol,
+                                                              sum(item['amount'] for item in order.trades))
 
-            if len(order.trades) <= 0 or (order.filled != amount_from_trades):
+            if order.filled != amount_from_trades:
                 resp = self._fetch_order_trades(order)
-                amount_from_trades = sum(item['amount'] for item in resp)
+                amount_from_trades = self.amount_to_precision(order.symbol, sum(item['amount'] for item in resp))
             else:
                 resp = order.trades
 
@@ -267,9 +268,9 @@ class ccxtExchangeWrapper:
 
             total_fee[t["fee"]["currency"]]["amount"] += t["fee"]["cost"]
 
-        # for c in order.start_currency, order.dest_currency:
-        #     if c not in total_fee:
-        #         total_fee[c] = dict({"amount": 0.0})
+        for c in order.start_currency, order.dest_currency:
+            if c not in total_fee:
+                total_fee[c] = dict({"amount": 0.0})
 
         return total_fee
     # fetch or (get from order) the trades within the order and return the result calculated by trades:
