@@ -5,7 +5,7 @@ import numpy as np
 #
 # todo make ccxt independent - take only active markets and tickers as parameter
 #
-def get_basic_triangles_from_markets(markets: list):
+def get_basic_triangles_from_markets(markets):
     graph = nx.Graph()
     for symbol in markets:
 
