@@ -18,7 +18,7 @@ from .trade_manager import *
 
 class TriBot:
 
-    def __init__(self, default_config, log_filename):
+    def __init__(self, default_config, log_filename=None):
 
         self.session_uuid = str(uuid.uuid4())
         self.fetch_number = 0
@@ -125,14 +125,15 @@ class TriBot:
     # init logging
     #
 
-    def init_logging(self, file_log):
+    def init_logging(self, file_log=None):
 
         log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
         logger = logging.getLogger()
 
-        file_handler = logging.FileHandler(file_log)
-        file_handler.setFormatter(log_formatter)
-        logger.addHandler(file_handler)
+        if file_log is not None:
+            file_handler = logging.FileHandler(file_log)
+            file_handler.setFormatter(log_formatter)
+            logger.addHandler(file_handler)
 
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(log_formatter)
@@ -381,7 +382,7 @@ class TriBot:
             self.do_recover(deal["cur2"], deal["leg2-recover-amount"], best_price)
 
         if "leg3-recover-amount" in deal and deal["leg3-recover-amount"] > 0:
-            rootLogger.info("Recovering unfilled from Trade 3. From " + deal["cur3"] + " to " + start_cur)
+            self.log(self.LOG_INFO, "Recovering unfilled from Trade 3. From " + deal["cur3"] + " to " + start_cur)
             resp_recover3 = recover_to_start(deal["cur3"], float(deal["leg3-recover-amount"]), start_cur, debug)
             if resp_recover3:
                 deal["recovered"] += float(resp_recover3["info"]["resultQty"])

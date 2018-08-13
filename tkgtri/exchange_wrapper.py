@@ -94,9 +94,10 @@ class ccxtExchangeWrapper:
 
         self.offline = True
         self._offline_tickers_current_index = 0
-
-        self._offline_markets = self.load_markets_from_json_file(markets_json_file)
-        self._offline_tickers = self.load_tickers_from_csv(tickers_csv_file)
+        if markets_json_file is not None:
+            self._offline_markets = self.load_markets_from_json_file(markets_json_file)
+        if tickers_csv_file is not None:
+            self._offline_tickers = self.load_tickers_from_csv(tickers_csv_file)
 
         if orders_json_file is not None:
             self._offline_order = self.load_order_from_json(orders_json_file)

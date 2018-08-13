@@ -18,4 +18,6 @@ from .trade_manager_legacy import OrderManagerFokLegacyBinance
 from . import core
 from .analyzer import Deal, Analyzer
 from .tribot import TriBot
+from .errors import *
+from .recovery_orders import *
 
