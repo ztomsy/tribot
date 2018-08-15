@@ -1,11 +1,13 @@
 from tkgtri import core
 from tkgtri import errors
 from tkgtri import TradeOrder
+import uuid
 from tkgtri import ccxtExchangeWrapper
 from datetime import datetime
 
 class OrderWithAim(object):
     pass
+
 
 class RecoveryOrder(OrderWithAim):
 
@@ -34,6 +36,10 @@ class RecoveryOrder(OrderWithAim):
 
         self.active_order = None  # .. TradeOrder
 
+        self.market_data = dict()  # market data dict: {symbol : {price :{"buy": <ask_price>, "sell": <sell_price>}}
+
+        self.init_best_amount()
+
     # @property
     # def symbol(self):
     #     return self.__symbol
@@ -44,6 +50,24 @@ class RecoveryOrder(OrderWithAim):
     #     self.__symbol = value
     #     if value is not None:
     #         self.side = core.get_trade_direction_to_currency(value, self.dest_currency)
+
+    def init_best_amount(self):
+        price = self.get_recovery_price_for_best_dest_amount()
+        self.active_order = self.create_recovery_order(price)
+        self.status = "open"
+        self.state = "best_amount"
+        self.order_command = "new"
+
+    def init_market_price(self):
+        try:
+            price = self.market_data[self.symbol]["price"][self.side]
+        except Exception:
+            raise OrderWithAim("Could not set price from market data")
+
+        self.active_order = self.create_recovery_order(price)
+        self.status = "open"
+        self.state = "market_price"
+        self.order_command = "new"
 
     def get_recovery_price_for_best_dest_amount(self):
         """
@@ -70,36 +94,46 @@ class RecoveryOrder(OrderWithAim):
         if False not in order_params:
             self.price = price
             order = TradeOrder.create_limit_order_from_start_amount(*order_params)
-            self.active_order = order
             return order
         else:
             raise errors.RecoveryManagerError("Not all parameters for Order are set {}")
 
+    def close_trade_order(self):
+
+
+
+
+        pass
+
+
     def get_active_order(self):
         return self.active_order
 
-    def update_from_exchange_data(self, resp, market_data=None):
+    def set_active_order(self, order: TradeOrder):
+        self.active_order = order
+
+    def update_from_exchange(self, resp, market_data=None):
         """
         :param resp:
-        :param market_data:
-        :return:
+        :param market_data: some market data (price, orderbook?) for new tradeOrder
+        :return: should return the command for OrderManager: hold,  cancel, create
 
         """
-
         self.active_order.update_order_from_exchange_resp(resp)
 
-        if self.state == "best_price":
+        if self.state == "best_amount":
 
             if self.active_order.status == "open":
+                self.order_command = "hold"
+
                 if self.active_order.update_requests_count >= self.max_order_updates \
                         and self.active_order.filled < self.active_order.amount:
-
                     self.order_command = "cancel"
 
             if self.active_order.status == "closed":
                 self.state = "closed"
+                self.order_command = "hold"
                 # collect results
-                pass
 
             if self.active_order.status == "canceled":
                 self.state = "market_price"

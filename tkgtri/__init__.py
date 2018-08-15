@@ -20,4 +20,5 @@ from .analyzer import Deal, Analyzer
 from .tribot import TriBot
 from .errors import *
 from .recovery_orders import *
+from .owa_manager import *
 
