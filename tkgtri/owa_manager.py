@@ -91,21 +91,30 @@ class OwaManager(object):
     def get_order_by_uuid(self, uuid):
         pass
 
+    def _update_order_from_exchange(self, order: OrderWithAim, resp):
+
+        try:
+            order.update_from_exchange(resp)
+        except Exception as e:
+            self.log(self.LOG_ERROR, type(e).__name__)
+            self.log(self.LOG_ERROR, e.args)
+
     def proceed_orders(self):
 
-        open_orders = list(filter(lambda x: x.status != "closed", self.orders))
+        open_orders = list(filter(lambda x: x.status != "closed" and x.active_order is not None, self.orders))
 
         for order in open_orders:
 
             if order.order_command == "new":
                 if order.get_active_order().status != "open":
                     resp = self._create_order(order.get_active_order())
-                    order.update_from_exchange(resp)
+                    self._update_order_from_exchange(order, resp)
+
                 else:
                     raise OwaManagerError("Order already set")
 
             elif order.order_command == "hold":
-                resp = self._update_order(order)
+                resp = self._update_order(order.get_active_order())
 
                 if resp["status"] == "closed" or resp["status"] == "canceled":
                     trades = self._get_trade_results(order.get_active_order())
@@ -114,16 +123,17 @@ class OwaManager(object):
                         if value is not None:
                             resp[key] = value
 
-                order.update_from_exchange(resp)
+                self._update_order_from_exchange(order, resp)
 
             elif order.order_command == "cancel":
-                resp = self.cancel_order(order)
+                resp = self.cancel_order(order.get_active_order())
+
                 if resp["status"] == "closed" or resp["status"] == "canceled":
-                    trades = self._get_trade_results(order.get_active_order())
-                    resp["trades"] = trades
+                    for key, value in trades.items():
+                        if value is not None:
+                            resp[key] = value
 
-                order.update_from_exchange(resp)
-
+                self._update_order_from_exchange(order, resp)
 
             else:
                 raise OwaManagerError("Unknown order command")

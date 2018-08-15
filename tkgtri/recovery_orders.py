@@ -1,6 +1,7 @@
 from tkgtri import core
 from tkgtri import errors
 from tkgtri import TradeOrder
+import copy
 import uuid
 from tkgtri import ccxtExchangeWrapper
 from datetime import datetime
@@ -35,6 +36,7 @@ class RecoveryOrder(OrderWithAim):
             self.side = core.get_trade_direction_to_currency(symbol, self.dest_currency)
 
         self.active_order = None  # .. TradeOrder
+        self.orders_history = list()
 
         self.market_data = dict()  # market data dict: {symbol : {price :{"buy": <ask_price>, "sell": <sell_price>}}
 
@@ -98,13 +100,20 @@ class RecoveryOrder(OrderWithAim):
         else:
             raise errors.RecoveryManagerError("Not all parameters for Order are set {}")
 
-    def close_trade_order(self):
+    def close_active_order(self):
+        if self.active_order.status == "closed" or self.active_order.status == "canceled":
+            self.orders_history.append(copy.copy(self.active_order))
+            self.active_order = None
+            self.order_command = ""
+        else:
+            raise OrderWithAim("Active Trade order is not closed {}".format(self.active_order.status))
 
-
-
-
-        pass
-
+    # todo check if active_order is closed or cancelled
+    def close_order(self):
+        self.close_active_order()
+        self.status = "closed"
+        self.active_order = None
+        self.order_command = ""
 
     def get_active_order(self):
         return self.active_order
