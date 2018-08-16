@@ -110,7 +110,7 @@ class TradeOrderTestSuite(unittest.TestCase):
         self.assertEqual(order.status, "closed")
         self.assertEqual(order.filled, 0.016)
 
-        self.assertEqual(order.filled_src_amount, order.filled)
+        self.assertEqual(order.filled_start_amount, order.filled)
         self.assertEqual(order.filled_dest_amount, order.cost)
 
         self.assertListEqual(order_resps["updates"], ex._offline_order["updates"])
@@ -144,7 +144,7 @@ class TradeOrderTestSuite(unittest.TestCase):
         self.assertEqual(order.status, "closed")
         self.assertEqual(order.filled, order.filled_dest_amount)
 
-        self.assertEqual(order.filled_src_amount, order.cost)
+        self.assertEqual(order.filled_start_amount, order.cost)
         self.assertEqual(order.filled_dest_amount, order.filled)
 
         self.assertListEqual(order_resps["updates"], ex._offline_order["updates"])
@@ -173,7 +173,7 @@ class TradeOrderTestSuite(unittest.TestCase):
             order.update_order_from_exchange_resp(update_resp)
             order_resps["updates"].append(update_resp)
 
-            self.assertEqual(order.filled_src_amount, order.filled)
+            self.assertEqual(order.filled_start_amount, order.filled)
             self.assertEqual(order.filled_dest_amount, order.cost)
 
             tick += 1
@@ -181,7 +181,7 @@ class TradeOrderTestSuite(unittest.TestCase):
         # self.assertEqual(len(order_resps["updates"]), 4)
         self.assertEqual(order.status, "closed")
 
-        self.assertEqual(order.filled_src_amount, order.filled)
+        self.assertEqual(order.filled_start_amount, order.filled)
         self.assertEqual(order.filled_dest_amount, order.cost)
 
         self.assertListEqual(order_resps["updates"], ex._offline_order["updates"])

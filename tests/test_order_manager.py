@@ -52,7 +52,7 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
             order.update_order_from_exchange_resp(update_resp)
 
         self.assertEqual(order.status, "closed")
-        self.assertEqual(order.filled_src_amount, 0.5)
+        self.assertEqual(order.filled_start_amount, 0.5)
 
     def test_order_manager_fok_proceed_update_cancel(self):
         limits = {"BTC": 0.0002, "ETH": 0.02, "BNB": 1, "USDT": 20}
@@ -77,7 +77,7 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
             order.update_order_from_exchange_resp(update_resp)
 
         self.assertEqual(order.status, "open")
-        self.assertEqual(order.filled_src_amount, 0.000818)
+        self.assertEqual(order.filled_start_amount, 0.000818)
         self.assertEqual(order.filled_dest_amount, 6.029e-05)
         self.assertEqual(om.last_response["action"], "cancel")
 
@@ -155,7 +155,7 @@ class TradeOrderManagerTestSuite(unittest.TestCase):
 
         self.assertIn("max number of updates reached", om.last_response["reason"])
 
-        self.assertEqual(order.filled_src_amount, 0.000818)
+        self.assertEqual(order.filled_start_amount, 0.000818)
         self.assertEqual(order.filled_dest_amount, 6.029e-05)
         self.assertEqual(om.last_response["status"], "open")
 

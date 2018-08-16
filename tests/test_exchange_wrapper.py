@@ -118,7 +118,7 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         om.fill_order(exchange)
 
         result = exchange.get_trades_results(order)
-        self.assertEqual(result["amount"], 0.5)
+        self.assertEqual(result["filled"], 0.5)
         self.assertEqual(result["cost"], 0.03685088)
         self.assertEqual(result["dest_amount"], 0.03685088)
         self.assertEqual(result["src_amount"], 0.5)
@@ -127,7 +127,7 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         order.side = "buy"
 
         result = exchange.get_trades_results(order)
-        self.assertEqual(result["amount"], 0.5)
+        self.assertEqual(result["filled"], 0.5)
         self.assertEqual(result["cost"], 0.03685088)
         self.assertEqual(result["dest_amount"], 0.5)
         self.assertEqual(result["src_amount"], 0.03685088)

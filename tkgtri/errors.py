@@ -2,6 +2,8 @@ class RecoveryManagerError(Exception):
     """Basic exception for errors raised by RecoveryManager"""
     pass
 
+class OrderError(Exception):
+    pass
 
 class OwaManagerError(Exception):
     pass

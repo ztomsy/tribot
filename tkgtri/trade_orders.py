@@ -92,7 +92,7 @@ class TradeOrder(object):
 
         self.update_requests_count = 0  # number of updates of order. should be in correspondence with API requests
 
-        self.filled_src_amount = 0.0  # filled amount of start currency
+        self.filled_start_amount = 0.0  # filled amount of start currency
         self.filled_dest_amount = 0.0  # filled amount of dest currency
 
         self.start_currency = self.symbol.split("/")[1] if side == "buy" else self.symbol.split("/")[0]
@@ -148,11 +148,11 @@ class TradeOrder(object):
                 setattr(self, field, exchange_data[field])
 
         if self.side == "buy":
-            self.filled_src_amount = self.cost
+            self.filled_start_amount = self.cost
             self.filled_dest_amount = self.filled
 
         elif self.side == "sell":
-            self.filled_src_amount = self.filled
+            self.filled_start_amount = self.filled
             self.filled_dest_amount = self.cost
 
         self.update_requests_count += 1
@@ -186,6 +186,8 @@ class TradeOrder(object):
             # total["_cost_from_ccxt"] += trade["cost"]
 
         total["price"] = total["cost"] / total["amount"]
+
+
 
         return total
 

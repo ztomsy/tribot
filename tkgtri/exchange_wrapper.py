@@ -288,19 +288,20 @@ class ccxtExchangeWrapper:
         trades = self.get_trades(order)
         results = order.total_amounts_from_trades(trades)
         results["trades"] = trades
-        results["amount"] = self.amount_to_precision(order.symbol, results["amount"])
+        results["filled"] = self.amount_to_precision(order.symbol, results["amount"])
         results["cost"] = self.price_to_precision(order.symbol, results["cost"])
 
         results["price"] = self.price_to_precision(order.symbol, results["cost"] / results["amount"])
 
         if order.side == "buy":
-            results["dest_amount"] = results["amount"]
+            results["dest_amount"] = results["filled"]
             results["src_amount"] = results["cost"]
 
         elif order.side == "sell":
             results["dest_amount"] = results["cost"]
-            results["src_amount"] = results["amount"]
+            results["src_amount"] = results["filled"]
 
+        results["amount"] = None
         return results
 
     def amount_to_precision(self, symbol, amount):
