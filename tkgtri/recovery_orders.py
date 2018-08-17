@@ -228,9 +228,6 @@ class RecoveryOrder(OrderWithAim):
         #             pass
         #         return True
 
-
-
-
     def check_aim(self):
         pass
 

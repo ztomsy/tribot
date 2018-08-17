@@ -246,10 +246,15 @@ class ccxtExchangeWrapper:
             else:
                 resp = order.trades
 
-            if len(resp) > 0 and order.filled == amount_from_trades:
+            if len(resp) > 0 and\
+                    (order.filled == amount_from_trades or
+                     abs(order.filled - amount_from_trades) <=
+                     1/(10*(self.markets[order.symbol]["precision"]["amount"]-1))):
                 return resp
+
             else:
-                raise ExchangeWrapperError("Amount in Trades is not matching order filled Amount")
+                raise ExchangeWrapperError("Amount in Trades is not matching order filled Amount {} != {}".format(
+                    amount_from_trades, order.filled))
 
     @staticmethod
     def fees_from_order(order:TradeOrder):

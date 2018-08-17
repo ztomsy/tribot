@@ -23,14 +23,17 @@ class RecoveryOrderTestSuite(unittest.TestCase):
         self.assertEqual(rm.amount, 1000)
 
     def test_update_from_exchange(self):
-        # rm = RecoveryOrder("ADA/ETH", "ADA", 1000, "ETH", 0.32485131)
-        pass
+        ro = RecoveryOrder("ADA/ETH", "ADA", 1000, "ETH", 0.32485131)
 
-    def test_init_best_amount(self):
-        pass
-
-    def test_init_market_price(self):
-        pass
+        # update 1 - partial fill
+        resp = {"status":"open", "filled": 500, "cost": 0.32485131/2}
+        ro.update_from_exchange(resp)
+        self.assertEqual(ro.filled_start_amount, 500)
+        self.assertEqual(ro.filled, 500)
+        self.assertEqual(ro.status, "open")
+        self.assertEqual(ro.state, "best_amount")
+        self.assertEqual(ro.order_command, "hold")
+        self.assertEqual(ro.filled_price, ro.active_order.price)
 
     def test_fill_best_amount(self):
 
@@ -70,6 +73,7 @@ class RecoveryOrderTestSuite(unittest.TestCase):
             self.assertEqual(ro.order_command, "hold")
 
         # last order update before the cancelling active trade order
+        resp = {"status": "open", "filled": 500, "cost": 0.32485131 / 2}
         ro.update_from_exchange(resp)
         self.assertEqual(ro.order_command, "cancel")
 
@@ -144,36 +148,11 @@ class RecoveryOrderTestSuite(unittest.TestCase):
         ro.update_from_exchange({"status": "closed", "filled": 100}, {"price": 1})
         self.assertEqual(ro.filled, 1000)
 
+    def test_1st_order_executed_better(self):
+        pass
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def test_2nd_order_executed_better(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()
