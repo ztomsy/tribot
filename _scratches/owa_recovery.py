@@ -37,8 +37,6 @@ symbol = tkgtri.core.get_symbol(start_currency, dest_currency, bot.markets)
 
 recovery_order = tkgtri.RecoveryOrder(symbol, start_currency, start_amount, dest_currency, best_dest_amount)
 
-best_price = recovery_order.get_recovery_price_for_best_dest_amount()
-
 tkgtri.OwaManager.log = bot.log  # override order manager logger to the bot logger
 tkgtri.OwaManager.LOG_INFO = bot.LOG_INFO
 tkgtri.OwaManager.LOG_ERROR = bot.LOG_ERROR
