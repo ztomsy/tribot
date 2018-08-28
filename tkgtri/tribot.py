@@ -3,7 +3,7 @@ import logging
 import sys
 from . import utils
 from . import timer
-
+import pprint
 from .tri_cli import *
 import tkgtri
 from . import tri_arb as ta
@@ -372,100 +372,19 @@ class TriBot:
 
         return results
 
-    def proceed_recovery(self, deal):
+    @staticmethod
+    def order2_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled):
 
-        if "leg2-recover-amount" in deal and deal["leg2-recover-amount"] > 0:
-            self.log(self.LOG_INFO, "Recovering unfilled from Trade 2. From " + deal["cur2"] + " to " +
-                     self.start_currency[0])
+        res = filled_start_currency_amount - (order2_filled / order2_amount) * filled_start_currency_amount
+        return res
 
-            best_price = self.deal["leg2-price"]
-            self.do_recover(deal["cur2"], deal["leg2-recover-amount"], best_price)
+    @staticmethod
+    def order3_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled, order3_amoumt,
+                                          order3_filled):
 
-        if "leg3-recover-amount" in deal and deal["leg3-recover-amount"] > 0:
-            self.log(self.LOG_INFO, "Recovering unfilled from Trade 3. From " + deal["cur3"] + " to " + start_cur)
-            resp_recover3 = recover_to_start(deal["cur3"], float(deal["leg3-recover-amount"]), start_cur, debug)
-            if resp_recover3:
-                deal["recovered"] += float(resp_recover3["info"]["resultQty"])
-                for line in pprint.pformat(resp_recover3).split('\n'):
-                    rootLogger.info(line)
+        res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled/order3_amoumt))
 
-    def do_recover(self, currency_to_recover, recover_amount, best_price_to_recover):
-
-        self.log(self.LOG_INFO, "Recovering from {} {} to {} with the best price {}".format(
-            currency_to_recover, recover_amount, self.start_currency[0], best_price_to_recover))
-
-        symbol = core.get_symbol(currency_to_recover, self.start_currency[0], self.markets)
-        self.log(self.LOG_INFO, "Symbol for recovery order: {}".format(symbol))
-
-        recover_attempt = 0
-        recovery_finished = False
-
-        while not recovery_finished and recover_attempt < self.max_recovery_attempts:
-            recover_attempt += 1
-            self.log(self.LOG_INFO, "Recovery attempt {}/".format(recover_amount, self.max_recovery_attempts))
-
-            if recover_attempt == 1:
-                recover_price = best_price_to_recover
-                recover_order_updates = 20
-                self.log(self.LOG_INFO, "Recovering with the best price and increased order TTL")
-
-            else:
-                recover_order_updates = 10
-                self.log(self.LOG_INFO, "Recover with the order_book price")
-                self.log(self.LOG_INFO, "Getting order book price for recovery for {}".format(symbol))
-                try:
-                    ob = self.exchange._ccxt.fetch_order_book(symbol, 100)
-                    order_book = OrderBook(symbol, ob["asks"], ob["bids"])
-                    d = order_book.get_depth_for_destination_currency(recover_amount, self.start_currency[0])
-                    recover_price = d.total_price
-                except Exception as e:
-                    self.log(self.LOG_ERROR, "Could not fetch order book for {}".format(symbol))
-                    self.log(self.LOG_ERROR, type(e).__name__)
-                    self.log(self.LOG_ERROR, e.args)
-                    continue
-
-            recovery_order = TradeOrder.create_limit_order_from_start_amount(symbol, currency_to_recover,
-                                                                             recover_amount, self.start_currency[0],
-                                                                             recover_price)
-            self.log(self.LOG_INFO, "Recovery price: {}".format(recover_price))
-            self.log(self.LOG_INFO, "Number of order updates: {}".format(recover_order_updates))
-
-            try:
-                order_manager = OrderManagerFok(recovery_order, None, recover_order_updates)
-                order_manager.fill_order(self.exchange)
-
-                try:
-                    order_manager.cancel_order(self.exchange)
-                except OrderManagerCancelAttemptsExceeded:
-                    self.log(self.LOG_ERROR, "Could not cancel order")
-                    self.errors += 1
-                    continue
-
-            except Exception as e:
-                self.log(self.LOG_ERROR, "Order error")
-                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-                self.log(self.LOG_ERROR, "Exception body:", e.args)
-                self.log(self.LOG_ERROR, recovery_order.info)
-                self.errors += 1
-                continue
-
-            recovered_amount = recover_amount - recovery_order.filled_src_amount
-            self.log(self.LOG_INFO, "Recovered {} from {}".format(recovered_amount, recover_amount))
-
-            if recovered_amount < recover_amount:
-                recover_amount = recovered_amount - recovered_amount
-                self.log(self.LOG_INFO, "Still have to recover {}".format(recover_amount))
-
-                resp_trades = self.get_trade_results(recovery_order)
-                recovery_order.update_order_from_exchange_resp(resp_trades)
-                recovery_order.fees = self.exchange.fees_from_order(recovery_order)
-                self.log(self.LOG_INFO, "Recovered start currency {}  ")
-            else:
-                recovery_finished = True
-                self.log(self.LOG_INFO, "Recovered")
-                return recovery_order
-
-        return recovery_order
+        return res
 
     def get_status_report(self):
         report_fields = list("timestamp", "fetches", "good_triangles_total", "best_result", "best_triangle", "message")

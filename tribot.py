@@ -97,6 +97,10 @@ while True:
         if tribot.fetch_number > 0 and tribot.run_once:
             sys.exit(666)
 
+        if tribot.fetch_number > 0 and working_triangle is not None:
+            print("Previous results")
+            pass
+
         tribot.timer.reset_notches()
 
         working_triangle = dict()
@@ -275,7 +279,6 @@ while True:
             # collect recovery amount
         else:
             tribot.log(tribot.LOG_ERROR, "Order1 have not filled. Skipping")
-            # recover 100%
             continue
 
         tribot.log(tribot.LOG_INFO, "Order1: filled {} with fee {}".format(
@@ -305,21 +308,19 @@ while True:
 
             working_triangle["leg2-price-fact"] = order2.filled / order2.cost
 
-
             if order2.filled < order2.amount:
                 working_triangle["leg2-order-result"] = "PartFill"
                 working_triangle["leg2-order-status"] = order2.status
-
-                working_triangle["leg2-recover-amount"] = \
-                    order2.amount_start - order2.filled_src_amount
-
+                working_triangle["leg2-recover-amount"] = order2.amount_start - order2.filled_src_amount
+                working_triangle["leg2-recover-start-curr-best-amount"] = tribot.order2_best_recovery_start_amount(
+                    order1.filled_start_amount, order2.amount, order2.filled)
         else:
             # recover from order2
-            working_triangle["leg2-order-result"] = "PartFill"
+            working_triangle["leg2-order-result"] = "Failed"
             working_triangle["leg2-order-status"] = order2.status
-
-            working_triangle["leg2-recover-amount"] = \
-                order2.amount_start - order2.filled_src_amount
+            working_triangle["leg2-recover-amount"] = order2.amount_start
+            working_triangle["leg2-recover-start-curr-best-amount"] = tribot.order2_best_recovery_start_amount(
+                order1.filled_start_amount, order2.amount, order2.filled)
             continue
 
         tribot.log(tribot.LOG_INFO, "Order2: filled {} with fee {}".format(
@@ -351,24 +352,27 @@ while True:
                 working_triangle["leg3order-result"] = "PartFill"
                 working_triangle["leg3-order-status"] = order3.status
 
-                working_triangle["leg3-recover-amount"] = \
-                    order3.amount_start - order3.filled_src_amount
+                working_triangle["leg3-recover-amount"] = order3.amount_start - order3.filled_src_amount
+
+                working_triangle["leg3-recover-start-curr-best-amount"] = tribot.order3_best_recovery_start_amount(
+                    order1.filled_start_amount, order2.amount, order2.filled, order3.amount, order3.filled)
 
         else:
-            # recover from order2
-            working_triangle["leg3-order-result"] = "PartFill"
+            # recover from order3
+            working_triangle["leg3-order-result"] = "Failed"
             working_triangle["leg3-order-status"] = order3.status
+            working_triangle["leg3-recover-amount"] = order3.amount_start
+            working_triangle["leg3-recover-start-curr-best-amount"] = tribot.order3_best_recovery_start_amount(
+                order1.filled_start_amount, order2.amount, order2.filled, order3.amount, order3.filled)
 
-            working_triangle["leg3-recover-amount"] = \
-                order3.amount_start - order3.filled_src_amount
             continue
 
         tribot.log(tribot.LOG_INFO, "Order3: filled {} with fee {}".format(
             order3.filled_dest_amount, order3.fees[order3.dest_currency]["amount"]))
 
         tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
-        tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order1.filled_src_amount - order3.filled_dest_amount))
-        tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount/order1.filled_src_amount))
+        tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order1.filled_start_amount - order3.filled_dest_amount))
+        tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount/order1.filled_start_amount))
 
         # reporting states:
         tribot.reporter.set_indicator("session_uuid", tribot.session_uuid)

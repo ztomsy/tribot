@@ -25,8 +25,8 @@ class RecoveryOrder(OrderWithAim):
         self.best_price = 0.0
         self.price = 0.0
 
-        self.status = "new"  # open, open_cancel_order, open_new_order, closed
-        self.state = "best_amount"  #  "market_price" for reporting purposes
+        self.status = "new"  # new, open, closed
+        self.state = "best_amount"  # "market_price" for reporting purposes
 
         self.filled_dest_amount = 0.0
         self.filled_start_amount = 0.0
