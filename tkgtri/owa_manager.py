@@ -6,7 +6,13 @@ from datetime import datetime
 from tkgtri import errors
 from tkgtri.errors import *
 
+
 class OwaManager(object):
+
+    LOG_DEBUG = "DEBUG"
+    LOG_INFO = "INFO"
+    LOG_ERROR = "ERROR"
+    LOG_CRITICAL = "CRITICAL"
 
     def __init__(self, exchange: ccxtExchangeWrapper, max_order_update_attempts=20, max_cancel_attempts=10):
         self.orders = list()
@@ -19,12 +25,6 @@ class OwaManager(object):
         self.orders = list()
 
         self.exchange = exchange
-
-        self.LOG_DEBUG = "DEBUG"
-        self.LOG_INFO = "INFO"
-        self.LOG_ERROR = "ERROR"
-        self.LOG_CRITICAL = "CRITICAL"
-
 
     def _create_order(self, order:TradeOrder):
         return self.exchange.place_limit_order(order)
@@ -84,7 +84,6 @@ class OwaManager(object):
 
         return results
 
-
     def add_order(self, order: OrderWithAim):
         self.orders.append(order)
 
@@ -98,6 +97,9 @@ class OwaManager(object):
         except Exception as e:
             self.log(self.LOG_ERROR, type(e).__name__)
             self.log(self.LOG_ERROR, e.args)
+
+    def get_open_orders(self):
+        return list(filter(lambda x: x.status != "closed", self.orders))
 
     def proceed_orders(self):
 

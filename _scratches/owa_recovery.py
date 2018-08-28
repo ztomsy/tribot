@@ -4,11 +4,11 @@ import sys
 import copy
 import json
 
-start_currency = "NEO"
-dest_currency = "ETH"
+start_currency = "ETH"
+dest_currency = "BTC"
 
-start_amount = 9.7812825
-best_dest_amount = 9.7812825*0.0592861
+start_amount = 0.015
+best_dest_amount = 0.36406
 
 # start_currency = "ETH"
 # dest_currency = "NEO"
@@ -39,18 +39,20 @@ recovery_order = tkgtri.RecoveryOrder(symbol, start_currency, start_amount, dest
 
 best_price = recovery_order.get_recovery_price_for_best_dest_amount()
 
+tkgtri.OwaManager.log = bot.log  # override order manager logger to the bot logger
+tkgtri.OwaManager.LOG_INFO = bot.LOG_INFO
+tkgtri.OwaManager.LOG_ERROR = bot.LOG_ERROR
+tkgtri.OwaManager.LOG_DEBUG = bot.LOG_DEBUG
+tkgtri.OwaManager.LOG_CRITICAL = bot.LOG_CRITICAL
+
 om = tkgtri.OwaManager(bot.exchange)
 om.add_order(recovery_order)
 
 while True:
-    om.proceed_orders()
-    pass
+    if len(om.get_open_orders()) > 0:
+        om.proceed_orders()
+    else:
+        bot.log(bot.LOG_INFO, "No more open orders")
+        break
 
-
-
-
-
-
-
-
-
+bot.log(bot.LOG_INFO, "Finished")
