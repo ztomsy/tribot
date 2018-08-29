@@ -56,6 +56,7 @@ class ccxtExchangeWrapper:
 
         self._offline_order = dict()
         self._offline_order_update_index = 0
+        self._offline_order_cancelled = False
 
         self._offline_trades = list()
 
@@ -162,7 +163,12 @@ class ccxtExchangeWrapper:
 
         if self._offline_order_update_index < len(self._offline_order["updates"]):
             order_resp = self._offline_order["updates"][self._offline_order_update_index]
-            self._offline_order_update_index += 1
+
+            if not self._offline_order_cancelled:
+                self._offline_order_update_index += 1
+            else:
+                order_resp = self._offline_order["cancel"]
+
             return order_resp
 
         else:
@@ -172,6 +178,12 @@ class ccxtExchangeWrapper:
     def _offline_cancel_order(self):
         if "cancel" not in self._offline_order:
             self._offline_order["cancel"] = True
+
+        if not self._offline_order_cancelled:
+            self._offline_order_update_index -= 1
+
+        self._offline_order_cancelled = True
+
         return self._offline_order["cancel"]
 
     def _offline_load_markets(self):
@@ -217,6 +229,11 @@ class ccxtExchangeWrapper:
         self._offline_trades = json_data["trades"]
 
     def _offline_fetch_trades(self):
+
+        if self._offline_order["updates"][self._offline_order_update_index-1]["trades"] is not None and \
+                len(self._offline_order["updates"][self._offline_order_update_index-1]["trades"]) > 0:
+            return self._offline_order["updates"][self._offline_order_update_index-1]["trades"]
+
         if self._offline_trades is not None :
             return self._offline_trades
 
@@ -236,7 +253,7 @@ class ccxtExchangeWrapper:
             trades: list of trades
         """
         if self.offline:
-            return self._offline_fetch_trades()
+            return order.trades
         else:
             amount_from_trades = 0
 
@@ -272,6 +289,9 @@ class ccxtExchangeWrapper:
         total_fee = dict()
 
         for t in order.trades:
+            if "fee" not in t:
+                break
+
             if t["fee"]["currency"] not in total_fee:
                 total_fee[t["fee"]["currency"]] = dict()
                 total_fee[t["fee"]["currency"]]["amount"] = 0
@@ -400,7 +420,7 @@ class ccxtExchangeWrapper:
                           "order": order_resp["create"]["id"]})
 
             if i > 0:
-                update["trades"] = order_resp["updates"][i-1]["trades"]
+                update["trades"] = order_resp["updates"][i-1]["trades"][0:i]
             else:
                 update["trades"] = list()
 
@@ -413,6 +433,8 @@ class ccxtExchangeWrapper:
 
             order_resp["updates"].append(update)
 
-        order_resp["trades"] = update["trades"]
+       #order_resp["trades"] = update["trades"]
+
+        order_resp["cancel"] = dict({"status": "canceled"})
 
         return order_resp

@@ -321,7 +321,7 @@ while True:
 
                 working_triangle["leg2-order-result"] = "PartFill"
                 working_triangle["leg2-order-status"] = order2.status
-                working_triangle["leg2-recover-amount"] = order2.amount_start - order2.filled_src_amount
+                working_triangle["leg2-recover-amount"] = order2.amount_start - order2.filled_start_amount
                 working_triangle["leg2-recover-start-curr-best-amount"] = tribot.order2_best_recovery_start_amount(
                     order1.filled_start_amount, order2.amount, order2.filled)
         else:
@@ -362,7 +362,7 @@ while True:
                 working_triangle["leg3order-result"] = "PartFill"
                 working_triangle["leg3-order-status"] = order3.status
 
-                working_triangle["leg3-recover-amount"] = order3.amount_start - order3.filled_src_amount
+                working_triangle["leg3-recover-amount"] = order3.amount_start - order3.filled_start_amount
 
                 working_triangle["leg3-recover-start-curr-best-amount"] = tribot.order3_best_recovery_start_amount(
                     order1.filled_start_amount, order2.amount, order2.filled, order3.amount, order3.filled)

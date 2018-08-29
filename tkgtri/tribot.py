@@ -8,6 +8,7 @@ from .tri_cli import *
 import tkgtri
 from . import tri_arb as ta
 import uuid
+import copy
 from .reporter import TkgReporter
 import bisect
 import datetime
@@ -337,12 +338,20 @@ class TriBot:
 
         order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
 
-        order_manager = OrderManagerFok(order, None, updates_to_kill=2)
+        if self.offline:
+            o = self.exchange.create_order_offline_data(order, 2)
+            self.exchange._offline_order = copy.copy(o)
+            self.exchange._offline_trades = copy.copy(o["trades"])
+            self.exchange._offline_order_update_index = 0
+            self.exchange._offline_order_cancelled = False
+
+        order_manager = OrderManagerFok(order, None, updates_to_kill=5)
 
         try:
             order_manager.fill_order(self.exchange)
         except OrderManagerErrorUnFilled:
             try:
+                self.log(self.LOG_INFO, "Cancelling order...")
                 order_manager.cancel_order(self.exchange)
 
             except OrderManagerCancelAttemptsExceeded:
