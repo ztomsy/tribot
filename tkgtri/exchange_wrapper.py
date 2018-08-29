@@ -177,7 +177,8 @@ class ccxtExchangeWrapper:
 
     def _offline_cancel_order(self):
         if "cancel" not in self._offline_order:
-            self._offline_order["cancel"] = True
+            # self._offline_order["cancel"] = True
+            self._offline_order["cancel"] = dict({"status": "canceled"})
 
         if not self._offline_order_cancelled:
             self._offline_order_update_index -= 1
