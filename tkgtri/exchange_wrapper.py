@@ -79,9 +79,11 @@ class ccxtExchangeWrapper:
 
     def get_tickers(self):
         if not self.offline:
-            return self._fetch_tickers()
+            self.tickers = self._fetch_tickers()
+            return self.tickers
         else:
-            return self._offline_fetch_tickers()
+            self.tickers = self._offline_fetch_tickers()
+            return self.tickers
 
     def get_exchange_wrapper_id(self):
         return "generic"
@@ -334,7 +336,10 @@ class ccxtExchangeWrapper:
         await exchange.load_markets()
 
     async def _get_order_book_async(self, symbol):
-        ob = await self._async_ccxt.fetch_order_book(symbol, 100)
+        if not self.offline:
+            ob = await self._async_ccxt.fetch_order_book(symbol, 100)
+        else:
+            ob = self._create_order_book_array_from_ticker(self.tickers[symbol])
         ob["symbol"] = symbol
         return ob
 
@@ -361,3 +366,11 @@ class ccxtExchangeWrapper:
 
     def fetch_free_balance(self):
         return self._ccxt.fetch_free_balance()
+
+    def _create_order_book_array_from_ticker(self, ticker):
+        ob = dict()
+        ob["asks"] = [[ticker["ask"], 99999999]]
+        ob["bids"] = [[ticker["bid"], 99999999]]
+        return ob
+
+

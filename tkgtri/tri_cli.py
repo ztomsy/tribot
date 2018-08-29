@@ -49,6 +49,11 @@ def get_cli_parameters(args):
                         default=False,
                         action="store_true")
 
+    parser.add_argument("--offline",
+                        help="offline mode from files: test_data/markets.json test_data/tickers.csv",
+                        dest="offline",
+                        default=False,
+                        action="store_true")
 
     return parser.parse_args(args)
 

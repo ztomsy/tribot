@@ -57,6 +57,7 @@ class TriBot:
         self.debug = bool()
         self.run_once = False
         self.noauth = False
+        self.offline = False
 
         self.tickers_file = str()
 
@@ -244,7 +245,8 @@ class TriBot:
 
     def get_order_books_async(self, symbols: list):
         """
-        returns the dict of {"symbol": OrderBook}
+        returns the dict of {"symbol": OrderBook} in offline mode the order book is single line - ticker price and big
+         amount
         :param symbols: list of symbols to get orderbooks
         :return: returns the dict of {"symbol": OrderBook}
         """
@@ -335,7 +337,7 @@ class TriBot:
 
         order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
 
-        order_manager = OrderManagerFok(order)
+        order_manager = OrderManagerFok(order, None, updates_to_kill=2)
 
         try:
             order_manager.fill_order(self.exchange)

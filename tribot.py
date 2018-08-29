@@ -37,6 +37,7 @@ tribot.log(tribot.LOG_INFO, "Exchange ID:" + tribot.exchange_id)
 tribot.log(tribot.LOG_INFO, "session_uuid:" + tribot.session_uuid)
 tribot.log(tribot.LOG_INFO, "Debug: {}".format(tribot.debug))
 tribot.log(tribot.LOG_INFO, "Force trades with best result: {}".format(tribot.force_best_tri))
+tribot.log(tribot.LOG_INFO, "Offline mode: {}".format(tribot.offline))
 
 # now we have exchange_id from config file or cli
 tribot.init_reports("_"+tribot.exchange_id+"/")
@@ -50,9 +51,15 @@ except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
     tribot.log(tribot.LOG_INFO, "Continue....", e.args)
 try:
+
     tribot.init_exchange()
+    if tribot.offline:
+        tribot.log(tribot.LOG_INFO, "Loading from offline test_data/markets.json test_data/tickers.csv")
+        tribot.exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
+    else:
+        tribot.exchange.init_async_exchange()
+
     tribot.load_markets()
-    tribot.exchange.init_async_exchange()
 
 except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Error while exchange initialization {}".format(tribot.exchange_id))
@@ -180,6 +187,7 @@ while True:
                                                        working_triangle["result"])
 
         # fetching the order books for symbols in triangle
+
         try:
             tribot.log(tribot.LOG_INFO, "Try to fetch order books: {} {} {} ".format(working_triangle["symbol1"],
                                                                                      working_triangle["symbol2"],
@@ -309,6 +317,8 @@ while True:
             working_triangle["leg2-price-fact"] = order2.filled / order2.cost
 
             if order2.filled < order2.amount:
+                tribot.log(tribot.LOG_INFO, "Order 2 Partial Fill. For recovery data...")
+
                 working_triangle["leg2-order-result"] = "PartFill"
                 working_triangle["leg2-order-status"] = order2.status
                 working_triangle["leg2-recover-amount"] = order2.amount_start - order2.filled_src_amount

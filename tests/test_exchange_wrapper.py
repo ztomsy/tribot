@@ -164,6 +164,16 @@ class ExchageWrapperTestSuite(unittest.TestCase):
                          exchange._ccxt.price_to_precision(symbol, 1.123456789)
                          )
 
+    def test_create_order_book_array_from_ticker(self):
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
+        exchange.get_markets()
+        exchange.get_tickers()
+
+        ob_array = exchange._create_order_book_array_from_ticker(exchange.tickers["ETH/USDT"])
+        self.assertEqual(ob_array["asks"], [[682.82, 99999999]])
+        self.assertEqual(ob_array["bids"], [[682.5, 99999999]])
+
 
 if __name__ == '__main__':
     unittest.main()
