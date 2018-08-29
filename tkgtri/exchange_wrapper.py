@@ -3,6 +3,8 @@ import ccxt.async_support as accxt
 import asyncio
 import csv
 import json
+import uuid
+import time
 from . import exchanges
 from . import core
 from .trade_orders import TradeOrder
@@ -373,4 +375,44 @@ class ccxtExchangeWrapper:
         ob["bids"] = [[ticker["bid"], 99999999]]
         return ob
 
+    def create_order_offline_data(self, order: TradeOrder, updates_to_fill: int = 1):
+        order_resp = dict()
+        order_resp["create"] = dict()
+        order_resp["create"]["amount"] = self.amount_to_precision(order.symbol, order.amount)
+        order_resp["create"]["price"] = self.price_to_precision(order.symbol, order.price)
+        order_resp["create"]["status"] = "open"
+        order_resp["create"]["filled"] = 0.0
+        order_resp["create"]["id"] = str(uuid.uuid4())
+        order_resp["create"]["timestamp"] = int(time.time()*1000)
 
+        order_resp["updates"] = list()
+        order_resp["trades"] = list()
+
+        for i in range(0, updates_to_fill):
+            update = dict()
+            update["filled"] = self.amount_to_precision(order.symbol, order.amount * ((i+1)/updates_to_fill))
+            update["cost"] = self.price_to_precision(order.symbol, update["filled"] * order.price)
+            update["status"] = "open"
+
+            trade = dict({"amount": self.amount_to_precision(order.symbol, order.amount / updates_to_fill),
+                          "price": self.price_to_precision(order.symbol, order.price),
+                          "cost": self.price_to_precision(order.symbol, (order.amount / updates_to_fill)*order.price),
+                          "order": order_resp["create"]["id"]})
+
+            if i > 0:
+                update["trades"] = order_resp["updates"][i-1]["trades"]
+            else:
+                update["trades"] = list()
+
+            update["trades"].append(trade)
+
+            if i == updates_to_fill-1:
+                update["status"] = "closed"
+                update["filled"] = self.amount_to_precision(order.symbol, order.amount )
+                update["cost"] = self.price_to_precision(order.symbol, update["filled"] * order.price)
+
+            order_resp["updates"].append(update)
+
+        order_resp["trades"] = update["trades"]
+
+        return order_resp

@@ -174,6 +174,38 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         self.assertEqual(ob_array["asks"], [[682.82, 99999999]])
         self.assertEqual(ob_array["bids"], [[682.5, 99999999]])
 
+    def test_create_order_offline_data(self):
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
+        exchange.get_markets()
+        exchange.get_tickers()
+
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",
+                                                                       0.06633157807472399)
+
+        o = exchange.create_order_offline_data(order, 10)
+
+        self.assertEqual(exchange.price_to_precision(order.symbol, order.price), o["create"]["price"])
+        self.assertEqual(exchange.amount_to_precision(order.symbol, order.amount), o["create"]["amount"])
+        self.assertEqual(exchange.price_to_precision(order.symbol, order.amount_dest), o["updates"][-1]["cost"])
+
+        exchange._offline_order = o
+        exchange._offline_trades = o["trades"]
+
+        om = tkgtri.OrderManagerFok(order)
+        om.fill_order(exchange)
+
+        self.assertEqual(0.5, order.filled)
+
+        result = exchange.get_trades_results(order)
+        # self.assertEqual(result["filled"], 0.5)
+        self.assertEqual(result["cost"], order.cost)
+        self.assertEqual(result["dest_amount"], order.cost)
+        # self.assertEqual(result["src_amount"], 0.5)
+        self.assertGreaterEqual(result["price"], order.price)
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
