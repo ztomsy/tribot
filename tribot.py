@@ -1,8 +1,6 @@
 from tkgtri import TriBot
 from tkgtri import Analyzer
-from tkgtri import TradeOrder
-from tkgtri import OrderManagerFok
-from tkgtri.trade_manager import *
+import uuid
 import sys
 import traceback
 
@@ -114,6 +112,7 @@ while True:
         order_books = dict()
         expected_result = 0.0
         bal_to_bid = 0.0
+        recovery_data = list()  # list of recovery data dict
 
         #
         # todo add reset all the working variables
@@ -185,6 +184,9 @@ while True:
             bal_to_bid = tribot.get_max_balance_to_bid(tribot.start_currency[0], tribot.balance,
                                                        working_triangle["result"],
                                                        working_triangle["result"])
+
+        # create deal_uuid
+        working_triangle["deal-uuid"] = str(uuid.uuid4())
 
         # fetching the order books for symbols in triangle
 
@@ -315,22 +317,40 @@ while True:
             order2.fees = tribot.exchange.fees_from_order(order2)
 
             working_triangle["leg2-price-fact"] = order2.filled / order2.cost
+            working_triangle["leg2-order-status"] = order2.status
 
             if order2.filled < order2.amount:
-                tribot.log(tribot.LOG_INFO, "Order 2 Partial Fill. For recovery data...")
-
+                tribot.log(tribot.LOG_INFO, "Order 2 Partial Fill.")
                 working_triangle["leg2-order-result"] = "PartFill"
-                working_triangle["leg2-order-status"] = order2.status
                 working_triangle["leg2-recover-amount"] = order2.amount_start - order2.filled_start_amount
                 working_triangle["leg2-recover-start-curr-best-amount"] = tribot.order2_best_recovery_start_amount(
                     order1.filled_start_amount, order2.amount, order2.filled)
+
+                order_rec_data = tribot.create_recovery_data(working_triangle["deal-uuid"], working_triangle["cur2"],
+                                                             working_triangle["cur1"],
+                                                             working_triangle["leg2-recover-amount"],
+                                                             working_triangle["leg2-recover-start-curr-best-amount"], 2)
+
+                recovery_data.append(order_rec_data)
+                tribot.print_recovery_data(order_rec_data)
+            else:
+                working_triangle["leg2-order-result"] = "Filled"
+
         else:
             # recover from order2
             working_triangle["leg2-order-result"] = "Failed"
-            working_triangle["leg2-order-status"] = order2.status
             working_triangle["leg2-recover-amount"] = order2.amount_start
             working_triangle["leg2-recover-start-curr-best-amount"] = tribot.order2_best_recovery_start_amount(
                 order1.filled_start_amount, order2.amount, order2.filled)
+
+            order_rec_data = tribot.create_recovery_data(working_triangle["deal-uuid"], working_triangle["cur2"],
+                                                         working_triangle["cur1"],
+                                                         working_triangle["leg2-recover-amount"],
+                                                         working_triangle["leg2-recover-start-curr-best-amount"], 2)
+
+            recovery_data.append(order_rec_data)
+            tribot.print_recovery_data(order_rec_data)
+
             continue
 
         tribot.log(tribot.LOG_INFO, "Order2: filled {} with fee {}".format(
@@ -358,14 +378,25 @@ while True:
             order3.update_order_from_exchange_resp(resp_trades)
             order3.fees = tribot.exchange.fees_from_order(order3)
 
+            working_triangle["leg3-price-fact"] = order3.filled / order3.cost
+            working_triangle["leg3-order-status"] = order3.status
+
             if order3.filled < order3.amount:
                 working_triangle["leg3order-result"] = "PartFill"
-                working_triangle["leg3-order-status"] = order3.status
 
                 working_triangle["leg3-recover-amount"] = order3.amount_start - order3.filled_start_amount
-
                 working_triangle["leg3-recover-start-curr-best-amount"] = tribot.order3_best_recovery_start_amount(
                     order1.filled_start_amount, order2.amount, order2.filled, order3.amount, order3.filled)
+
+                order_rec_data = tribot.create_recovery_data(working_triangle["deal-uuid"], working_triangle["cur3"],
+                                                             working_triangle["cur1"],
+                                                             working_triangle["leg3-recover-amount"],
+                                                             working_triangle["leg3-recover-start-curr-best-amount"], 3)
+
+                recovery_data.append(order_rec_data)
+                tribot.print_recovery_data(order_rec_data)
+            else:
+                working_triangle["leg3-order-result"] = "Filled"
 
         else:
             # recover from order3
@@ -374,6 +405,14 @@ while True:
             working_triangle["leg3-recover-amount"] = order3.amount_start
             working_triangle["leg3-recover-start-curr-best-amount"] = tribot.order3_best_recovery_start_amount(
                 order1.filled_start_amount, order2.amount, order2.filled, order3.amount, order3.filled)
+
+            order_rec_data = tribot.create_recovery_data(working_triangle["deal-uuid"], working_triangle["cur3"],
+                                                         working_triangle["cur1"],
+                                                         working_triangle["leg3-recover-amount"],
+                                                         working_triangle["leg3-recover-start-curr-best-amount"], 3)
+
+            recovery_data.append(order_rec_data)
+            tribot.print_recovery_data(order_rec_data)
 
             continue
 

@@ -339,7 +339,7 @@ class TriBot:
         order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
 
         if self.offline:
-            o = self.exchange.create_order_offline_data(order, 2)
+            o = self.exchange.create_order_offline_data(order, 10)
             self.exchange._offline_order = copy.copy(o)
             self.exchange._offline_trades = copy.copy(o["trades"])
             self.exchange._offline_order_update_index = 0
@@ -396,6 +396,25 @@ class TriBot:
         res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled/order3_amoumt))
 
         return res
+
+    def create_recovery_data(self, deal_uuid, start_cur: str, dest_cur: str, start_amount: float, best_dest_amount: float,
+                             leg: int) -> dict:
+        recovery_dict = dict()
+        recovery_dict["deal_uuid"] = deal_uuid
+        recovery_dict["start_cur"] = start_cur
+        recovery_dict["dest_cur"] = dest_cur
+        recovery_dict["start_amount"] = start_amount
+        recovery_dict["best_dest_amount"] = best_dest_amount
+        recovery_dict["leg"] = leg  # order leg to recover from
+        recovery_dict["timestamp"] = time.time()
+
+        return recovery_dict
+
+    def print_recovery_data(self, recovery_data):
+        self.log(self.LOG_INFO, "leg {}".format(recovery_data["leg"]))
+        self.log(self.LOG_INFO, "Recover leg {}: {} {} -> {} {} ".
+                 format(recovery_data["leg"], recovery_data["start_cur"], recovery_data["start_amount"],
+                        recovery_data["dest_cur"], recovery_data["best_dest_amount"]))
 
     def get_status_report(self):
         report_fields = list("timestamp", "fetches", "good_triangles_total", "best_result", "best_triangle", "message")
