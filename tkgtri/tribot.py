@@ -13,6 +13,7 @@ from .reporter import TkgReporter
 import bisect
 import datetime
 import time
+import urllib.request
 from .trade_orders import *
 from .trade_manager import *
 
@@ -415,6 +416,12 @@ class TriBot:
         self.log(self.LOG_INFO, "Recover leg {}: {} {} -> {} {} ".
                  format(recovery_data["leg"], recovery_data["start_cur"], recovery_data["start_amount"],
                         recovery_data["dest_cur"], recovery_data["best_dest_amount"]))
+
+    def recovery_request(self):
+        pass
+
+
+
 
     def get_status_report(self):
         report_fields = list("timestamp", "fetches", "good_triangles_total", "best_result", "best_triangle", "message")
