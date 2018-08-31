@@ -40,6 +40,8 @@ here = os.path.dirname(os.path.realpath(__file__))
 here = ''
 records = {}
 
+def service_worker():
+    pass
 
 def get_records(handler):
     return records
@@ -68,6 +70,8 @@ routes = {
     r'^/records$': {'GET': get_records, 'media_type': 'application/json'},
     r'^/record/': {'GET': get_record, 'PUT': set_record, 'DELETE': delete_record,
                    'media_type': 'application/json'}}
+
+poll_interval = 0.1
 
 def rest_call_json(url, payload=None, with_payload_method='PUT'):
     'REST call with JSON decoding of the response and JSON payloads'
@@ -188,9 +192,10 @@ class RESTRequestHandler(http.server.BaseHTTPRequestHandler):
 def rest_server(port):
     'Starts the REST server'
     http_server = http.server.HTTPServer(('', port), RESTRequestHandler)
+    http_server.service_actions = service_worker
     print('Starting HTTP server at port %d' % port)
     try:
-        http_server.serve_forever()
+        http_server.serve_forever(poll_interval)
     except KeyboardInterrupt:
         pass
     print('Stopping HTTP server')
