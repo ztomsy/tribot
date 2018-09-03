@@ -5,7 +5,7 @@ from tkgtri import core
 from datetime import datetime
 from tkgtri import errors
 from tkgtri.errors import *
-
+import copy
 
 class OwaManager(object):
 
@@ -29,7 +29,7 @@ class OwaManager(object):
     def _create_order(self, order:TradeOrder):
         if self.exchange.offline:
 
-            o = self.exchange.create_order_offline_data(order, 10)
+            o = self.exchange.create_order_offline_data(order, 5)
             self.exchange._offline_order = copy.copy(o)
             self.exchange._offline_trades = copy.copy(o["trades"])
             self.exchange._offline_order_update_index = 0
