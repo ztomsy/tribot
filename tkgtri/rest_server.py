@@ -80,7 +80,7 @@ def rest_call_json(url, payload=None, with_payload_method='PUT'):
             payload = json.dumps(payload)
         # PUT or POST
         response = urllib.request.urlopen(
-            MethodRequest(url, payload, {'Content-Type': 'application/json'}, method=with_payload_method))
+            MethodRequest(url, payload.encode(), {'Content-Type': 'application/json'}, method=with_payload_method))
     else:
         # GET
         response = urllib.request.urlopen(url)

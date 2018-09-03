@@ -333,6 +333,7 @@ while True:
 
                 recovery_data.append(order_rec_data)
                 tribot.print_recovery_data(order_rec_data)
+                tribot.send_recovery_request(order_rec_data)
             else:
                 working_triangle["leg2-order-result"] = "Filled"
 
@@ -350,6 +351,7 @@ while True:
 
             recovery_data.append(order_rec_data)
             tribot.print_recovery_data(order_rec_data)
+            tribot.send_recovery_request(order_rec_data)
 
             continue
 
@@ -428,7 +430,7 @@ while True:
         tribot.reporter.set_indicator("fetch_number", tribot.fetch_number)
         tribot.reporter.set_indicator("errors", tribot.errors)
 
-        tribot.reporter.push_to_influx()
+        # tribot.reporter.push_to_influx()
         tribot.timer.notch("duration_to_influx")
 
         print("Fetch_num: {}".format(tribot.fetch_number))

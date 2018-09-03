@@ -16,6 +16,7 @@ import time
 import urllib.request
 from .trade_orders import *
 from .trade_manager import *
+from . import rest_server
 
 
 class TriBot:
@@ -60,6 +61,8 @@ class TriBot:
         self.run_once = False
         self.noauth = False
         self.offline = False
+
+        self.recovery_server = ""
 
         self.tickers_file = str()
 
@@ -201,11 +204,12 @@ class TriBot:
         self.tri_list = ta.fill_triangles(self.all_triangles, self.start_currency, self.tickers, self.commission)
 
     def load_balance(self):
+
         if self.test_balance > 0:
             self.balance = self.test_balance
             return self.test_balance
         else:
-            self.balance = self.exchange.fetch_free_balance()[self.start_currency[0]]
+            self.balance = self.exchange.fetch_free_balance()[self.start_currency[0]] if not self.offline else 0.0
             return self.balance
 
     #
@@ -417,11 +421,22 @@ class TriBot:
                  format(recovery_data["leg"], recovery_data["start_cur"], recovery_data["start_amount"],
                         recovery_data["dest_cur"], recovery_data["best_dest_amount"]))
 
-    def recovery_request(self):
-        pass
+    def send_recovery_request(self, recovery_data: dict):
+        self.log(self.LOG_INFO, "Sending recovery request...")
+        try:
 
+            resp = rest_server.rest_call_json(
+                "{}:{}".format(self.recovery_server["host"], self.recovery_server["port"])+"/order/",
+                recovery_data, "PUT")
 
+        except Exception as e:
+            self.log(self.LOG_ERROR, "Could not send recovery request")
+            self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            self.log(self.LOG_ERROR, "Exception body:", e.args)
+            return False
 
+        self.log(self.LOG_INFO, "Response: {}".format(resp))
+        return resp
 
     def get_status_report(self):
         report_fields = list("timestamp", "fetches", "good_triangles_total", "best_result", "best_triangle", "message")

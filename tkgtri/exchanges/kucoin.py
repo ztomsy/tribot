@@ -34,6 +34,9 @@ class kucoin(ccxtExchangeWrapper):
         total_fee = dict()
 
         for t in trades:
+            if "fee" not in t:
+                break
+
             t["fee"]["currency"] = order.dest_currency  # fee in dest currency
 
             if t["fee"]["currency"] not in total_fee:

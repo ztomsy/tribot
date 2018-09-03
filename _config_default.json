@@ -6,7 +6,7 @@
   "start_currency":["ETH","BTC"],
   "share_balance_to_bid":0.8,
   "max_recovery_attempts": 20,
-
+  "test_balance":1,
   "min_amounts":
     {"BTC": 0.002, "ETH": 0.02, "BNB": 1, "USDT": 20},
 
