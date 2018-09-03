@@ -406,6 +406,7 @@ class TriBot:
                              leg: int) -> dict:
         recovery_dict = dict()
         recovery_dict["deal_uuid"] = deal_uuid
+        recovery_dict["symbol"] = core.get_symbol(start_cur, dest_cur, self.markets)
         recovery_dict["start_cur"] = start_cur
         recovery_dict["dest_cur"] = dest_cur
         recovery_dict["start_amount"] = start_amount

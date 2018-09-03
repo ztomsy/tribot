@@ -27,6 +27,14 @@ class OwaManager(object):
         self.exchange = exchange
 
     def _create_order(self, order:TradeOrder):
+        if self.exchange.offline:
+
+            o = self.exchange.create_order_offline_data(order, 10)
+            self.exchange._offline_order = copy.copy(o)
+            self.exchange._offline_trades = copy.copy(o["trades"])
+            self.exchange._offline_order_update_index = 0
+            self.exchange._offline_order_cancelled = False
+
         return self.exchange.place_limit_order(order)
 
     def _update_order(self, order: TradeOrder):
