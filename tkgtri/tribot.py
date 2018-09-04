@@ -21,7 +21,7 @@ from . import rest_server
 
 class TriBot:
 
-    def __init__(self, default_config, log_filename=None):
+    def __init__(self, default_config: str, log_filename=None):
 
         self.session_uuid = str(uuid.uuid4())
         self.fetch_number = 0
@@ -402,8 +402,8 @@ class TriBot:
 
         return res
 
-    def create_recovery_data(self, deal_uuid, start_cur: str, dest_cur: str, start_amount: float, best_dest_amount: float,
-                             leg: int) -> dict:
+    def create_recovery_data(self, deal_uuid, start_cur: str, dest_cur: str, start_amount: float,
+                             best_dest_amount: float, leg: int) -> dict:
         recovery_dict = dict()
         recovery_dict["deal_uuid"] = deal_uuid
         recovery_dict["symbol"] = core.get_symbol(start_cur, dest_cur, self.markets)
@@ -427,7 +427,7 @@ class TriBot:
         try:
 
             resp = rest_server.rest_call_json(
-                "{}:{}".format(self.recovery_server["host"], self.recovery_server["port"])+"/order/",
+                "{}:{}/order/".format(self.recovery_server["host"], self.recovery_server["port"]),
                 recovery_data, "PUT")
 
         except Exception as e:
@@ -441,7 +441,12 @@ class TriBot:
 
     def get_status_report(self):
         report_fields = list("timestamp", "fetches", "good_triangles_total", "best_result", "best_triangle", "message")
+        return  report_fields
 
+    def get_deal_report(self):
+        report_fields_from_working_triangle = list(
+            "deal-uuid", ""
+        )
 
 
 

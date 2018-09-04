@@ -1,7 +1,30 @@
 from .context import tkgtri
 from tkgtri import RecoveryOrder
 import unittest
-import json
+import copy
+
+
+class OrderWithAimTestSuite(unittest.TestCase):
+
+    def test_comparison_eq(self):
+        rm1 = RecoveryOrder("ADA/ETH", "ADA", 1000, "ETH", 0.32485131)
+        rm2 = RecoveryOrder("ADA/ETH", "ADA", 1000, "ETH", 0.32485131)
+
+        self.assertEqual(rm1, rm1)
+        self.assertNotEquals(rm1, rm2)
+
+        rm2.id = rm1.id
+        self.assertEqual(rm1, rm1)
+
+        rm2 = copy.copy(rm1)
+        self.assertEqual(rm1, rm2)
+
+        rm2.status = "closed"
+        self.assertNotEquals(rm1, rm2)
+
+        rm2 = copy.copy(rm1)
+        rm2.filled = 1
+        self.assertNotEquals(rm1, rm2)
 
 
 class RecoveryOrderTestSuite(unittest.TestCase):

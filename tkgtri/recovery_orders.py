@@ -6,16 +6,26 @@ import uuid
 from tkgtri import ccxtExchangeWrapper
 from datetime import datetime
 
-class OrderWithAim(object):
-    pass
 
+class OrderWithAim(object):
+
+    def __eq__(self, other):
+
+        fields_to_compare = list(["id", "status", "symbol", "start_currency", "dest_currency",
+                                 "status", "state", "filled_dest_amount", "filled_start_amount",
+                                  "filled_price", "filled", "amount"])
+
+        for f in fields_to_compare:
+            if getattr(self, f) != getattr(other, f): return False
+
+        return True
 
 class RecoveryOrder(OrderWithAim):
 
     def __init__(self, symbol, start_currency: str, start_amount: float, dest_currency: str,
                  dest_amount: float = 0.0,
                  fee: float = 0.0):
-
+        self.id = uuid.uuid4()
         self.symbol = symbol
         self.start_currency = start_currency
         self.start_amount = start_amount
@@ -56,8 +66,6 @@ class RecoveryOrder(OrderWithAim):
         self._prev_filled = 0.0               # filled amounts on previous orders
 
         self.init_best_amount()
-
-
 
     # @property
     # def symbol(self):

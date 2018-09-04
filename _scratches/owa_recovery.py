@@ -21,7 +21,7 @@ order_history_file_name = tkgtri.utils.get_next_filename_index("./test_order.jso
 bot.load_config_from_file(bot.config_filename)
 
 bot.init_exchange()
-# bot.exchange.set_offline_mode("markets.json", None, "test_order.json")
+bot.exchange.set_offline_mode("markets.json", None, "test_order.json")
 # bot.load_balance()
 
 bot.load_markets()
