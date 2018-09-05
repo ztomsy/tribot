@@ -99,12 +99,20 @@ while True:
     # main loop
     while True:
 
+        if tribot.fetch_number > 0 and working_triangle is not None:
+            print("Previous results")
+            # reporting collection
+
+            report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price, price2,
+                                            price3)
+            tribot.log(tribot.LOG_INFO, "====================================")
+            tribot.log(tribot.LOG_INFO, "============ REPORT ================")
+            tribot.log_report(report)
+            pass
+
         if tribot.fetch_number > 0 and tribot.run_once:
             sys.exit(666)
 
-        if tribot.fetch_number > 0 and working_triangle is not None:
-            print("Previous results")
-            pass
 
         tribot.timer.reset_notches()
 
@@ -132,7 +140,7 @@ while True:
             tribot.timer.check_timer()
             tribot.timer.notch("time_from_start")
             tribot.fetch_tickers()
-            tribot.timer.notch("duration_fetch")
+            tribot.timer.notch("time_fetch")
             print("Tickers fetched {}".format(len(tribot.tickers)))
         except Exception as e:
             tribot.log(tribot.LOG_ERROR, "Error while fetching tickers exchange_id:{} session_uuid:{} fetch_num:{} :".
@@ -154,7 +162,7 @@ while True:
             tribot.reporter.set_indicator("best_triangle", tribot.tri_list[0]["triangle"])
             tribot.reporter.set_indicator("best_result", tribot.tri_list[0]["result"])
 
-            tribot.timer.notch("duration_proceed")
+            tribot.timer.notch("time_proceed")
 
         except Exception as e:
             tribot.log(tribot.LOG_ERROR, "Error while proceeding tickers exchange_id{}: session_uuid:{} fetch_num:{} :".
@@ -187,14 +195,14 @@ while True:
 
         # create deal_uuid
         working_triangle["deal-uuid"] = str(uuid.uuid4())
-
+        tribot.log(tribot.LOG_INFO,"Deal-uuid: {}".format(working_triangle["deal-uuid"]))
         # fetching the order books for symbols in triangle
 
         try:
             tribot.log(tribot.LOG_INFO, "Try to fetch order books: {} {} {} ".format(working_triangle["symbol1"],
                                                                                      working_triangle["symbol2"],
                                                                                      working_triangle["symbol3"]))
-            tribot.timer.notch("get_order_books")
+            tribot.timer.notch("time_get_order_books")
             order_books = tribot.get_order_books_async(list([working_triangle["symbol1"],
                                                              working_triangle["symbol2"],
                                                              working_triangle["symbol3"]]))
@@ -243,6 +251,7 @@ while True:
                                                          2: order_books[working_triangle["symbol2"]],
                                                          3: order_books[working_triangle["symbol3"]]},
                                                         bal_to_bid)["result"]
+                working_triangle["ob_result"] = expected_result
 
             except Exception as e:
                 tribot.log(tribot.LOG_ERROR,
@@ -277,7 +286,7 @@ while True:
                                                                        working_triangle["leg1-order"],
                                                                        working_triangle["cur2"]))
 
-        tribot.log(tribot.LOG_INFO,"Price: {}. Src Amount {}".format(price, bal_to_bid))
+        tribot.log(tribot.LOG_INFO, "Price: {}. Src Amount {}".format(price, bal_to_bid))
 
         order1 = tribot.do_trade(working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
                                  bal_to_bid, working_triangle["leg1-order"], price)
@@ -380,11 +389,11 @@ while True:
             order3.update_order_from_exchange_resp(resp_trades)
             order3.fees = tribot.exchange.fees_from_order(order3)
 
-            working_triangle["leg3-price-fact"] = order3.filled / order3.cost
+
             working_triangle["leg3-order-status"] = order3.status
 
             if order3.filled < order3.amount:
-                working_triangle["leg3order-result"] = "PartFill"
+                working_triangle["leg3-order-result"] = "PartFill"
 
                 working_triangle["leg3-recover-amount"] = order3.amount_start - order3.filled_start_amount
                 working_triangle["leg3-recover-start-curr-best-amount"] = tribot.order3_best_recovery_start_amount(
@@ -397,6 +406,8 @@ while True:
 
                 recovery_data.append(order_rec_data)
                 tribot.print_recovery_data(order_rec_data)
+                tribot.send_recovery_request(order_rec_data)
+
             else:
                 working_triangle["leg3-order-result"] = "Filled"
 
@@ -415,14 +426,14 @@ while True:
 
             recovery_data.append(order_rec_data)
             tribot.print_recovery_data(order_rec_data)
-
+            tribot.send_recovery_request(order_rec_data)
             continue
 
         tribot.log(tribot.LOG_INFO, "Order3: filled {} with fee {}".format(
             order3.filled_dest_amount, order3.fees[order3.dest_currency]["amount"]))
 
         tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
-        tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order1.filled_start_amount - order3.filled_dest_amount))
+        tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order3.filled_start_amount - order1.filled_dest_amount))
         tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount/order1.filled_start_amount))
 
         # reporting states:
@@ -431,7 +442,7 @@ while True:
         tribot.reporter.set_indicator("errors", tribot.errors)
 
         # tribot.reporter.push_to_influx()
-        tribot.timer.notch("duration_to_influx")
+        tribot.timer.notch("time_to_influx")
 
         print("Fetch_num: {}".format(tribot.fetch_number))
         print("Errors: {}".format(tribot.errors))

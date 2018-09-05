@@ -3,7 +3,6 @@ import logging
 import sys
 from . import utils
 from . import timer
-import pprint
 from .tri_cli import *
 import tkgtri
 from . import tri_arb as ta
@@ -13,10 +12,10 @@ from .reporter import TkgReporter
 import bisect
 import datetime
 import time
-import urllib.request
 from .trade_orders import *
 from .trade_manager import *
 from . import rest_server
+import collections
 
 
 class TriBot:
@@ -100,6 +99,8 @@ class TriBot:
         self.tri_list = list()
         self.tri_list_good = list()
 
+        # self.recovery_data = list()
+
         self.balance = float()
 
         self.time = timer.Timer
@@ -159,7 +160,7 @@ class TriBot:
         else:
             self.logger.log(level, msg)
             for line in msg_list:
-                self.logger.log(level, "... " + line)
+                self.logger.log(level, "... " + str(line))
 
     def init_reports(self, directory):
 
@@ -439,16 +440,88 @@ class TriBot:
         self.log(self.LOG_INFO, "Response: {}".format(resp))
         return resp
 
-    def get_status_report(self):
-        report_fields = list("timestamp", "fetches", "good_triangles_total", "best_result", "best_triangle", "message")
-        return  report_fields
+    @staticmethod
+    def get_report_fields():
+        return list([
+            "server-id", "exchange", "deal-uuid", "dbg", "triangle", "start-qty", "start-filled", "finish-qty",
+            "result-fact-diff", "for-recover", "rec-2-amount", "rec-2-target", "rec-3-amount", "rec-3-target", "result", "ob_result",
+            "leg1-order-result", "leg1-filled", "leg1-price-fact", "leg1-ob-price", "leg1-price", "leg1-fee",
+            "leg2-order-result", "leg2-filled", "leg2-price-fact", "leg2-ob-price", "leg2-price", "leg2-fee",
+            "leg3-order-result", "leg3-filled", "leg3-price-fact", "leg3-ob-price", "leg3-price", "leg3-fee",
+            "leg1-order-updates", "leg2-order-updates", "leg3-order-updates",
+            "cur1", "cur2", "cur3", "leg1-order", 'leg2-order', 'leg3-order', 'symbol1', 'symbol2', 'symbol3',
+            "time_fetch", "time_proceed", "time_from_start"])
 
-    def get_deal_report(self):
-        report_fields_from_working_triangle = list(
-            "deal-uuid", ""
-        )
+    def get_deal_report(self, working_triangle: dict, recovery_data, order1: TradeOrder, order2: TradeOrder,
+                        order3: TradeOrder, price1=None, price2=None, price3=None):
 
+        report_fields = self.get_report_fields()
 
+        report = dict()
+
+        wt = copy.copy(working_triangle)
+
+        # adding report data which are not in working triangle
+        wt["server-id"] = self.server_id
+        wt["exchange"] = self.exchange_id
+        wt["dbg"] = self.debug
+        wt["live"] = self.force_best_tri
+
+        wt["start-qty"] = order1.amount_start
+        wt["start-filled"] = order1.filled_start_amount
+
+        wt["leg1-filled"] = order1.filled / order1.amount if order1 is not None and order1.amount != 0 else 0
+        wt["leg2-filled"] = order2.filled / order2.amount if order2 is not None and order2.amount != 0 else 0
+        wt["leg3-filled"] = order3.filled / order3.amount if order3 is not None and order3.amount != 0 else 0
+
+        wt["leg1-order-updates"] = order1.update_requests_count if order1 is not None else None
+        wt["leg2-order-updates"] = order2.update_requests_count if order2 is not None else None
+        wt["leg3-order-updates"] = order3.update_requests_count if order3 is not None else None
+
+        wt["leg1-price-fact"] = order1.cost / order1.filled if order1 is not None and order1.filled != 0 else 0
+        wt["leg2-price-fact"] = order2.cost / order2.filled if order2 is not None and order2.filled != 0 else 0
+        wt["leg3-price-fact"] = order3.cost / order3.filled if order3 is not None and order3.filled !=0 else 0
+
+        wt["leg1-ob-price"] = price1
+        wt["leg2-ob-price"] = price2
+        wt["leg3-ob-price"] = price3
+
+        wt["leg1-fee"], wt["leg2-fee"], wt["leg3-fee"] = \
+            (order.fees[order.dest_currency]["amount"] for order in (order1, order2, order3) if order is not None)
+
+        if order3 is not None and order1 is not None:
+            wt["finish-qty"] = order3.filled_dest_amount - order3.fees[order3.dest_currency]["amount"]
+            wt["result-fact-diff"] = wt["finish-qty"] - order1.filled_start_amount
+            wt["result-fact"] = order3.filled_dest_amount/order1.filled_start_amount
+        else:
+            wt["result-fact-diff"] = 0
+
+        total_recover_amount = 0
+
+        # collect recovery data
+        for r in recovery_data:
+            total_recover_amount += r["best_dest_amount"]
+            wt["rec-{}-amount".format(r["leg"])] = r["start_amount"]  # amount of CUR in leg sent to recover
+            wt["rec-{}-target".format(r["leg"])] = r["best_dest_amount"]  # amount of target CUR1 for recover
+        wt["for-recover"] = total_recover_amount
+
+        # collect timer data
+        time_report = self.timer.results_dict()
+
+        for f in time_report:
+            report_fields.append(f)
+            wt[f] = time_report[f]
+
+        # copy working triangle data into report
+        for f in report_fields:
+            if f in wt:
+                report[f] = wt[f]
+
+        return report
+
+    def log_report(self, report):
+        for r in self.get_report_fields():
+            self.log(self.LOG_INFO, "{} = {}".format(r, report[r] if r in report else "None"))
 
 
     @staticmethod
