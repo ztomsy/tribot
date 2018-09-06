@@ -5,7 +5,7 @@ import numpy as np
 #
 # todo make ccxt independent - take only active markets and tickers as parameter
 #
-def get_basic_triangles_from_markets(markets: list):
+def get_basic_triangles_from_markets(markets):
     graph = nx.Graph()
     for symbol in markets:
 
@@ -36,8 +36,8 @@ def get_all_triangles(triangles: list, start_currencies: list):
 
 
 # output : dict
-# {"CUR1-CUR2-CUR3": { "triangle": ["CUR1","CUR2","CUR3"],
-#                       "symbols": ["CUR2/CUR1","CUR3/CUR2","CUR2/CUR3"],
+# {"CUR1-CUR2-CUR3": { "triangle": "CUR1","CUR2","CUR3",
+#                       "symbol1": "CUR1/CUR2",
 #                       "orders":["buy","sell", "sell"],
 #                       "prices": [price1, price2, price3]
 #                       "result": result

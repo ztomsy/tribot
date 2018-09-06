@@ -28,7 +28,7 @@ class BasicTestSuite(unittest.TestCase):
         self.tribot.load_config_from_file(self.default_config)
 
         self.assertEqual(self.tribot.start_currency, ["ETH", "BTC"])
-        self.assertEqual(self.tribot.test_balance, 1)
+        # self.assertEqual(self.tribot.test_balance, 1)
 
         self.assertEqual(self.tribot.api_key["apiKey"], "testApiKey")
         self.assertEqual(self.tribot.server_id, "PROD1")
@@ -42,19 +42,23 @@ class BasicTestSuite(unittest.TestCase):
     def test_cli_overrides_config_file(self):
 
         self.tribot.debug = True
-        self.tribot.live = True
+        self.tribot.force_best_tri = True
 
-        self.tribot.set_from_cli("--config _config_default.json --balance 2 --nodebug --nolive --exchange kraken".split(" "))
+        self.tribot.set_from_cli("--config _config_default.json --balance 2 --nodebug --force --exchange kraken "
+                                 "--runonce --force_start_bid 666 --noauth".split(" "))
 
         self.tribot.load_config_from_file(self.tribot.config_filename)
 
         self.assertEqual(self.tribot.debug, False)
-        self.assertEqual(self.tribot.live, False)
+        self.assertEqual(self.tribot.run_once, True)
+        self.assertEqual(self.tribot.force_best_tri, True)
+        self.assertEqual(self.tribot.noauth, True)
 
         self.assertEqual(self.tribot.exchange_id, "kraken")
 
         self.assertEqual(self.tribot.config_filename, "_config_default.json")
         self.assertEqual(self.tribot.test_balance, 2)
+        self.assertEqual(self.tribot.force_start_amount, 666)
 
         self.assertEqual(self.tribot.api_key["apiKey"], "testApiKey")
 
@@ -166,7 +170,7 @@ class BasicTestSuite(unittest.TestCase):
         self.tribot.fetch_tickers()  # 2nd fetch have good results
         self.tribot.proceed_triangles()
 
-        good_results = self.tribot.get_good_triangles()
+        self.tribot.tri_list_good = self.tribot.get_good_triangles()
 
         good_triangles = ["ETH-BNB-AMB", "ETH-BTC-TRX", 'BTC-TRX-ETH']
 
@@ -187,9 +191,91 @@ class BasicTestSuite(unittest.TestCase):
 
         good_results = self.tribot.get_good_triangles()
 
-        self.assertEqual(good_results, 0)
+        self.assertEqual(len(good_results), 0)
         self.assertEqual(len(self.tribot.tri_list_good), 0)
         self.assertEqual(self.tribot.last_proceed_report["best_result"]["triangle"], 'BTC-ETH-USDT')
+
+    def test_get_max_balance_to_bid(self):
+        self.tribot.load_config_from_file(self.default_config)
+
+        self.assertEqual(self.tribot.get_max_balance_to_bid("ETH", 1, 1.006, 1.006), 1)
+        self.assertEqual(self.tribot.get_max_balance_to_bid("ETH", 20, 1.006, 1.006), 5)
+        self.assertEqual(self.tribot.get_max_balance_to_bid("ETH", 20, 1.01, 1.01), 10)
+
+        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 1, 1.001, 1.001), None)  # threshold too low
+        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 1, 1.005, 1.005), 0.5)   # 1st threshold
+        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 0.7, 1.01, 1.01), 0.7)   # 2nd threshold
+        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 2, 1.01, 1.01), 1)       # 2nd max balance cap
+
+    def test_best_recovery_amount_order2(self):
+
+        start_currency_filled = 1
+
+        # partial fill params
+        order2_amount = 4
+        order2_filled = 3
+
+        order2_recover_best_start_curr_amount = self.tribot.order2_best_recovery_start_amount(start_currency_filled,
+                                                                                              order2_amount,
+                                                                                              order2_filled)
+        self.assertEqual(order2_recover_best_start_curr_amount, 1/4)
+
+        # order 2 zero fill
+        order2_amount = 4
+        order2_filled = 0
+        order2_recover_best_start_curr_amount = self.tribot.order2_best_recovery_start_amount(start_currency_filled,
+                                                                                              order2_amount,
+                                                                                              order2_filled)
+        self.assertEqual(order2_recover_best_start_curr_amount, 1)
+
+        # order 2 complete fill - no recovery
+        order2_amount = 4
+        order2_filled = 4
+        order2_recover_best_start_curr_amount = self.tribot.order2_best_recovery_start_amount(start_currency_filled,
+                                                                                              order2_amount,
+                                                                                              order2_filled)
+        self.assertEqual(order2_recover_best_start_curr_amount, 0)
+
+    def test_best_recovery_amount_order3(self):
+
+        start_currency_filled = 1
+
+        # filled half of order 2  (1/2 of start currency)
+        order2_amount = 4
+        order2_filled = 2
+
+        order2_recover_best_start_curr_amount = self.tribot.order2_best_recovery_start_amount(start_currency_filled,
+                                                                                              order2_amount,
+                                                                                              order2_filled)
+
+        self.assertEqual(order2_recover_best_start_curr_amount, 1/2)
+
+        # order 3 partial fill
+        order3_amount = 1/2
+        order3_filled = 1/4
+
+        order3_recover_best_start_curr_amount = self.tribot.order3_best_recovery_start_amount(
+            start_currency_filled,order2_amount, order2_filled, order3_amount, order3_filled)
+
+        self.assertEqual(1/2 - 1/4, order3_recover_best_start_curr_amount)
+
+        # order 3 fill
+        order3_amount = 1/2
+        order3_filled = 1/2
+
+        order3_recover_best_start_curr_amount = self.tribot.order3_best_recovery_start_amount(
+            start_currency_filled, order2_amount, order2_filled, order3_amount, order3_filled)
+
+        self.assertEqual(0, order3_recover_best_start_curr_amount)
+
+        # order 3 zero fill
+        order3_amount = 1 / 2
+        order3_filled = 0
+
+        order3_recover_best_start_curr_amount = self.tribot.order3_best_recovery_start_amount(
+            start_currency_filled, order2_amount, order2_filled, order3_amount, order3_filled)
+
+        self.assertEqual(1/2, order3_recover_best_start_curr_amount)
 
 
 if __name__ == '__main__':

@@ -27,8 +27,8 @@ def get_next_report_filename(dir, filename_mask):
 def get_next_filename_index(path):
     path = os.path.expanduser(path)
 
-    if not os.path.exists(path):
-        return path
+    # if not os.path.exists(path):
+    #     return path
 
     root, ext = os.path.splitext(os.path.expanduser(path))
     directory = os.path.dirname(root)

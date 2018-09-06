@@ -1,0 +1,221 @@
+{
+    "create": {
+        "amount": 100000.00000000001,
+        "amount_dest": 100000.00000000001,
+        "amount_start": 0.2,
+        "cost": 0.2,
+        "datetime": "2018-08-13T16:33:31.365Z",
+        "dest_currency": "TEL",
+        "fees": {},
+        "filled": 0.0,
+        "filled_dest_amount": 0.0,
+        "filled_src_amount": 0.2,
+        "id": "5b71b2db6b1f594c85e7130d",
+        "info": {
+            "code": "OK",
+            "data": {
+                "orderOid": "5b71b2db6b1f594c85e7130d"
+            },
+            "msg": "OK",
+            "success": true,
+            "timestamp": 1534178011365
+        },
+        "init_price": 2e-06,
+        "lastTradeTimestamp": {
+            "py/type": "__builtin__.int"
+        },
+        "order_book": null,
+        "precision_amount": null,
+        "price": 2e-06,
+        "price_precision": null,
+        "remaining": 0.0,
+        "result": {
+            "py/type": "tkgtri.trade_orders.OrderResult"
+        },
+        "side": "buy",
+        "start_currency": "ETH",
+        "status": "open",
+        "symbol": "TEL/ETH",
+        "timestamp": 1534178011365,
+        "trades": {},
+        "type": "limit",
+        "update_requests_count": 1
+    },
+    "trades": [
+        {
+            "amount": 100000.0,
+            "cost": 0.2,
+            "datetime": "2018-08-13T16:33:31.000Z",
+            "fee": {
+                "cost": 100.0,
+                "currency": "TEL"
+            },
+            "id": null,
+            "info": {
+                "amount": 100000.0,
+                "createdAt": 1534178011000,
+                "dealPrice": 2e-06,
+                "dealValue": 0.2,
+                "fee": 100.0,
+                "feeRate": 0.001
+            },
+            "order": "5b71b2db6b1f594c85e7130d",
+            "price": 2e-06,
+            "side": "buy",
+            "symbol": "TEL/ETH",
+            "timestamp": 1534178011000,
+            "type": null
+        }
+    ],
+    "updates": [
+        {
+            "amount": 100000.0,
+            "amount_dest": 100000.00000000001,
+            "amount_start": 0.2,
+            "cost": 0.2,
+            "datetime": "2018-08-13T16:33:31.000Z",
+            "dest_currency": "TEL",
+            "fee": {
+                "cost": 0.0,
+                "currency": "TEL",
+                "rate": null
+            },
+            "fees": {},
+            "filled": 100000.0,
+            "filled_dest_amount": 100000.0,
+            "filled_src_amount": 0.2,
+            "id": "5b71b2db6b1f594c85e7130d",
+            "info": {
+                "coinType": "TEL",
+                "coinTypePair": "ETH",
+                "createdAt": 1534178011000,
+                "dealAmount": 100000.0,
+                "dealOrders": {
+                    "currPageNo": 1,
+                    "datas": [],
+                    "firstPage": true,
+                    "lastPage": false,
+                    "limit": 20,
+                    "pageNos": 1,
+                    "total": 0
+                },
+                "dealPriceAverage": 2e-06,
+                "dealValueTotal": 0.2,
+                "feeTotal": 0.0,
+                "isActive": false,
+                "orderOid": "5b71b2db6b1f594c85e7130d",
+                "orderPrice": 2e-06,
+                "pendingAmount": 0.0,
+                "type": "BUY",
+                "userOid": "5b2137bfcbdbf716873b3b85"
+            },
+            "init_price": 2e-06,
+            "lastTradeTimestamp": {
+                "py/type": "__builtin__.int"
+            },
+            "order_book": null,
+            "precision_amount": null,
+            "price": 2e-06,
+            "price_precision": null,
+            "remaining": 0.0,
+            "result": {
+                "py/type": "tkgtri.trade_orders.OrderResult"
+            },
+            "side": "buy",
+            "start_currency": "ETH",
+            "status": "closed",
+            "symbol": "TEL/ETH",
+            "timestamp": 1534178011000,
+            "trades": [],
+            "type": "limit",
+            "update_requests_count": 2
+        },
+        {
+            "amount": 100000.0,
+            "amount_dest": 100000.00000000001,
+            "amount_start": 0.2,
+            "cost": 0.2,
+            "datetime": "2018-08-13T16:33:31.000Z",
+            "dest_currency": "TEL",
+            "fee": {
+                "cost": 0.0,
+                "currency": "TEL",
+                "rate": null
+            },
+            "fees": {},
+            "filled": 100000.0,
+            "filled_dest_amount": 100000.0,
+            "filled_src_amount": 0.2,
+            "id": "5b71b2db6b1f594c85e7130d",
+            "info": {
+                "coinType": "TEL",
+                "coinTypePair": "ETH",
+                "createdAt": 1534178011000,
+                "dealAmount": 100000.0,
+                "dealOrders": {
+                    "currPageNo": 1,
+                    "datas": [],
+                    "firstPage": true,
+                    "lastPage": false,
+                    "limit": 20,
+                    "pageNos": 1,
+                    "total": 0
+                },
+                "dealPriceAverage": 2e-06,
+                "dealValueTotal": 0.2,
+                "feeTotal": 0.0,
+                "isActive": false,
+                "orderOid": "5b71b2db6b1f594c85e7130d",
+                "orderPrice": 2e-06,
+                "pendingAmount": 0.0,
+                "type": "BUY",
+                "userOid": "5b2137bfcbdbf716873b3b85"
+            },
+            "init_price": 2e-06,
+            "lastTradeTimestamp": {
+                "py/type": "__builtin__.int"
+            },
+            "order_book": null,
+            "precision_amount": null,
+            "price": 2e-06,
+            "price_precision": null,
+            "remaining": 0.0,
+            "result": {
+                "py/type": "tkgtri.trade_orders.OrderResult"
+            },
+            "side": "buy",
+            "start_currency": "ETH",
+            "status": "closed",
+            "symbol": "TEL/ETH",
+            "timestamp": 1534178011000,
+            "trades": [
+                {
+                    "amount": 100000.0,
+                    "cost": 0.2,
+                    "datetime": "2018-08-13T16:33:31.000Z",
+                    "fee": {
+                        "cost": 100.0,
+                        "currency": "TEL"
+                    },
+                    "id": null,
+                    "info": {
+                        "amount": 100000.0,
+                        "createdAt": 1534178011000,
+                        "dealPrice": 2e-06,
+                        "dealValue": 0.2,
+                        "fee": 100.0,
+                        "feeRate": 0.001
+                    },
+                    "order": "5b71b2db6b1f594c85e7130d",
+                    "price": 2e-06,
+                    "side": "buy",
+                    "symbol": "TEL/ETH",
+                    "timestamp": 1534178011000,
+                    "type": null
+                }
+            ],
+            "type": "limit",
+            "update_requests_count": 3
+        }
+    ]
+}
