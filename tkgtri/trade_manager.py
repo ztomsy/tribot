@@ -163,6 +163,11 @@ class OrderManagerFok(object):
             except Exception as e:
                 self.on_order_update_error(e)
 
+            finally:
+                self.on_order_update()
+
+
+
         if self.last_response["action"] == "complete_order":
             return True
 
