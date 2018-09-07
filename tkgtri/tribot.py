@@ -299,14 +299,14 @@ class TriBot:
 
     # here is the sleep between updates is implemented! needed to be fixed
     def log_order_update(self, order_manager: tkgtri.OrderManagerFok):
-        self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled dest curr:{} / {} ".format(
+        self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled amount:{} / {} ".format(
             order_manager.order.id,
             order_manager.order.update_requests_count,
             order_manager.updates_to_kill,
             self.order_update_requests_for_time_out,
             order_manager.order.status,
-            order_manager.order.filled_dest_amount,
-            order_manager.order.amount_dest))
+            order_manager.order.filled,
+            order_manager.order.amount))
 
         now_order = datetime.now()
 
@@ -399,7 +399,7 @@ class TriBot:
     def order3_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled, order3_amoumt,
                                           order3_filled):
 
-        res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled/order3_amoumt))
+        res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled / order3_amoumt))
 
         return res
 
@@ -452,7 +452,7 @@ class TriBot:
             "leg3-order-result", "leg3-filled", "leg3-price-fact", "leg3-ob-price", "leg3-price", "leg3-fee",
             "leg1-order-updates", "leg2-order-updates", "leg3-order-updates",
             "cur1", "cur2", "cur3", "leg1-order", 'leg2-order', 'leg3-order', 'symbol1', 'symbol2', 'symbol3',
-            "time_fetch", "time_proceed", "time_from_start",  "errors", "time_after_deals"])
+            "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals"])
 
     def get_deal_report(self, working_triangle: dict, recovery_data, order1: TradeOrder, order2: TradeOrder = None,
                         order3: TradeOrder = None, price1=None, price2=None, price3=None):
@@ -472,8 +472,8 @@ class TriBot:
         wt["errors"] = self.errors
         wt["fetch_number"] = self.fetch_number
 
-        wt["start-qty"] = order1.amount_start
-        wt["start-filled"] = order1.filled_start_amount
+        wt["start-qty"] = order1.amount_start if order1 is not None else None
+        wt["start-filled"] = order1.filled_start_amount if order1 is not None else None
 
         wt["status"] = "InRecovery" if len(recovery_data) > 0 else working_triangle["status"]
 
@@ -491,19 +491,21 @@ class TriBot:
 
         wt["leg1-price-fact"] = order1.cost / order1.filled if order1 is not None and order1.filled != 0 else 0.0
         wt["leg2-price-fact"] = order2.cost / order2.filled if order2 is not None and order2.filled != 0 else 0.0
-        wt["leg3-price-fact"] = order3.cost / order3.filled if order3 is not None and order3.filled !=0 else 0.0
+        wt["leg3-price-fact"] = order3.cost / order3.filled if order3 is not None and order3.filled != 0 else 0.0
 
         wt["leg1-ob-price"] = price1
         wt["leg2-ob-price"] = price2
         wt["leg3-ob-price"] = price3
 
         wt["leg1-fee"], wt["leg2-fee"], wt["leg3-fee"] = (order.fees[order.dest_currency]["amount"]
-            if order is not None and order.dest_currency in order.fees else None for order in (order1, order2, order3))
+                                                          if order is not None and order.dest_currency in order.fees
+                                                          else None
+                                                          for order in (order1, order2, order3))
 
         if order3 is not None and order1 is not None:
             wt["finish-qty"] = order3.filled_dest_amount - order3.fees[order3.dest_currency]["amount"]
             wt["result-fact-diff"] = float(wt["finish-qty"] - order1.filled_start_amount)
-            wt["result-fact"] = order3.filled_dest_amount/order1.filled_start_amount
+            wt["result-fact"] = order3.filled_dest_amount / order1.filled_start_amount
         else:
             wt["result-fact-diff"] = 0.0
 

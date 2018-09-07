@@ -158,7 +158,6 @@ class OrderManagerFok(object):
             try:
                 update_resp = self._update_order(exchange)
                 self.order.update_order_from_exchange_resp(update_resp)
-                self.on_order_update()
 
             except Exception as e:
                 self.on_order_update_error(e)
