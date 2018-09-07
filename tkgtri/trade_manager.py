@@ -160,12 +160,10 @@ class OrderManagerFok(object):
             self.order_update_requests += 1
             try:
                 update_resp = self._update_order(exchange)
-                self.order.update_order_from_exchange_resp(update_resp)
-
             except Exception as e:
                 self.on_order_update_error(e)
-
             finally:
+                self.order.update_order_from_exchange_resp(update_resp)
                 self.on_order_update()
 
 

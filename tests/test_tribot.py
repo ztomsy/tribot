@@ -44,12 +44,12 @@ class BasicTestSuite(unittest.TestCase):
         self.tribot.debug = True
         self.tribot.force_best_tri = True
 
-        self.tribot.set_from_cli("--config _config_default.json --balance 2 --nodebug --force --exchange kraken "
+        self.tribot.set_from_cli("--config _config_default.json --balance 2 --debug --force --exchange kraken "
                                  "--runonce --force_start_bid 666 --noauth".split(" "))
 
         self.tribot.load_config_from_file(self.tribot.config_filename)
 
-        self.assertEqual(self.tribot.debug, False)
+        self.assertEqual(self.tribot.debug, True)
         self.assertEqual(self.tribot.run_once, True)
         self.assertEqual(self.tribot.force_best_tri, True)
         self.assertEqual(self.tribot.noauth, True)
