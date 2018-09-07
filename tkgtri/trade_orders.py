@@ -143,9 +143,10 @@ class TradeOrder(object):
 
     def update_order_from_exchange_resp(self, exchange_data: dict):
 
-        for field in self._UPDATE_FROM_EXCHANGE_FIELDS:
-            if field in exchange_data and exchange_data[field] is not None:
-                setattr(self, field, exchange_data[field])
+        if isinstance(exchange_data, dict):
+            for field in self._UPDATE_FROM_EXCHANGE_FIELDS:
+                if field in exchange_data and exchange_data[field] is not None:
+                    setattr(self, field, exchange_data[field])
 
         if self.side == "buy":
             self.filled_start_amount = self.cost

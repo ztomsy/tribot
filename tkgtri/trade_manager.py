@@ -141,6 +141,9 @@ class OrderManagerFok(object):
                 except Exception as e1:
                     self.on_order_update_error(e1)
 
+                finally:
+                    self.on_order_update()
+
                 if cancel_attempt >= self.max_cancel_attempts:
                     raise OrderManagerCancelAttemptsExceeded("Cancel Attempts Exceeded")
 
@@ -157,12 +160,10 @@ class OrderManagerFok(object):
             self.order_update_requests += 1
             try:
                 update_resp = self._update_order(exchange)
-                self.order.update_order_from_exchange_resp(update_resp)
-
             except Exception as e:
                 self.on_order_update_error(e)
-
             finally:
+                self.order.update_order_from_exchange_resp(update_resp)
                 self.on_order_update()
 
 

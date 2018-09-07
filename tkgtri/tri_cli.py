@@ -8,10 +8,10 @@ def get_cli_parameters(args):
                         dest="config_filename",
                         action="store", default=None)
 
-    parser.add_argument("--nodebug", help="actual deals",
+    parser.add_argument("--debug", help="If debug enabled - exit when error occurs. ",
                         dest="debug",
-                        default=True,
-                        action="store_false")
+                        default=False,
+                        action="store_true")
 
     parser.add_argument("--force", help="going into deals after max_past_triangles with the best tri",
                         dest="force_best_tri",
@@ -22,10 +22,10 @@ def get_cli_parameters(args):
                         dest='exchange_id',
                         action="store", default=None)
 
-    parser.add_argument("--balance", help="staring balance for fake deals",
+    parser.add_argument("--balance", help="Staring balance. if no value set - 1 by default",
                         dest="test_balance",
                         type=float,
-                        action="store", default=None)
+                        action="store", const=1, nargs="?")
 
     parser.add_argument("--requests", help="maximum requests to exchange per minute",
                         dest="max_requests_per_lap",

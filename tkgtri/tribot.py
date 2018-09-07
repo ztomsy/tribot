@@ -42,10 +42,11 @@ class TriBot:
         self.max_past_triangles = int()
         self.good_consecutive_results_threshold = int()
 
-        self.max_trades_updates = 10
+        self.max_trades_updates = 0
 
-        self.order_update_requests_for_time_out = 0.0
-        self.order_update_time_out = 1
+        self.order_update_total_requests = 0
+        self.order_update_requests_for_time_out = 0
+        self.order_update_time_out = 0
 
         self.timer = ...  # type: timer.Timer
 
@@ -299,14 +300,14 @@ class TriBot:
 
     # here is the sleep between updates is implemented! needed to be fixed
     def log_order_update(self, order_manager: tkgtri.OrderManagerFok):
-        self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled dest curr:{} / {} ".format(
+        self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled amount:{} / {} ".format(
             order_manager.order.id,
             order_manager.order.update_requests_count,
             order_manager.updates_to_kill,
             self.order_update_requests_for_time_out,
             order_manager.order.status,
-            order_manager.order.filled_dest_amount,
-            order_manager.order.amount_dest))
+            order_manager.order.filled,
+            order_manager.order.amount))
 
         now_order = datetime.now()
 
@@ -345,13 +346,14 @@ class TriBot:
         order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
 
         if self.offline:
-            o = self.exchange.create_order_offline_data(order, 10)
+            o = self.exchange.create_order_offline_data(order, 3)
             self.exchange._offline_order = copy.copy(o)
             self.exchange._offline_trades = copy.copy(o["trades"])
             self.exchange._offline_order_update_index = 0
             self.exchange._offline_order_cancelled = False
 
-        order_manager = OrderManagerFok(order, None, updates_to_kill=5)
+        order_manager = OrderManagerFok(order, None, updates_to_kill=self.order_update_total_requests,
+                                        max_cancel_attempts=self.order_update_total_requests)
 
         try:
             order_manager.fill_order(self.exchange)
@@ -399,7 +401,7 @@ class TriBot:
     def order3_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled, order3_amoumt,
                                           order3_filled):
 
-        res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled/order3_amoumt))
+        res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled / order3_amoumt))
 
         return res
 
@@ -443,17 +445,19 @@ class TriBot:
     @staticmethod
     def get_report_fields():
         return list([
-            "server-id", "exchange", "deal-uuid", "dbg", "triangle", "start-qty", "start-filled", "finish-qty",
-            "result-fact-diff", "for-recover", "rec-2-amount", "rec-2-target", "rec-3-amount", "rec-3-target", "result", "ob_result",
+            "server-id", "exchange-id", "session-uuid", "fetch-number", "deal-uuid", "dbg", "triangle", "status",
+            "start-qty", "start-filled", "finish-qty", "result-fact-diff", "for-recover",
+            "leg2-recover-amount", "leg2-recover-target", "leg3-recover-amount", "leg3-recover-target",
+            "result", "ob_result",
             "leg1-order-result", "leg1-filled", "leg1-price-fact", "leg1-ob-price", "leg1-price", "leg1-fee",
             "leg2-order-result", "leg2-filled", "leg2-price-fact", "leg2-ob-price", "leg2-price", "leg2-fee",
             "leg3-order-result", "leg3-filled", "leg3-price-fact", "leg3-ob-price", "leg3-price", "leg3-fee",
             "leg1-order-updates", "leg2-order-updates", "leg3-order-updates",
             "cur1", "cur2", "cur3", "leg1-order", 'leg2-order', 'leg3-order', 'symbol1', 'symbol2', 'symbol3',
-            "time_fetch", "time_proceed", "time_from_start"])
+            "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals"])
 
-    def get_deal_report(self, working_triangle: dict, recovery_data, order1: TradeOrder, order2: TradeOrder,
-                        order3: TradeOrder, price1=None, price2=None, price3=None):
+    def get_deal_report(self, working_triangle: dict, recovery_data, order1: TradeOrder, order2: TradeOrder = None,
+                        order3: TradeOrder = None, price1=None, price2=None, price3=None):
 
         report_fields = self.get_report_fields()
 
@@ -463,46 +467,57 @@ class TriBot:
 
         # adding report data which are not in working triangle
         wt["server-id"] = self.server_id
-        wt["exchange"] = self.exchange_id
+        wt["exchange-id"] = self.exchange_id
         wt["dbg"] = self.debug
         wt["live"] = self.force_best_tri
+        wt["session-uuid"] = self.session_uuid
+        wt["errors"] = self.errors
+        wt["fetch_number"] = self.fetch_number
 
-        wt["start-qty"] = order1.amount_start
-        wt["start-filled"] = order1.filled_start_amount
+        wt["start-qty"] = float(order1.amount_start) if order1 is not None else 0.0
+        wt["start-filled"] = float(order1.filled_start_amount) if order1 is not None else 0.0
 
-        wt["leg1-filled"] = order1.filled / order1.amount if order1 is not None and order1.amount != 0 else 0
-        wt["leg2-filled"] = order2.filled / order2.amount if order2 is not None and order2.amount != 0 else 0
-        wt["leg3-filled"] = order3.filled / order3.amount if order3 is not None and order3.amount != 0 else 0
+        wt["status"] = "InRecovery" if len(recovery_data) > 0 else working_triangle["status"]
+
+        wt["leg1-order-status"] = order1.status if order1 is not None else None
+        wt["leg2-order-status"] = order2.status if order2 is not None else None
+        wt["leg3-order-status"] = order3.status if order3 is not None else None
+
+        wt["leg1-filled"] = order1.filled / order1.amount if order1 is not None and order1.amount != 0 else 0.0
+        wt["leg2-filled"] = order2.filled / order2.amount if order2 is not None and order2.amount != 0 else 0.0
+        wt["leg3-filled"] = order3.filled / order3.amount if order3 is not None and order3.amount != 0 else 0.0
 
         wt["leg1-order-updates"] = order1.update_requests_count if order1 is not None else None
         wt["leg2-order-updates"] = order2.update_requests_count if order2 is not None else None
         wt["leg3-order-updates"] = order3.update_requests_count if order3 is not None else None
 
-        wt["leg1-price-fact"] = order1.cost / order1.filled if order1 is not None and order1.filled != 0 else 0
-        wt["leg2-price-fact"] = order2.cost / order2.filled if order2 is not None and order2.filled != 0 else 0
-        wt["leg3-price-fact"] = order3.cost / order3.filled if order3 is not None and order3.filled !=0 else 0
+        wt["leg1-price-fact"] = order1.cost / order1.filled if order1 is not None and order1.filled != 0 else 0.0
+        wt["leg2-price-fact"] = order2.cost / order2.filled if order2 is not None and order2.filled != 0 else 0.0
+        wt["leg3-price-fact"] = order3.cost / order3.filled if order3 is not None and order3.filled != 0 else 0.0
 
         wt["leg1-ob-price"] = price1
         wt["leg2-ob-price"] = price2
         wt["leg3-ob-price"] = price3
 
-        wt["leg1-fee"], wt["leg2-fee"], wt["leg3-fee"] = \
-            (order.fees[order.dest_currency]["amount"] for order in (order1, order2, order3) if order is not None)
+        wt["leg1-fee"], wt["leg2-fee"], wt["leg3-fee"] = (order.fees[order.dest_currency]["amount"]
+                                                          if order is not None and order.dest_currency in order.fees
+                                                          else None
+                                                          for order in (order1, order2, order3))
 
         if order3 is not None and order1 is not None:
             wt["finish-qty"] = order3.filled_dest_amount - order3.fees[order3.dest_currency]["amount"]
-            wt["result-fact-diff"] = wt["finish-qty"] - order1.filled_start_amount
-            wt["result-fact"] = order3.filled_dest_amount/order1.filled_start_amount
+            wt["result-fact-diff"] = float(wt["finish-qty"] - order1.filled_start_amount)
+            wt["result-fact"] = order3.filled_dest_amount / order1.filled_start_amount
         else:
-            wt["result-fact-diff"] = 0
+            wt["result-fact-diff"] = 0.0
 
-        total_recover_amount = 0
+        total_recover_amount = float(0.0)
 
         # collect recovery data
         for r in recovery_data:
             total_recover_amount += r["best_dest_amount"]
-            wt["rec-{}-amount".format(r["leg"])] = r["start_amount"]  # amount of CUR in leg sent to recover
-            wt["rec-{}-target".format(r["leg"])] = r["best_dest_amount"]  # amount of target CUR1 for recover
+            wt["leg{}-recover-amount".format(r["leg"])] = r["start_amount"]  # amount of CUR in leg sent to recover
+            wt["leg{}-recover-target".format(r["leg"])] = r["best_dest_amount"]  # amount of target CUR1 for recover
         wt["for-recover"] = total_recover_amount
 
         # collect timer data
@@ -523,6 +538,13 @@ class TriBot:
         for r in self.get_report_fields():
             self.log(self.LOG_INFO, "{} = {}".format(r, report[r] if r in report else "None"))
 
+    def send_remote_report(self, report):
+        for r in report:
+            self.reporter.set_indicator(r, report[r])
+
+        self.reporter.push_to_influx()
+
+        self.log(self.LOG_INFO, "Sending report to influx....")
 
     @staticmethod
     def print_logo(product=""):

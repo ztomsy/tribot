@@ -415,9 +415,9 @@ class ccxtExchangeWrapper:
             update["cost"] = self.price_to_precision(order.symbol, update["filled"] * order.price)
             update["status"] = "open"
 
-            trade = dict({"amount": self.amount_to_precision(order.symbol, order.amount / updates_to_fill),
-                          "price": self.price_to_precision(order.symbol, order.price),
-                          "cost": self.price_to_precision(order.symbol, (order.amount / updates_to_fill)*order.price),
+            trade = dict({"amount":  order.amount / updates_to_fill,
+                          "price":  order.price,
+                          "cost":  (order.amount / updates_to_fill)*order.price,
                           "order": order_resp["create"]["id"]})
 
             if i > 0:
