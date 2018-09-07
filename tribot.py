@@ -99,33 +99,43 @@ while True:
     # main loop
     while True:
 
+        # reporting from previous iteration
         if tribot.fetch_number > 0 and working_triangle is not None:
             print("Previous results")
-            # reporting collection
+            # additional reporting collection
 
+            tribot.timer.notch("time_after_deals")
             report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price, price2,
                                             price3)
+
             tribot.log(tribot.LOG_INFO, "====================================")
             tribot.log(tribot.LOG_INFO, "============ REPORT ================")
             tribot.log_report(report)
-            pass
+
+            try:
+                tribot.send_remote_report(report)
+                tribot.timer.notch("time_to_send_report")
+            except Exception as e:
+                tribot.log(tribot.LOG_ERROR, "Error sending report")
+                tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+                tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
 
         if tribot.fetch_number > 0 and tribot.run_once:
+            tribot.log(tribot.LOG_INFO, "Exiting because of Run once")
             sys.exit(666)
 
-
+        # reset timer
         tribot.timer.reset_notches()
 
+        # init working variables
         working_triangle = dict()
         order_books = dict()
         expected_result = 0.0
         bal_to_bid = 0.0
         recovery_data = list()  # list of recovery data dict
-
-        #
-        # todo add reset all the working variables
-        # todo add reporting from previous iteration on entering the fetch cycle
-        #
+        report = dict()
+        order1, order2, order3 = (None, None, None)
+        price, price2, price3 = (None, None, None)
 
         # exit when debugging and because of errors
         if tribot.debug is True and tribot.errors > 0:
@@ -183,6 +193,7 @@ while True:
 
         if tribot.force_best_tri:
             working_triangle = tribot.tri_list[0]  # taking best triangle
+            working_triangle["status"] = "OK" # set the best status
             bal_to_bid = tribot.balance  # balance to bid as actual balance or test balance
 
         else:  # taking the best triangle and max balance to bid
@@ -195,7 +206,7 @@ while True:
 
         # create deal_uuid
         working_triangle["deal-uuid"] = str(uuid.uuid4())
-        tribot.log(tribot.LOG_INFO,"Deal-uuid: {}".format(working_triangle["deal-uuid"]))
+        tribot.log(tribot.LOG_INFO, "Deal-uuid: {}".format(working_triangle["deal-uuid"]))
         # fetching the order books for symbols in triangle
 
         try:
@@ -230,11 +241,10 @@ while True:
             expected_result = max_possible["result"] + 1
 
         except Exception as e:
-            tribot.log(tribot.LOG_ERROR, "Error calc the result and amount on order books exchange_id{}: session_uuid:{}"
-                                         " fetch_num:{} :"
-                                         "for {}{}{}".
-                       format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number, working_triangle["symbol1"],
-                              working_triangle["symbol2"],working_triangle["symbol3"]))
+            tribot.log(tribot.LOG_ERROR, "Error calc the result and amount on order books exchange_id{}:"
+                                         " session_uuid:{} fetch_num:{} :for {}{}{}"
+                       .format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number,
+                               working_triangle["symbol1"], working_triangle["symbol2"],working_triangle["symbol3"]))
 
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
@@ -247,10 +257,10 @@ while True:
             tribot.log(tribot.LOG_INFO, "Force amount to bid:{}".format(tribot.force_start_amount))
             try:
                 expected_result = Analyzer.order_book_results(tribot.exchange, working_triangle,
-                                                        {1: order_books[working_triangle["symbol1"]],
-                                                         2: order_books[working_triangle["symbol2"]],
-                                                         3: order_books[working_triangle["symbol3"]]},
-                                                        bal_to_bid)["result"]
+                                                              {1: order_books[working_triangle["symbol1"]],
+                                                               2: order_books[working_triangle["symbol2"]],
+                                                               3: order_books[working_triangle["symbol3"]]},
+                                                              bal_to_bid)["result"]
                 working_triangle["ob_result"] = expected_result
 
             except Exception as e:
@@ -295,9 +305,15 @@ while True:
             resp_trades = tribot.get_trade_results(order1)
             order1.update_order_from_exchange_resp(resp_trades)
             order1.fees = tribot.exchange.fees_from_order(order1)
-            # collect recovery amount
+
+            if order1.filled < order1.amount * 0.9999:
+                tribot.log(tribot.LOG_INFO, "Order 1 Partial Fill.")
+                working_triangle["leg1-order-result"] = "PartFill"
+
         else:
-            tribot.log(tribot.LOG_ERROR, "Order1 have not filled. Skipping")
+            working_triangle["leg1-order-result"] = "Failed"
+            working_triangle["status"] = "Failed 1"
+            tribot.log(tribot.LOG_ERROR, "Order1 have not filled at all. Skipping")
             continue
 
         tribot.log(tribot.LOG_INFO, "Order1: filled {} with fee {}".format(
@@ -328,7 +344,7 @@ while True:
             working_triangle["leg2-price-fact"] = order2.filled / order2.cost
             working_triangle["leg2-order-status"] = order2.status
 
-            if order2.filled < order2.amount:
+            if order2.filled < order2.amount * 0.9999:
                 tribot.log(tribot.LOG_INFO, "Order 2 Partial Fill.")
                 working_triangle["leg2-order-result"] = "PartFill"
                 working_triangle["leg2-recover-amount"] = order2.amount_start - order2.filled_start_amount
@@ -362,6 +378,7 @@ while True:
             tribot.print_recovery_data(order_rec_data)
             tribot.send_recovery_request(order_rec_data)
 
+            working_triangle["status"] = "Failed 2"
             continue
 
         tribot.log(tribot.LOG_INFO, "Order2: filled {} with fee {}".format(
@@ -392,7 +409,7 @@ while True:
 
             working_triangle["leg3-order-status"] = order3.status
 
-            if order3.filled < order3.amount:
+            if order3.filled < order3.amount * 0.9999:
                 working_triangle["leg3-order-result"] = "PartFill"
 
                 working_triangle["leg3-recover-amount"] = order3.amount_start - order3.filled_start_amount
@@ -427,6 +444,7 @@ while True:
             recovery_data.append(order_rec_data)
             tribot.print_recovery_data(order_rec_data)
             tribot.send_recovery_request(order_rec_data)
+            working_triangle["status"] = "Failed 3"
             continue
 
         tribot.log(tribot.LOG_INFO, "Order3: filled {} with fee {}".format(
@@ -435,14 +453,6 @@ while True:
         tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
         tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order3.filled_start_amount - order1.filled_dest_amount))
         tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount/order1.filled_start_amount))
-
-        # reporting states:
-        tribot.reporter.set_indicator("session_uuid", tribot.session_uuid)
-        tribot.reporter.set_indicator("fetch_number", tribot.fetch_number)
-        tribot.reporter.set_indicator("errors", tribot.errors)
-
-        # tribot.reporter.push_to_influx()
-        tribot.timer.notch("time_to_influx")
 
         print("Fetch_num: {}".format(tribot.fetch_number))
         print("Errors: {}".format(tribot.errors))
