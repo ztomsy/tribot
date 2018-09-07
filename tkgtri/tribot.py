@@ -42,10 +42,11 @@ class TriBot:
         self.max_past_triangles = int()
         self.good_consecutive_results_threshold = int()
 
-        self.max_trades_updates = 10
+        self.max_trades_updates = 0
 
-        self.order_update_requests_for_time_out = 0.0
-        self.order_update_time_out = 1
+        self.order_update_total_requests = 0
+        self.order_update_requests_for_time_out = 0
+        self.order_update_time_out = 0
 
         self.timer = ...  # type: timer.Timer
 
@@ -351,7 +352,8 @@ class TriBot:
             self.exchange._offline_order_update_index = 0
             self.exchange._offline_order_cancelled = False
 
-        order_manager = OrderManagerFok(order, None, updates_to_kill=5)
+        order_manager = OrderManagerFok(order, None, updates_to_kill=self.order_update_total_requests,
+                                        max_cancel_attempts=self.order_update_total_requests)
 
         try:
             order_manager.fill_order(self.exchange)
@@ -472,8 +474,8 @@ class TriBot:
         wt["errors"] = self.errors
         wt["fetch_number"] = self.fetch_number
 
-        wt["start-qty"] = order1.amount_start if order1 is not None else None
-        wt["start-filled"] = order1.filled_start_amount if order1 is not None else None
+        wt["start-qty"] = float(order1.amount_start) if order1 is not None else 0.0
+        wt["start-filled"] = float(order1.filled_start_amount) if order1 is not None else 0.0
 
         wt["status"] = "InRecovery" if len(recovery_data) > 0 else working_triangle["status"]
 

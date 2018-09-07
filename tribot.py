@@ -16,7 +16,7 @@ tribot.report_tickers_filename = "%s/all_tickers_%s.csv"
 tribot.report_deals_filename = "%s/deals_%s.csv"
 tribot.report_prev_tickers_filename = "%s/deals_%s_tickers.csv"
 
-tribot.debug = True
+tribot.debug = False
 tribot.force_best_tri = True
 
 tribot.set_log_level(tribot.LOG_INFO)
@@ -36,6 +36,7 @@ tribot.log(tribot.LOG_INFO, "session_uuid:" + tribot.session_uuid)
 tribot.log(tribot.LOG_INFO, "Debug: {}".format(tribot.debug))
 tribot.log(tribot.LOG_INFO, "Force trades with best result: {}".format(tribot.force_best_tri))
 tribot.log(tribot.LOG_INFO, "Offline mode: {}".format(tribot.offline))
+tribot.log(tribot.LOG_INFO, "Start currency: {}".format(tribot.start_currency[0]))
 
 # now we have exchange_id from config file or cli
 tribot.init_reports("_"+tribot.exchange_id+"/")
@@ -90,6 +91,7 @@ while True:
     try:
         tribot.load_balance()
         tribot.log(tribot.LOG_INFO, "Balance: {}".format(tribot.balance))
+
     except Exception as e:
         tribot.log(tribot.LOG_ERROR, "Error while fetching balance {}".format(tribot.exchange_id))
         tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
