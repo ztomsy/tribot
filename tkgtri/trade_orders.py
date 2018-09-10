@@ -1,7 +1,7 @@
 from .orderbook import OrderBook
 from tkgtri import core
 from datetime import datetime
-
+import uuid
 
 class OrderError(Exception):
     """Basic exception for errors raised by Orders"""
@@ -24,7 +24,6 @@ class OrderErrorSideNotFound(OrderError):
 class OrderResult:
     def __init__(self):
         self.id = ""
-
         self.amount = 0  # result amount if buy than base, if sell than quoote
         self.asset = ""  # result asset
 
@@ -59,7 +58,9 @@ class TradeOrder(object):
 
     def __init__(self, type, symbol, amount, side, price=None, precision_amount=None, precision_price=None):
 
-        self.id = str()
+        self.id = str()  # order id from exchange
+        self.internal_id = str(uuid.uuid4())  # internal id for offline orders management
+
         self.datetime = datetime  # datetime
         self.timestamp = int  # order placing/opening Unix timestamp in milliseconds
         self.lastTradeTimestamp = int  # Unix timestamp of the most recent trade on this order

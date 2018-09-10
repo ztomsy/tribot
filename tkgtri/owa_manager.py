@@ -26,15 +26,20 @@ class OwaManager(object):
         self._prev_orders_status = dict()  # dict of orders by id
 
         self.exchange = exchange
+        self.supplementary = dict() # dict of supplementary data  as {"order_id": {dict of data}}
+
+        self._last_update_closed_orders = list()  # closed orders from last update
 
     def _create_order(self, order:TradeOrder):
         if self.exchange.offline:
 
-            o = self.exchange.create_order_offline_data(order, 5)
-            self.exchange._offline_order = copy.copy(o)
-            self.exchange._offline_trades = copy.copy(o["trades"])
-            self.exchange._offline_order_update_index = 0
-            self.exchange._offline_order_cancelled = False
+            # o = self.exchange.create_order_offline_data(order, 5)
+            # self.exchange._offline_orders = copy.copy(o)
+            # self.exchange._offline_trades = copy.copy(o["trades"])
+            # self.exchange._offline_order_update_index = 0
+            # self.exchange._offline_order_cancelled = False
+            self.exchange.add_offline_order_data(order, 3)
+
 
         return self.exchange.place_limit_order(order)
 
@@ -114,8 +119,26 @@ class OwaManager(object):
         o = (order for order in self.orders if order.id == id)
         return o
 
+    def set_order_supplementary_data(self, order: OrderWithAim, data: dict):
+        """
+        Add supplementary data (as dict) for order. For reporting or other purposes. The data will be stored as
+        supplementary[order.id] in order manager. This method will override previously stored data.
+        :param data: dict of data
+        :param order: order object reference
+        :return: True
+        """
+
+        self.supplementary[order.id] = copy.copy(data)
+
+        return True
+
+    # call back when the OwaOrder is being closed
+    def on_order_close(self, order):
+        pass
+
     def proceed_orders(self):
 
+        self._last_update_closed_orders = list()
         open_orders = list(filter(lambda x: x.status != "closed" and x.active_order is not None, self.orders))
 
         for order in open_orders:
@@ -201,3 +224,16 @@ class OwaManager(object):
 
                 self.log(self.LOG_INFO, "Order {} Status: {}. State {}. Total filled {}/{}".format(order.id,
                     order.status, order.state, order.filled, order.amount))
+
+                self._last_update_closed_orders.append(order)
+                # self.on_order_close(order)
+
+    def get_closed_orders(self):
+        """
+        get the list of orders which became closed from the lasyt update
+        :return: list of closed orders or None if there is no any
+        """
+        if len(self._last_update_closed_orders) >0:
+            return self._last_update_closed_orders
+        else:
+            return None

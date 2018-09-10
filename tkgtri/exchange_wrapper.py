@@ -60,6 +60,12 @@ class ccxtExchangeWrapper:
 
         self._offline_trades = list()
 
+        # _offline_orders_data - dict of off-line orders data as {order_id: {
+        #                                                               "_offline_order": {}
+        #                                                               "_offline_order_update_index": int
+        #                                                               "_offline_order_cancelled": {}
+        #                                                               "_offline_order_trades" : {}
+        self._offline_orders_data = dict()
         self.markets_json_file = str
         self.tickers_csv_file = str
 
@@ -156,18 +162,33 @@ class ccxtExchangeWrapper:
             raise(ExchangeWrapperOfflineFetchError(
                 "No more loaded tickers. Total tickers: {}".format(len(self._offline_tickers))))
 
-    def _offline_create_order(self):
+    def _offline_create_order(self, order: TradeOrder=None):
+        if order is not None and order.internal_id in self._offline_orders_data:
+            return self._offline_orders_data[order.internal_id]["_offline_order"]["create"]
         return self._offline_order["create"]
 
-    def _offline_fetch_order(self):
+    def _offline_fetch_order(self, order: TradeOrder=None):
 
-        if self._offline_order_update_index < len(self._offline_order["updates"]):
-            order_resp = self._offline_order["updates"][self._offline_order_update_index]
+        if order is not None and order.internal_id in self._offline_orders_data:
+            _offline_order_update_index = self._offline_orders_data[order.internal_id]["_offline_order_update_index"]
+            _offline_order = self._offline_orders_data[order.internal_id]["_offline_order"]
+            _offline_order_cancelled = self._offline_orders_data[order.internal_id]["_offline_order_cancelled"]
 
-            if not self._offline_order_cancelled:
-                self._offline_order_update_index += 1
+        else:
+            _offline_order_update_index = self._offline_order_update_index
+            _offline_order = self._offline_order
+            _offline_order_cancelled = self._offline_order_cancelled
+
+        if _offline_order_update_index < len(_offline_order["updates"]):
+            order_resp = _offline_order["updates"][_offline_order_update_index]
+
+            if not _offline_order_cancelled:
+                if order is not None and order.internal_id in self._offline_orders_data:
+                    self._offline_orders_data[order.internal_id]["_offline_order_update_index"] += 1
+                else:
+                    self._offline_order_update_index += 1
             else:
-                order_resp = self._offline_order["cancel"]
+                order_resp = _offline_order["cancel"]
 
             return order_resp
 
@@ -175,17 +196,30 @@ class ccxtExchangeWrapper:
             raise(ExchangeWrapperOfflineFetchError(
                 "No more order updates in file. Total tickers: {}".format(len(self._offline_order["updates"]))))
 
-    def _offline_cancel_order(self):
-        if "cancel" not in self._offline_order:
-            # self._offline_order["cancel"] = True
-            self._offline_order["cancel"] = dict({"status": "canceled"})
+    def _offline_cancel_order(self, order: TradeOrder=None):
 
-        if not self._offline_order_cancelled:
-            self._offline_order_update_index -= 1
+        if order is not None and order.internal_id in self._offline_orders_data:
 
-        self._offline_order_cancelled = True
+            if "cancel" not in self._offline_orders_data[order.internal_id]["_offline_order"]:
+                # self._offline_order["cancel"] = True
+                self._offline_orders_data[order.internal_id]["_offline_order"]["cancel"] = dict({"status": "canceled"})
 
-        return self._offline_order["cancel"]
+            if not self._offline_orders_data[order.internal_id]["_offline_order_cancelled"]:
+                self._offline_orders_data[order.internal_id]["_offline_order_update_index"] -= 1
+
+            self._offline_orders_data[order.internal_id]["_offline_order_cancelled"] = True
+            return self._offline_orders_data[order.internal_id]["_offline_order"]["cancel"]
+
+        else:
+            if "cancel" not in self._offline_order:
+                # self._offline_order["cancel"] = True
+                self._offline_order["cancel"] = dict({"status": "canceled"})
+
+            if not self._offline_order_cancelled:
+                self._offline_order_update_index -= 1
+
+            self._offline_order_cancelled = True
+            return self._offline_order["cancel"]
 
     def _offline_load_markets(self):
         if self._offline_markets is not None and len(self._offline_markets):
@@ -208,19 +242,19 @@ class ccxtExchangeWrapper:
     def place_limit_order(self, order: TradeOrder):
         # returns the ccxt response on order placement
         if self.offline:
-            return self._offline_create_order()
+            return self._offline_create_order(order)
         else:
             return self._create_order(order.symbol, "limit", order.side, order.amount, order.price)
 
     def get_order_update(self, order: TradeOrder):
         if self.offline:
-            return self._offline_fetch_order()
+            return self._offline_fetch_order(order)
         else:
             return self._fetch_order(order)
 
     def cancel_order(self, order: TradeOrder):
         if self.offline:
-            return self._offline_cancel_order()
+            return self._offline_cancel_order(order)
         else:
             return self._cancel_order(order)
 
@@ -439,3 +473,19 @@ class ccxtExchangeWrapper:
         order_resp["cancel"] = dict({"status": "canceled"})
 
         return order_resp
+
+    def add_offline_order_data(self, order:TradeOrder, updates_to_fill=1):
+        o = self.create_order_offline_data(order, updates_to_fill)
+        order_id = order.internal_id
+        self._offline_orders_data[order_id] = dict()
+        self._offline_orders_data[order_id]["_offline_order"] = o
+        self._offline_orders_data[order_id]["_offline_trades"] = o['trades']
+        self._offline_orders_data[order_id]["_offline_order_update_index"] = 0
+        self._offline_orders_data[order_id]["_offline_order_cancelled"] = False
+        return order_id
+
+
+
+
+
+

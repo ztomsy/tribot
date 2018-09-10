@@ -25,7 +25,7 @@ class RecoveryOrder(OrderWithAim):
     def __init__(self, symbol, start_currency: str, start_amount: float, dest_currency: str,
                  dest_amount: float = 0.0,
                  fee: float = 0.0):
-        self.id = uuid.uuid4()
+        self.id = str(uuid.uuid4())
         self.symbol = symbol
         self.start_currency = start_currency
         self.start_amount = start_amount

@@ -119,10 +119,13 @@ class TriBot:
             if not bool(getattr(self, i)) and attr_val is not None:
                 setattr(self, i, attr_val)
 
+    def get_cli_parameters(self, args):
+        return get_cli_parameters(args)
+
     # parse cli
     def set_from_cli(self, args):
 
-        cli_args = get_cli_parameters(args)
+        cli_args = self.get_cli_parameters(args)
 
         for i in cli_args.__dict__:
             attr_val = getattr(cli_args, i)
@@ -346,7 +349,7 @@ class TriBot:
         order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
 
         if self.offline:
-            o = self.exchange.create_order_offline_data(order, 3)
+            o = self.exchange.create_order_offline_data(order, 10)
             self.exchange._offline_order = copy.copy(o)
             self.exchange._offline_trades = copy.copy(o["trades"])
             self.exchange._offline_order_update_index = 0
@@ -408,7 +411,7 @@ class TriBot:
     def create_recovery_data(self, deal_uuid, start_cur: str, dest_cur: str, start_amount: float,
                              best_dest_amount: float, leg: int) -> dict:
         recovery_dict = dict()
-        recovery_dict["deal_uuid"] = deal_uuid
+        recovery_dict["deal-uuid"] = deal_uuid
         recovery_dict["symbol"] = core.get_symbol(start_cur, dest_cur, self.markets)
         recovery_dict["start_cur"] = start_cur
         recovery_dict["dest_cur"] = dest_cur

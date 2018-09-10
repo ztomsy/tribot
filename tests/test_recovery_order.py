@@ -11,7 +11,7 @@ class OrderWithAimTestSuite(unittest.TestCase):
         rm2 = RecoveryOrder("ADA/ETH", "ADA", 1000, "ETH", 0.32485131)
 
         self.assertEqual(rm1, rm1)
-        self.assertNotEquals(rm1, rm2)
+        self.assertNotEqual(rm1, rm2)
 
         rm2.id = rm1.id
         self.assertEqual(rm1, rm1)
@@ -20,11 +20,11 @@ class OrderWithAimTestSuite(unittest.TestCase):
         self.assertEqual(rm1, rm2)
 
         rm2.status = "closed"
-        self.assertNotEquals(rm1, rm2)
+        self.assertNotEqual(rm1, rm2)
 
         rm2 = copy.copy(rm1)
         rm2.filled = 1
-        self.assertNotEquals(rm1, rm2)
+        self.assertNotEqual(rm1, rm2)
 
 
 class RecoveryOrderTestSuite(unittest.TestCase):

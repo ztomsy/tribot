@@ -196,8 +196,52 @@ class ExchageWrapperTestSuite(unittest.TestCase):
         # self.assertEqual(result["src_amount"], 0.5)
         self.assertGreaterEqual(result["price"], order.price)
 
+    def test_multiple_offline_orders(self):
+        exchange = tkgtri.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets_binance.json", "test_data/tickers_binance.csv")
+        exchange.get_markets()
+        exchange.get_tickers()
 
+        # at this point order has not id, because order should receive it's id from the exchange
+        order = tkgtri.TradeOrder.create_limit_order_from_start_amount("ETH/BTC", "ETH", 0.5, "BTC",
+                                                                       0.06633157807472399)
 
+        int_order_id = exchange.add_offline_order_data(order, 1)
+
+        self.assertEqual(0, exchange._offline_orders_data[int_order_id]["_offline_order_update_index"])
+        self.assertEqual("open", exchange._offline_orders_data[int_order_id]["_offline_order"]["create"]["status"])
+        self.assertEqual(int_order_id, order.internal_id)
+
+        order2 = tkgtri.TradeOrder.create_limit_order_from_start_amount("USD/RUB", "RUB", 70, "USD", 70)
+        exchange.add_offline_order_data(order2, 4)
+
+        resp_order1 = exchange.place_limit_order(order)
+        resp_order2 = exchange.place_limit_order(order2)
+
+        self.assertEqual(resp_order1["amount"], order.amount)
+        self.assertEqual(resp_order2["amount"], order2.amount)
+
+        resp1 = exchange.get_order_update(order)
+        resp2 = exchange.get_order_update(order2)
+        resp2 = exchange.get_order_update(order2)
+        resp2 = exchange.get_order_update(order2)
+
+        order.update_order_from_exchange_resp(resp1)
+        order2.update_order_from_exchange_resp(resp2)
+        order2.update_order_from_exchange_resp(resp2)
+
+        self.assertEqual(1, exchange._offline_orders_data[order.internal_id]["_offline_order_update_index"])
+        self.assertEqual(3, exchange._offline_orders_data[order2.internal_id]["_offline_order_update_index"])
+
+        self.assertEqual("closed", order.status)
+        self.assertEqual(0.5, order.filled)
+
+        self.assertEqual("open", order2.status)
+
+        resp2 = exchange.cancel_order(order2)
+        order2.update_order_from_exchange_resp(resp2)
+        self.assertEqual("canceled", order2.status)
+        self.assertEqual(3/4, order2.filled)
 
 if __name__ == '__main__':
     unittest.main()
