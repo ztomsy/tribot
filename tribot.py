@@ -111,9 +111,10 @@ while True:
             report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price, price2,
                                             price3)
 
-            tribot.log(tribot.LOG_INFO, "====================================")
-            tribot.log(tribot.LOG_INFO, "============ DEAL REPORT ===========")
-            tribot.log_report(report)
+            if "status" in working_triangle and working_triangle["status"] != "OB STOP":
+                tribot.log(tribot.LOG_INFO, "====================================")
+                tribot.log(tribot.LOG_INFO, "============ DEAL REPORT ===========")
+                tribot.log_report(report)
 
             try:
                 tribot.send_remote_report(report)
