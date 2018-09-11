@@ -469,7 +469,7 @@ while True:
             order3.filled_dest_amount, order3.fees[order3.dest_currency]["amount"]))
 
         tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
-        tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order3.filled_start_amount - order1.filled_dest_amount))
+        tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
         tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount/order1.filled_start_amount))
 
         print("Fetch_num: {}".format(tribot.fetch_number))

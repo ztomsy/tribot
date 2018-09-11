@@ -32,19 +32,38 @@ class OwaManager(object):
 
     def _create_order(self, order:TradeOrder):
         if self.exchange.offline:
-
-            # o = self.exchange.create_order_offline_data(order, 5)
-            # self.exchange._offline_orders = copy.copy(o)
-            # self.exchange._offline_trades = copy.copy(o["trades"])
-            # self.exchange._offline_order_update_index = 0
-            # self.exchange._offline_order_cancelled = False
             self.exchange.add_offline_order_data(order, 3)
 
+        results = None
+        i = 0
+        while bool(results) is not True and i < self.max_order_update_attempts:
+            self.log(self.LOG_INFO, "creating order ateempt #{}".format(i))
+            try:
+                results = self.exchange.place_limit_order(order)
+            except Exception as e:
+                self.log(self.LOG_ERROR, type(e).__name__)
+                self.log(self.LOG_ERROR, e.args)
+                self.log(self.LOG_INFO, "retrying to create order...")
+            i += 1
 
-        return self.exchange.place_limit_order(order)
+        return results
+
 
     def _update_order(self, order: TradeOrder):
-        return self.exchange.get_order_update(order)
+
+        results = None
+        i = 0
+        while bool(results) is not True and i < self.max_order_update_attempts:
+            self.log(self.LOG_INFO, "creating order ateempt #{}".format(i))
+            try:
+                results = self.exchange.get_order_update(order)
+            except Exception as e:
+                self.log(self.LOG_ERROR, type(e).__name__)
+                self.log(self.LOG_ERROR, e.args)
+                self.log(self.LOG_INFO, "retrying to get trades...")
+            i += 1
+
+        return results
 
     def _cancel_order(self, order: TradeOrder):
         return self.exchange.cancel_order(order)
@@ -155,7 +174,12 @@ class OwaManager(object):
 
                 if order.get_active_order().status != "open":
                     resp = self._create_order(order.get_active_order())
-                    self._update_order_from_exchange(order, resp)
+                    if  resp is None or (not "id" in resp):
+                        order.close_order()
+                        self.log(self.LOG_ERROR, "Order {} could not create new trade order".format(order.id))
+                        self.log(self.LOG_INFO, "Order {} is closing now".format(order.id))
+                    else:
+                        self._update_order_from_exchange(order, resp)
 
                 else:
                     raise OwaManagerError("Order already set")

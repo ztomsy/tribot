@@ -396,15 +396,17 @@ class TriBot:
 
     @staticmethod
     def order2_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled):
-
-        res = filled_start_currency_amount - (order2_filled / order2_amount) * filled_start_currency_amount
+        res = 0.0
+        if order2_amount >0 :
+            res = filled_start_currency_amount - (order2_filled / order2_amount) * filled_start_currency_amount
         return res
 
     @staticmethod
     def order3_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled, order3_amoumt,
                                           order3_filled):
-
-        res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled / order3_amoumt))
+        res = 0.0
+        if order2_amount > 0 and order3_amoumt>0:
+            res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled / order3_amoumt))
 
         return res
 
@@ -507,12 +509,14 @@ class TriBot:
                                                           else None
                                                           for order in (order1, order2, order3))
 
-        if order3 is not None and order1 is not None:
+        if order3 is not None and order1 is not None and order3.filled_dest_amount > 0:
             wt["finish-qty"] = order3.filled_dest_amount - order3.fees[order3.dest_currency]["amount"]
-            wt["result-fact-diff"] = float(wt["finish-qty"] - order1.filled_start_amount)
-            wt["result-fact"] = order3.filled_dest_amount / order1.filled_start_amount
         else:
-            wt["result-fact-diff"] = 0.0
+            wt["finish-qty"] = 0.0
+
+        wt["result-fact-diff"] = float(wt["finish-qty"] - order1.filled_start_amount) if order1 is not None else 0.0
+        wt["result-fact"] = wt["finish-qty"] / order1.filled_start_amount if order1 is not None and\
+                                                                             order1.filled_start_amount != 0 else 0.0
 
         total_recover_amount = float(0.0)
 

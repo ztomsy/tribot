@@ -45,6 +45,8 @@
 
   "order_update_total_requests": 25,
   "order_update_requests_for_time_out": 5,
-  "order_update_time_out": 1
+  "order_update_time_out": 1,
+  "max_trades_updates": 20
+
 
 }

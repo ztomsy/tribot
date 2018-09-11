@@ -426,7 +426,7 @@ class ccxtExchangeWrapper:
 
     def _create_order_book_array_from_ticker(self, ticker):
         ob = dict()
-        ob["asks"] = [[ticker["ask"], 99999999]]
+        ob["asks"] = [[ticker["ask"]*1.1, 99999999]]
         ob["bids"] = [[ticker["bid"], 99999999]]
         return ob
 

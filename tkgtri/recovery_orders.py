@@ -62,7 +62,7 @@ class RecoveryOrder(OrderWithAim):
         self.market_data = dict()  # market data dict: {symbol : {price :{"buy": <ask_price>, "sell": <sell_price>}}
 
         self._prev_filled_dest_amount = 0.0   # filled amounts on previous orders
-        self._prev_filled_start_amount = 0.0  # filled amounts on previous orders
+        self._prev_filled_start_amount = 0.0  # filled amountsbot, on previous orders
         self._prev_filled = 0.0               # filled amounts on previous orders
 
         self.init_best_amount()
