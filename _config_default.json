@@ -46,7 +46,8 @@
   "order_update_total_requests": 25,
   "order_update_requests_for_time_out": 5,
   "order_update_time_out": 1,
-  "max_trades_updates": 20
-
+  "max_trades_updates": 20,
+  "max_oder_books_fetch_attempts": 10,
+  "request_sleep": 0.1
 
 }

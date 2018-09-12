@@ -47,6 +47,7 @@ class TriBot:
         self.order_update_total_requests = 0
         self.order_update_requests_for_time_out = 0
         self.order_update_time_out = 0
+        self.max_oder_books_fetch_attempts = 0
         self.request_sleep = 0.0  # sleep time between requests in seconds
 
 
@@ -263,8 +264,26 @@ class TriBot:
         :param symbols: list of symbols to get orderbooks
         :return: returns the dict of {"symbol": OrderBook}
         """
+        i = 0
+        ob_array = list()
 
-        ob_array = self.exchange.get_order_books_async(symbols)
+        while len(ob_array) < 3 and i < self.max_oder_books_fetch_attempts:
+            i += 1
+            try:
+                ob_array = self.exchange.get_order_books_async(symbols)
+            except Exception as e:
+                self.log(self.LOG_ERROR, "Error while fetching order books exchange_id:{} session_uuid:{}"
+                                         " fetch_num:{}:".
+                         format(self.exchange_id, self.session_uuid, self.fetch_number))
+                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+                self.log(self.LOG_ERROR, "Exception body:", e.args)
+
+                self.log(self.LOG_ERROR, "Sleeping before next request")
+                time.sleep(self.request_sleep)
+
+        if len(ob_array) < 3:
+            raise Exception("Could not fetch all order books. Fetched: {}".format(len(ob_array)))
+
         order_books = dict()
         for ob in ob_array:
             order_books[ob["symbol"]] = tkgtri.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
@@ -409,7 +428,7 @@ class TriBot:
     @staticmethod
     def order2_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled):
         res = 0.0
-        if order2_amount >0 :
+        if order2_amount > 0:
             res = filled_start_currency_amount - (order2_filled / order2_amount) * filled_start_currency_amount
         return res
 
@@ -417,7 +436,7 @@ class TriBot:
     def order3_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled, order3_amoumt,
                                           order3_filled):
         res = 0.0
-        if order2_amount > 0 and order3_amoumt>0:
+        if order2_amount > 0 and order3_amoumt > 0:
             res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled / order3_amoumt))
 
         return res
@@ -527,7 +546,7 @@ class TriBot:
             wt["finish-qty"] = 0.0
 
         wt["result-fact-diff"] = float(wt["finish-qty"] - order1.filled_start_amount) if order1 is not None else 0.0
-        wt["result-fact"] = wt["finish-qty"] / order1.filled_start_amount if order1 is not None and\
+        wt["result-fact"] = wt["finish-qty"] / order1.filled_start_amount if order1 is not None and \
                                                                              order1.filled_start_amount != 0 else 0.0
 
         total_recover_amount = float(0.0)
