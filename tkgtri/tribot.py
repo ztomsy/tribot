@@ -47,6 +47,8 @@ class TriBot:
         self.order_update_total_requests = 0
         self.order_update_requests_for_time_out = 0
         self.order_update_time_out = 0
+        self.request_sleep = 0.0  # sleep time between requests in seconds
+
 
         self.timer = ...  # type: timer.Timer
 
@@ -356,7 +358,14 @@ class TriBot:
             self.exchange._offline_order_cancelled = False
 
         order_manager = OrderManagerFok(order, None, updates_to_kill=self.order_update_total_requests,
-                                        max_cancel_attempts=self.order_update_total_requests)
+                                        max_cancel_attempts=self.order_update_total_requests,
+                                        max_order_update_attempts=self.order_update_total_requests,
+                                        request_sleep=self.request_sleep)
+        order_manager.log = self.log
+        order_manager.LOG_INFO = self.LOG_INFO
+        order_manager.LOG_ERROR = self.LOG_ERROR
+        order_manager.LOG_DEBUG = self.LOG_DEBUG
+        order_manager.LOG_CRITICAL = self.LOG_CRITICAL
 
         try:
             order_manager.fill_order(self.exchange)
@@ -389,7 +398,10 @@ class TriBot:
             except Exception as e:
                 self.log(self.LOG_ERROR, type(e).__name__)
                 self.log(self.LOG_ERROR, e.args)
-                self.log(self.LOG_INFO, "retrying to get trades...")
+                self.log(self.LOG_INFO, "retrying to get trades... after sleep for {}s".format(self.request_sleep))
+
+                time.sleep(self.request_sleep)
+                self.log(self.LOG_INFO, "sleep done")
             i += 1
 
         return results

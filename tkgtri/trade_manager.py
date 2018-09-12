@@ -1,7 +1,7 @@
 from tkgtri import TradeOrder
 from tkgtri import ccxtExchangeWrapper
 from datetime import datetime
-
+import time
 
 class OrderManagerError(Exception):
     pass
@@ -32,15 +32,25 @@ class OrderManagerFok(object):
     # - "skip" - when the order have not reached the min amount within the number of updates limit. in case of tri arb
     #   it means razmotalo. just drop the triangle without recovery
 
-    def __init__(self, order: TradeOrder, limits=None, updates_to_kill=100, max_cancel_attempts=10):
+    LOG_DEBUG = "DEBUG"
+    LOG_INFO = "INFO"
+    LOG_ERROR = "ERROR"
+    LOG_CRITICAL = "CRITICAL"
+
+    def __init__(self, order: TradeOrder, limits=None, updates_to_kill=100, max_cancel_attempts=10,
+                 max_order_update_attempts=1, request_sleep=0.0):
         self.order = order
 
         self.min_filled_dest_amount = float
         self.min_filled_src_amount = float
 
-        self.order_update_requests = 0
+
         self.updates_to_kill = updates_to_kill
         self.max_cancel_attempts = max_cancel_attempts
+        self.max_order_requests_attempts = max_order_update_attempts
+        self.request_sleep = request_sleep
+
+        self.order_update_requests = 0
 
         self.next_actions_list = ["hold," "cancel", "create_new"]
         self.next_action = str
@@ -55,6 +65,15 @@ class OrderManagerFok(object):
         self.last_response = dict()
 
         self.last_update_time = datetime(1, 1, 1, 1, 1, 1, 1)
+
+    def log(self, level, msg, msg_list=None):
+        if msg_list is None:
+            print("{} {}".format(level, msg))
+        else:
+            print("{} {}".format(level, msg))
+            for line in msg_list:
+                print("{} ... {}".format(level, line))
+
 
     def set_filled_min_amount(self, limits: dict):
         self.limits = limits
@@ -112,7 +131,22 @@ class OrderManagerFok(object):
         return response
 
     def _create_order(self, exchange_wrapper: ccxtExchangeWrapper):
-        return exchange_wrapper.place_limit_order(self.order)
+
+        results = None
+        i = 0
+        while bool(results) is not True and i < self.max_order_requests_attempts:
+            self.log(self.LOG_INFO, ".. placing order #{}".format(i))
+            try:
+                results = exchange_wrapper.place_limit_order(self.order)
+            except Exception as e:
+                self.log(self.LOG_ERROR, type(e).__name__)
+                self.log(self.LOG_ERROR, e.args)
+                self.log(self.LOG_INFO, "retrying to place order... after sleep for {}s".format(self.request_sleep))
+                time.sleep(self.request_sleep)
+                self.log(self.LOG_INFO, "sleep done")
+            i += 1
+
+        return results
 
     def _update_order(self, exchange_wrapper: ccxtExchangeWrapper):
         return exchange_wrapper.get_order_update(self.order)
