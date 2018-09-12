@@ -48,20 +48,17 @@ class OwaManager(object):
 
         return results
 
-
     def _update_order(self, order: TradeOrder):
 
         results = None
-        i = 0
-        while bool(results) is not True and i < self.max_order_update_attempts:
-            self.log(self.LOG_INFO, "creating order ateempt #{}".format(i))
-            try:
-                results = self.exchange.get_order_update(order)
-            except Exception as e:
-                self.log(self.LOG_ERROR, type(e).__name__)
-                self.log(self.LOG_ERROR, e.args)
-                self.log(self.LOG_INFO, "retrying to get trades...")
-            i += 1
+        self.log(self.LOG_INFO, "..updating trade order")
+        try:
+            results = self.exchange.get_order_update(order)
+        except Exception as e:
+            self.log(self.LOG_ERROR, "Could not update order")
+            self.log(self.LOG_ERROR, type(e).__name__)
+            self.log(self.LOG_ERROR, e.args)
+            self.log(self.LOG_INFO, "retrying to get trades...")
 
         return results
 
@@ -103,7 +100,7 @@ class OwaManager(object):
 
     def _get_trade_results(self, order: TradeOrder):
 
-        results = list()
+        results = None
         i = 0
         while bool(results) is not True and i < self.max_order_update_attempts:
             self.log(self.LOG_INFO, "getting trades #{}".format(i))
@@ -174,10 +171,8 @@ class OwaManager(object):
 
                 if order.get_active_order().status != "open":
                     resp = self._create_order(order.get_active_order())
-                    if  resp is None or (not "id" in resp):
-                        order.close_order()
+                    if resp is None or (not "id" in resp):
                         self.log(self.LOG_ERROR, "Order {} could not create new trade order".format(order.id))
-                        self.log(self.LOG_INFO, "Order {} is closing now".format(order.id))
                     else:
                         self._update_order_from_exchange(order, resp)
 
@@ -189,7 +184,6 @@ class OwaManager(object):
                 resp = self._update_order(order.get_active_order())
 
                 if resp["status"] == "closed" or resp["status"] == "canceled":
-
                     self.log(self.LOG_INFO, "Order {} trade order have been closed  {} -{}-> {}".format(
                         order.id, order.start_currency, order.side, order.dest_currency))
 
@@ -197,11 +191,12 @@ class OwaManager(object):
                     order.active_order.update_order_from_exchange_resp(resp)
 
                     if resp["filled"] > 0:
-                        trades = self._get_trade_results(order.get_active_order())
 
-                        for key, value in trades.items():
-                            if value is not None:
-                                resp[key] = value
+                        trades = self._get_trade_results(order.get_active_order())
+                        if trades is not None and len(trades)>0:
+                            for key, value in trades.items():
+                                if value is not None:
+                                    resp[key] = value
 
                 self._update_order_from_exchange(order, resp)
 
