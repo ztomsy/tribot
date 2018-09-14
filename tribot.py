@@ -197,7 +197,6 @@ while True:
 
         if tribot.force_best_tri:
             working_triangle = tribot.tri_list[0]  # taking best triangle
-            working_triangle["status"] = "OK" # set the best status
             bal_to_bid = tribot.balance  # balance to bid as actual balance or test balance
 
         else:  # taking the best triangle and max balance to bid
@@ -207,6 +206,9 @@ while True:
             bal_to_bid = tribot.get_max_balance_to_bid(tribot.start_currency[0], tribot.balance,
                                                        working_triangle["result"],
                                                        working_triangle["result"])
+
+        # set the best status for the best!
+        working_triangle["status"] = "OK"
 
         # create deal_uuid
         working_triangle["deal-uuid"] = str(uuid.uuid4())

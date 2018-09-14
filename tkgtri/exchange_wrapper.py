@@ -352,7 +352,7 @@ class ccxtExchangeWrapper:
         trades = self.get_trades(order)
         results = order.total_amounts_from_trades(trades)
         results["trades"] = trades
-        results["filled"] = self.amount_to_precision(order.symbol, results["amount"])
+        results["filled"] =  results["amount"]
         results["cost"] = self.price_to_precision(order.symbol, results["cost"])
 
         results["price"] = self.price_to_precision(order.symbol, results["cost"] / results["amount"])
@@ -445,8 +445,8 @@ class ccxtExchangeWrapper:
 
         for i in range(0, updates_to_fill):
             update = dict()
-            update["filled"] = self.amount_to_precision(order.symbol, order.amount * ((i+1)/updates_to_fill))
-            update["cost"] = self.price_to_precision(order.symbol, update["filled"] * order.price)
+            update["filled"] = order.amount * ((i+1)/updates_to_fill)
+            update["cost"] = update["filled"] * order.price
             update["status"] = "open"
 
             trade = dict({"amount":  order.amount / updates_to_fill,
@@ -463,8 +463,8 @@ class ccxtExchangeWrapper:
 
             if i == updates_to_fill-1:
                 update["status"] = "closed"
-                update["filled"] = self.amount_to_precision(order.symbol, order.amount )
-                update["cost"] = self.price_to_precision(order.symbol, update["filled"] * order.price)
+                update["filled"] = order.amount
+                update["cost"] = update["filled"] * order.price
 
             order_resp["updates"].append(update)
 

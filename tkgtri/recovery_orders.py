@@ -20,17 +20,42 @@ class OrderWithAim(object):
 
         return True
 
+
 class RecoveryOrder(OrderWithAim):
 
     def __init__(self, symbol, start_currency: str, start_amount: float, dest_currency: str,
-                 dest_amount: float = 0.0,
-                 fee: float = 0.0):
+                 dest_amount: float=0.0,
+                 fee: float=0.0, cancel_threshold: float=0.000001, max_best_amount_order_updates: int=50,
+                 max_order_updates: int=10):
+        """
+        Creates the Recovery Order. Recovery Order is aimed to be filled for the setted dest amount and if fails fills
+        on best market price.
+
+        Workflow of Recovery Order:
+        - create limit order with the price in accordance to receive the dest amount
+        - if this order is not filled, than cancel it and run a series of consecutive limit orders on ticker
+         price (taker)
+
+        :param symbol: pair symbol for order
+        :param start_currency: start currency to trade from (available currency)
+        :param start_amount: amount of start currency
+        :param dest_currency: destination currency to trade to
+        :param dest_amount: amount of dest currency
+        :param fee: exchange fee for order (not used)
+        :param cancel_threshold: cancel current trade order and set new only if the filled amount of order is less than
+        this threshold. Usually should be minimum order amount for the order's pair.
+        In ccxt: markets[symbol]["limits"]["amount"]["min"]
+        :param max_best_amount_order_updates: number of best amount trade order updates before cancelling
+        :param max_order_updates:  max order updates for market price trade orders
+
+        """
         self.id = str(uuid.uuid4())
         self.symbol = symbol
         self.start_currency = start_currency
         self.start_amount = start_amount
         self.dest_currency = dest_currency
         self.fee = fee
+        self.cancel_threshold = cancel_threshold  #
         self.best_dest_amount = dest_amount
         self.best_price = 0.0
         self.price = 0.0
@@ -45,7 +70,8 @@ class RecoveryOrder(OrderWithAim):
         self.filled = 0.0  # filled amount of base currency
         self.amount = 0.0  # total expected amount of to be filled base currency
 
-        self.max_order_updates = 10
+        self.max_best_amount_orders_updates = max_best_amount_order_updates  # max order updates for best amount
+        self.max_order_updates = max_order_updates  # max amount of order updates for market price orders
 
         self.order_command = None  # None, new, cancel
 
@@ -181,8 +207,11 @@ class RecoveryOrder(OrderWithAim):
             if self.active_order.status == "open":
                 self.order_command = "hold"
 
-                if self.active_order.update_requests_count >= self.max_order_updates \
-                        and self.active_order.filled < self.active_order.amount:
+                current_state_max_order_updates = self.max_best_amount_orders_updates if self.state == "best_amount" \
+                    else self.max_order_updates
+
+                if self.active_order.update_requests_count >= current_state_max_order_updates \
+                        and self.active_order.amount - self.active_order.filled > self.cancel_threshold:
                     self.order_command = "cancel"
                 return self.order_command
 
