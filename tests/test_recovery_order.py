@@ -86,7 +86,7 @@ class RecoveryOrderTestSuite(unittest.TestCase):
         ro = RecoveryOrder("ADA/ETH", "ADA", 1000, "ETH", 0.32485131)
 
         # updates max_updates -1 : order should be partially filled
-        for i in range(1, ro.max_order_updates):
+        for i in range(1, ro.max_best_amount_orders_updates):
             resp = {"status": "open", "filled": 500, "cost": 0.32485131/2}
             ro.update_from_exchange(resp)
             self.assertEqual(ro.filled_start_amount, 500)
@@ -140,7 +140,7 @@ class RecoveryOrderTestSuite(unittest.TestCase):
         ro = RecoveryOrder("ADA/ETH", "ADA", 1000, "ETH", 0.32485131)
 
         # best_amount filled with zero result
-        for i in range(1, ro.max_order_updates+1):
+        for i in range(1, ro.max_best_amount_orders_updates+1):
             resp = {"status": "open", "filled": 0, "cost": 0}
             ro.update_from_exchange(resp)
         self.assertEqual(ro.filled, 0)
