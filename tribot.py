@@ -90,7 +90,7 @@ while True:
     # fetching the balance for first start currency or taking test balance from the cli/config
     try:
         tribot.load_balance()
-        tribot.log(tribot.LOG_INFO, "Balance: {}".format(tribot.balance))
+        tribot.log(tribot.LOG_INFO, "Init Balance: {}".format(tribot.balance))
 
     except Exception as e:
         tribot.log(tribot.LOG_ERROR, "Error while fetching balance {}".format(tribot.exchange_id))
@@ -123,6 +123,9 @@ while True:
                 tribot.log(tribot.LOG_ERROR, "Error sending report")
                 tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
                 tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+
+            # reload balance
+            tribot.reload_balance(report["result-fact-diff"])
 
         if tribot.fetch_number > 0 and tribot.run_once:
             tribot.log(tribot.LOG_INFO, "Exiting because of Run once")
@@ -484,6 +487,8 @@ while True:
         print("Tickers proceeded {} time".format(len(tribot.tickers)))
         print("Duration,s: " + str(tribot.timer.results_dict()))
         print("====================================================================================")
+
+
 
 tribot.log(tribot.LOG_INFO, "Total time:" + str((tribot.timer.notches[-1]["time"] - tribot.timer.start_time).total_seconds()))
 tribot.log(tribot.LOG_INFO, "Finished")
