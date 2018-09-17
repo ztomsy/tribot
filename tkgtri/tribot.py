@@ -584,25 +584,26 @@ class TriBot:
 
     def reload_balance(self, result_fact_diff: float = 0.0):
 
-        check_balance = False if not self.offline else True
-        prev_balance = self.balance
+        prev_balance = copy.copy(self.balance)
         i = 0
 
-        while i < self.max_trades_updates and check_balance == False:
+        while i < self.max_trades_updates and not self.offline:
             try:
                 self.load_balance()
                 self.log(self.LOG_INFO, "Updating balance.. {}/{}".format(i, self.max_trades_updates))
 
                 if self.balance > (prev_balance + result_fact_diff)*0.9:
-                    self.log(self.LOG_INFO, "Balance Updated: {} )( was: {})".format(self.balance, prev_balance))
+                    self.log(self.LOG_INFO, "Balance Updated: {} ( was: {})".format(self.balance, prev_balance))
                     return True
 
             except Exception as e:
-                self.log(self.LOG_ERROR, "Error while fetching balance {}".format(tribot.exchange_id))
+                self.log(self.LOG_ERROR, "Error while fetching balance {}".format(self.exchange_id))
                 self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
                 self.log(self.LOG_ERROR, "Exception body:", e.args)
-
+                self.log(self.LOG_INFO, "Sleeping for {}s".format(self.request_sleep))
+                time.sleep(self.request_sleep)
             i += 1
+            self.log(self.LOG_INFO, "Balance is not updated...")
 
         return False
 

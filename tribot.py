@@ -84,312 +84,294 @@ if len(tribot.all_triangles) < 1:
 
 tribot.log(tribot.LOG_INFO, "Triangles found: {}".format(len(tribot.all_triangles)))
 
-# outer main loop
+
+# fetching the balance for first start currency or taking test balance from the cli/config
+try:
+    tribot.load_balance()
+    tribot.log(tribot.LOG_INFO, "Init Balance: {}".format(tribot.balance))
+
+except Exception as e:
+    tribot.log(tribot.LOG_ERROR, "Error while fetching balance {}".format(tribot.exchange_id))
+    tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+    tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+    tribot.log(tribot.LOG_ERROR, "Exiting")
+    sys.exit("666")
+
+# main loop
 while True:
 
-    # fetching the balance for first start currency or taking test balance from the cli/config
-    try:
-        tribot.load_balance()
-        tribot.log(tribot.LOG_INFO, "Init Balance: {}".format(tribot.balance))
+    # reporting from previous iteration
+    if tribot.fetch_number > 0 and working_triangle is not None:
+        print("Previous results")
+        # additional reporting collection
 
+        tribot.timer.notch("time_after_deals")
+
+        report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price, price2,
+                                        price3)
+
+        if "status" in working_triangle and working_triangle["status"] != "OB STOP":
+            tribot.log(tribot.LOG_INFO, "====================================")
+            tribot.log(tribot.LOG_INFO, "============ DEAL REPORT ===========")
+            tribot.log_report(report)
+            tribot.log(tribot.LOG_INFO, "====================================")
+
+        try:
+            tribot.send_remote_report(report)
+            tribot.timer.notch("time_to_send_report")
+        except Exception as e:
+            tribot.log(tribot.LOG_ERROR, "Error sending report")
+            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+
+        # reload balance
+        tribot.reload_balance(report["result-fact-diff"])
+
+    if tribot.fetch_number > 0 and tribot.run_once:
+        tribot.log(tribot.LOG_INFO, "Exiting because of Run once")
+        sys.exit(666)
+
+    # reset timer
+    tribot.timer.reset_notches()
+
+    # init working variables
+    working_triangle = None
+    order_books = dict()
+    expected_result = 0.0
+    bal_to_bid = 0.0
+    recovery_data = list()  # list of recovery data dict
+    report = dict()
+    order1, order2, order3 = (None, None, None)
+    price, price2, price3 = (None, None, None)
+
+    # exit when debugging and because of errors
+    if tribot.debug is True and tribot.errors > 0:
+        tribot.log(tribot.LOG_INFO, "Exit on errors, debugging")
+        sys.exit(666)
+
+    # resetting error
+    tribot.errors = 0
+
+    # fetching tickers
+    try:
+        tribot.timer.check_timer()
+        tribot.timer.notch("time_from_start")
+        tribot.fetch_tickers()
+        tribot.timer.notch("time_fetch")
+        print("Tickers fetched {}".format(len(tribot.tickers)))
     except Exception as e:
-        tribot.log(tribot.LOG_ERROR, "Error while fetching balance {}".format(tribot.exchange_id))
+        tribot.log(tribot.LOG_ERROR, "Error while fetching tickers exchange_id:{} session_uuid:{} fetch_num:{} :".
+                   format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number))
+
         tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
         tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+
+        tribot.errors += 1
+        continue  # drop the trades and return to ticker fetch loop
+
+    # proceeding tickers
+    try:
+        tribot.proceed_triangles()
+        tribot.tri_list_good = tribot.get_good_triangles()  # tri_list became sorted after this
+
+        tribot.reporter.set_indicator("good_triangles", len(tribot.tri_list_good))
+        tribot.reporter.set_indicator("total_triangles", len(tribot.tri_list))
+        tribot.reporter.set_indicator("best_triangle", tribot.tri_list[0]["triangle"])
+        tribot.reporter.set_indicator("best_result", tribot.tri_list[0]["result"])
+
+        tribot.timer.notch("time_proceed")
+
+    except Exception as e:
+        tribot.log(tribot.LOG_ERROR, "Error while proceeding tickers exchange_id{}: session_uuid:{} fetch_num:{} :".
+                   format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number))
+
+        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+        tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        traceback.print_tb(exc_traceback)
+
+        tribot.errors += 1
         continue
 
-    # main loop
-    while True:
+    # checking the good triangles and live flag
+    if not tribot.force_best_tri and len(tribot.tri_list_good) <= 0:
+        continue  # no good triangles
 
-        # reporting from previous iteration
-        if tribot.fetch_number > 0 and working_triangle is not None:
-            print("Previous results")
-            # additional reporting collection
+    if tribot.force_best_tri:
+        working_triangle = tribot.tri_list[0]  # taking best triangle
+        bal_to_bid = tribot.balance  # balance to bid as actual balance or test balance
 
-            tribot.timer.notch("time_after_deals")
+    else:  # taking the best triangle and max balance to bid
+        working_triangle = tribot.tri_list_good[0]  # taking best good triangle
 
-            report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price, price2,
-                                            price3)
+        # get the maximum balance to bid because of result
+        bal_to_bid = tribot.get_max_balance_to_bid(tribot.start_currency[0], tribot.balance,
+                                                   working_triangle["result"],
+                                                   working_triangle["result"])
 
-            if "status" in working_triangle and working_triangle["status"] != "OB STOP":
-                tribot.log(tribot.LOG_INFO, "====================================")
-                tribot.log(tribot.LOG_INFO, "============ DEAL REPORT ===========")
-                tribot.log_report(report)
+    # set the best status for the best!
+    working_triangle["status"] = "OK"
 
-            try:
-                tribot.send_remote_report(report)
-                tribot.timer.notch("time_to_send_report")
-            except Exception as e:
-                tribot.log(tribot.LOG_ERROR, "Error sending report")
-                tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-                tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+    # create deal_uuid
+    working_triangle["deal-uuid"] = str(uuid.uuid4())
+    tribot.log(tribot.LOG_INFO, "Deal-uuid: {}".format(working_triangle["deal-uuid"]))
 
-            # reload balance
-            tribot.reload_balance(report["result-fact-diff"])
+    # fetching the order books for symbols in triangle
+    try:
+        tribot.log(tribot.LOG_INFO, "Try to fetch order books: {} {} {} ".format(working_triangle["symbol1"],
+                                                                                 working_triangle["symbol2"],
+                                                                                 working_triangle["symbol3"]))
+        tribot.timer.notch("time_get_order_books")
+        order_books = tribot.get_order_books_async(list([working_triangle["symbol1"],
+                                                         working_triangle["symbol2"],
+                                                         working_triangle["symbol3"]]))
+        tribot.log(tribot.LOG_INFO, "Order books fetched")
+    except Exception as e:
+        working_triangle["status"] = "ERROR"
 
-        if tribot.fetch_number > 0 and tribot.run_once:
-            tribot.log(tribot.LOG_INFO, "Exiting because of Run once")
-            sys.exit(666)
+        tribot.log(tribot.LOG_ERROR, "Error while fetching order books exchange_id:{} session_uuid:{}"
+                                     " fetch_num:{}:"
+                                     " for {}{}{}".
+                   format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number, working_triangle["symbol1"],
+                          working_triangle["symbol2"],working_triangle["symbol3"]))
+        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+        tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+        tribot.errors += 1
+        continue
 
-        # reset timer
-        tribot.timer.reset_notches()
+    # getting the maximum amount to bid for the  first trade
+    try:
+        max_possible = Analyzer.get_maximum_start_amount(tribot.exchange, working_triangle,
+                                                         {1: order_books[working_triangle["symbol1"]],
+                                                          2: order_books[working_triangle["symbol2"]],
+                                                          3: order_books[working_triangle["symbol3"]]},
+                                                         bal_to_bid, 100,
+                                                         tribot.min_amounts[tribot.start_currency[0]])
+        bal_to_bid = max_possible["amount"]
+        expected_result = max_possible["result"] + 1
 
-        # init working variables
-        working_triangle = None
-        order_books = dict()
-        expected_result = 0.0
-        bal_to_bid = 0.0
-        recovery_data = list()  # list of recovery data dict
-        report = dict()
-        order1, order2, order3 = (None, None, None)
-        price, price2, price3 = (None, None, None)
+    except Exception as e:
+        working_triangle["status"] = "ERROR"
 
-        # exit when debugging and because of errors
-        if tribot.debug is True and tribot.errors > 0:
-            tribot.log(tribot.LOG_INFO, "Exit on errors, debugging")
-            sys.exit(666)
+        tribot.log(tribot.LOG_ERROR, "Error calc the result and amount on order books exchange_id{}:"
+                                     " session_uuid:{} fetch_num:{} :for {}{}{}"
+                   .format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number,
+                           working_triangle["symbol1"], working_triangle["symbol2"],working_triangle["symbol3"]))
 
-        # resetting error
-        tribot.errors = 0
+        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+        tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+        tribot.errors += 1
+        continue
 
-        # fetching tickers
+    # check if need to force start amount and calc the ob result
+    if tribot.force_start_amount:
+        bal_to_bid = tribot.force_start_amount
+        tribot.log(tribot.LOG_INFO, "Force amount to bid:{}".format(tribot.force_start_amount))
         try:
-            tribot.timer.check_timer()
-            tribot.timer.notch("time_from_start")
-            tribot.fetch_tickers()
-            tribot.timer.notch("time_fetch")
-            print("Tickers fetched {}".format(len(tribot.tickers)))
-        except Exception as e:
-            tribot.log(tribot.LOG_ERROR, "Error while fetching tickers exchange_id:{} session_uuid:{} fetch_num:{} :".
-                       format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number))
-
-            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-
-            tribot.errors += 1
-            continue  # drop the trades and return to ticker fetch loop
-
-        # proceeding tickers
-        try:
-            tribot.proceed_triangles()
-            tribot.tri_list_good = tribot.get_good_triangles()  # tri_list became sorted after this
-
-            tribot.reporter.set_indicator("good_triangles", len(tribot.tri_list_good))
-            tribot.reporter.set_indicator("total_triangles", len(tribot.tri_list))
-            tribot.reporter.set_indicator("best_triangle", tribot.tri_list[0]["triangle"])
-            tribot.reporter.set_indicator("best_result", tribot.tri_list[0]["result"])
-
-            tribot.timer.notch("time_proceed")
+            expected_result = Analyzer.order_book_results(tribot.exchange, working_triangle,
+                                                          {1: order_books[working_triangle["symbol1"]],
+                                                           2: order_books[working_triangle["symbol2"]],
+                                                           3: order_books[working_triangle["symbol3"]]},
+                                                          bal_to_bid)["result"]
 
         except Exception as e:
-            tribot.log(tribot.LOG_ERROR, "Error while proceeding tickers exchange_id{}: session_uuid:{} fetch_num:{} :".
-                       format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number))
-
-            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_tb(exc_traceback)
-
-            tribot.errors += 1
-            continue
-
-        # checking the good triangles and live flag
-        if not tribot.force_best_tri and len(tribot.tri_list_good) <= 0:
-            continue  # no good triangles
-
-        if tribot.force_best_tri:
-            working_triangle = tribot.tri_list[0]  # taking best triangle
-            bal_to_bid = tribot.balance  # balance to bid as actual balance or test balance
-
-        else:  # taking the best triangle and max balance to bid
-            working_triangle = tribot.tri_list_good[0]  # taking best good triangle
-
-            # get the maximum balance to bid because of result
-            bal_to_bid = tribot.get_max_balance_to_bid(tribot.start_currency[0], tribot.balance,
-                                                       working_triangle["result"],
-                                                       working_triangle["result"])
-
-        # set the best status for the best!
-        working_triangle["status"] = "OK"
-
-        # create deal_uuid
-        working_triangle["deal-uuid"] = str(uuid.uuid4())
-        tribot.log(tribot.LOG_INFO, "Deal-uuid: {}".format(working_triangle["deal-uuid"]))
-
-        # fetching the order books for symbols in triangle
-        try:
-            tribot.log(tribot.LOG_INFO, "Try to fetch order books: {} {} {} ".format(working_triangle["symbol1"],
-                                                                                     working_triangle["symbol2"],
-                                                                                     working_triangle["symbol3"]))
-            tribot.timer.notch("time_get_order_books")
-            order_books = tribot.get_order_books_async(list([working_triangle["symbol1"],
-                                                             working_triangle["symbol2"],
-                                                             working_triangle["symbol3"]]))
-            tribot.log(tribot.LOG_INFO, "Order books fetched")
-        except Exception as e:
-            working_triangle["status"] = "ERROR"
-
-            tribot.log(tribot.LOG_ERROR, "Error while fetching order books exchange_id:{} session_uuid:{}"
-                                         " fetch_num:{}:"
-                                         " for {}{}{}".
-                       format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number, working_triangle["symbol1"],
-                              working_triangle["symbol2"],working_triangle["symbol3"]))
+            tribot.log(tribot.LOG_ERROR,
+                       "Error calc the result and amount on order books exchange_id{}: session_uuid:{}"
+                       " fetch_num:{} :""for {}{}{}".format(tribot.exchange_id, tribot.session_uuid,
+                                                            tribot.fetch_number, working_triangle["symbol1"],
+                                                            working_triangle["symbol2"],
+                                                            working_triangle["symbol3"]))
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
             tribot.errors += 1
             continue
 
-        # getting the maximum amount to bid for the  first trade
-        try:
-            max_possible = Analyzer.get_maximum_start_amount(tribot.exchange, working_triangle,
-                                                             {1: order_books[working_triangle["symbol1"]],
-                                                              2: order_books[working_triangle["symbol2"]],
-                                                              3: order_books[working_triangle["symbol3"]]},
-                                                             bal_to_bid, 100,
-                                                             tribot.min_amounts[tribot.start_currency[0]])
-            bal_to_bid = max_possible["amount"]
-            expected_result = max_possible["result"] + 1
+    working_triangle["ob_result"] = expected_result * ((1-tribot.commission)**3)
 
-        except Exception as e:
-            working_triangle["status"] = "ERROR"
+    # checking OB STOP
+    if working_triangle["ob_result"] < tribot.threshold_order_book and\
+            (not tribot.force_start_amount and not tribot.force_best_tri):
+        working_triangle["status"] = "OB STOP"
+        tribot.log(tribot.LOG_INFO, "OB STOP")
+        tribot.log(tribot.LOG_INFO, "Order book result: {}".format(working_triangle["ob_result"]))
+        continue
 
-            tribot.log(tribot.LOG_ERROR, "Error calc the result and amount on order books exchange_id{}:"
-                                         " session_uuid:{} fetch_num:{} :for {}{}{}"
-                       .format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number,
-                               working_triangle["symbol1"], working_triangle["symbol2"],working_triangle["symbol3"]))
+    # going to deals
+    tribot.log(tribot.LOG_INFO, "Amount to Bid: {}".format(bal_to_bid))
+    expected_amount = tribot.exchange.price_to_precision(working_triangle["symbol3"],
+                                                         bal_to_bid * expected_result)
 
-            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-            tribot.errors += 1
-            continue
+    tribot.log(tribot.LOG_INFO, "Start amount:{}".format(bal_to_bid))
+    tribot.log(tribot.LOG_INFO, "Expected amount: {}".format(expected_amount))
+    tribot.log(tribot.LOG_INFO, "Expected result: {}".format(expected_result))
 
-        # check if need to force start amount and calc the ob result
-        if tribot.force_start_amount:
-            bal_to_bid = tribot.force_start_amount
-            tribot.log(tribot.LOG_INFO, "Force amount to bid:{}".format(tribot.force_start_amount))
-            try:
-                expected_result = Analyzer.order_book_results(tribot.exchange, working_triangle,
-                                                              {1: order_books[working_triangle["symbol1"]],
-                                                               2: order_books[working_triangle["symbol2"]],
-                                                               3: order_books[working_triangle["symbol3"]]},
-                                                              bal_to_bid)["result"]
+    tribot.assign_updates_functions_for_order_manager()
 
-            except Exception as e:
-                tribot.log(tribot.LOG_ERROR,
-                           "Error calc the result and amount on order books exchange_id{}: session_uuid:{}"
-                           " fetch_num:{} :""for {}{}{}".format(tribot.exchange_id, tribot.session_uuid,
-                                                                tribot.fetch_number, working_triangle["symbol1"],
-                                                                working_triangle["symbol2"],
-                                                                working_triangle["symbol3"]))
-                tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-                tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-                tribot.errors += 1
-                continue
+    orders = list()
+    working_triangle["status"] = "OK"
 
-        working_triangle["ob_result"] = expected_result * ((1-tribot.commission)**3)
+    # Order 1
+    price = tribot.exchange.price_to_precision(working_triangle["symbol1"],
+                                               order_books[working_triangle["symbol1"]].get_depth_for_trade_side(
+                                                   bal_to_bid, working_triangle["leg1-order"]).total_price)
 
-        # checking OB STOP
-        if working_triangle["ob_result"] < tribot.threshold_order_book and\
-                (not tribot.force_start_amount and not tribot.force_best_tri):
-            working_triangle["status"] = "OB STOP"
-            tribot.log(tribot.LOG_INFO, "OB STOP")
-            tribot.log(tribot.LOG_INFO, "Order book result: {}".format(working_triangle["ob_result"]))
-            continue
+    tribot.log(tribot.LOG_INFO, "Trade 1/3: from {}-{}->{}".format(working_triangle["cur1"],
+                                                                   working_triangle["leg1-order"],
+                                                                   working_triangle["cur2"]))
 
-        # going to deals
-        tribot.log(tribot.LOG_INFO, "Amount to Bid: {}".format(bal_to_bid))
-        expected_amount = tribot.exchange.price_to_precision(working_triangle["symbol3"],
-                                                             bal_to_bid * expected_result)
+    tribot.log(tribot.LOG_INFO, "Price: {}. Src Amount {}".format(price, bal_to_bid))
 
-        tribot.log(tribot.LOG_INFO, "Start amount:{}".format(bal_to_bid))
-        tribot.log(tribot.LOG_INFO, "Expected amount: {}".format(expected_amount))
-        tribot.log(tribot.LOG_INFO, "Expected result: {}".format(expected_result))
+    order1 = tribot.do_trade(working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
+                             bal_to_bid, working_triangle["leg1-order"], price)
 
-        tribot.assign_updates_functions_for_order_manager()
+    if order1.filled_dest_amount > 0:
+        resp_trades = tribot.get_trade_results(order1)
+        order1.update_order_from_exchange_resp(resp_trades)
+        order1.fees = tribot.exchange.fees_from_order(order1)
 
-        orders = list()
-        working_triangle["status"] = "OK"
+        if order1.filled < order1.amount * 0.99999:
+            tribot.log(tribot.LOG_INFO, "Order 1 Partial Fill.")
+            working_triangle["leg1-order-result"] = "PartFill"
 
-        # Order 1
-        price = tribot.exchange.price_to_precision(working_triangle["symbol1"],
-                                                   order_books[working_triangle["symbol1"]].get_depth_for_trade_side(
-                                                       bal_to_bid, working_triangle["leg1-order"]).total_price)
+    else:
+        working_triangle["leg1-order-result"] = "Failed"
+        working_triangle["status"] = "Failed 1"
+        tribot.log(tribot.LOG_ERROR, "Order1 have not filled at all. Skipping")
+        continue
 
-        tribot.log(tribot.LOG_INFO, "Trade 1/3: from {}-{}->{}".format(working_triangle["cur1"],
-                                                                       working_triangle["leg1-order"],
-                                                                       working_triangle["cur2"]))
+    tribot.log(tribot.LOG_INFO, "Order1: filled {} with fee {}".format(
+        order1.filled_dest_amount, order1.fees[order1.dest_currency]["amount"]))
 
-        tribot.log(tribot.LOG_INFO, "Price: {}. Src Amount {}".format(price, bal_to_bid))
+    # Order 2
+    order2_amount = order1.filled_dest_amount - order1.fees[order1.dest_currency]["amount"]
 
-        order1 = tribot.do_trade(working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
-                                 bal_to_bid, working_triangle["leg1-order"], price)
+    price2 = tribot.exchange.price_to_precision(working_triangle["symbol2"],
+                                               order_books[working_triangle["symbol2"]].get_depth_for_trade_side(
+                                                   order2_amount,
+                                                   working_triangle["leg2-order"]).total_price)
 
-        if order1.filled_dest_amount > 0:
-            resp_trades = tribot.get_trade_results(order1)
-            order1.update_order_from_exchange_resp(resp_trades)
-            order1.fees = tribot.exchange.fees_from_order(order1)
+    tribot.log(tribot.LOG_INFO, "Trade 2/3: from {}-{}->{}".format(working_triangle["cur2"],
+                                                                   working_triangle["leg2-order"],
+                                                                   working_triangle["cur3"]))
 
-            if order1.filled < order1.amount * 0.99999:
-                tribot.log(tribot.LOG_INFO, "Order 1 Partial Fill.")
-                working_triangle["leg1-order-result"] = "PartFill"
+    tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price2, order2_amount))
 
-        else:
-            working_triangle["leg1-order-result"] = "Failed"
-            working_triangle["status"] = "Failed 1"
-            tribot.log(tribot.LOG_ERROR, "Order1 have not filled at all. Skipping")
-            continue
+    order2 = tribot.do_trade(working_triangle["symbol2"], working_triangle["cur2"], working_triangle["cur3"],
+                             order2_amount, working_triangle["leg2-order"], price2)
 
-        tribot.log(tribot.LOG_INFO, "Order1: filled {} with fee {}".format(
-            order1.filled_dest_amount, order1.fees[order1.dest_currency]["amount"]))
+    if order2.filled_dest_amount > 0:
+        resp_trades = tribot.get_trade_results(order2)
+        order2.update_order_from_exchange_resp(resp_trades)
+        order2.fees = tribot.exchange.fees_from_order(order2)
 
-        # Order 2
-        order2_amount = order1.filled_dest_amount - order1.fees[order1.dest_currency]["amount"]
+        working_triangle["leg2-price-fact"] = order2.filled / order2.cost
+        working_triangle["leg2-order-status"] = order2.status
 
-        price2 = tribot.exchange.price_to_precision(working_triangle["symbol2"],
-                                                   order_books[working_triangle["symbol2"]].get_depth_for_trade_side(
-                                                       order2_amount,
-                                                       working_triangle["leg2-order"]).total_price)
-
-        tribot.log(tribot.LOG_INFO, "Trade 2/3: from {}-{}->{}".format(working_triangle["cur2"],
-                                                                       working_triangle["leg2-order"],
-                                                                       working_triangle["cur3"]))
-
-        tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price2, order2_amount))
-
-        order2 = tribot.do_trade(working_triangle["symbol2"], working_triangle["cur2"], working_triangle["cur3"],
-                                 order2_amount, working_triangle["leg2-order"], price2)
-
-        if order2.filled_dest_amount > 0:
-            resp_trades = tribot.get_trade_results(order2)
-            order2.update_order_from_exchange_resp(resp_trades)
-            order2.fees = tribot.exchange.fees_from_order(order2)
-
-            working_triangle["leg2-price-fact"] = order2.filled / order2.cost
-            working_triangle["leg2-order-status"] = order2.status
-
-            if order2.filled < order2.amount * 0.9999:
-                tribot.log(tribot.LOG_INFO, "Order 2 Partial Fill.")
-                working_triangle["leg2-order-result"] = "PartFill"
-                working_triangle["leg2-recover-amount"] = order2.amount_start - order2.filled_start_amount
-                working_triangle["leg2-recover-start-curr-best-amount"] = tribot.order2_best_recovery_start_amount(
-                    order1.filled_start_amount, order2.amount, order2.filled)
-
-                order_rec_data = tribot.create_recovery_data(working_triangle["deal-uuid"], working_triangle["cur2"],
-                                                             working_triangle["cur1"],
-                                                             working_triangle["leg2-recover-amount"],
-                                                             working_triangle["leg2-recover-start-curr-best-amount"], 2)
-
-                recovery_data.append(order_rec_data)
-                tribot.print_recovery_data(order_rec_data)
-                tribot.send_recovery_request(order_rec_data)
-            else:
-                working_triangle["leg2-order-result"] = "Filled"
-
-        else:
-            # recover from order2
-            working_triangle["leg2-order-result"] = "Failed"
-            working_triangle["leg2-recover-amount"] = order2.amount_start
+        if order2.filled < order2.amount * 0.9999:
+            tribot.log(tribot.LOG_INFO, "Order 2 Partial Fill.")
+            working_triangle["leg2-order-result"] = "PartFill"
+            working_triangle["leg2-recover-amount"] = order2.amount_start - order2.filled_start_amount
             working_triangle["leg2-recover-start-curr-best-amount"] = tribot.order2_best_recovery_start_amount(
                 order1.filled_start_amount, order2.amount, order2.filled)
 
@@ -401,62 +383,60 @@ while True:
             recovery_data.append(order_rec_data)
             tribot.print_recovery_data(order_rec_data)
             tribot.send_recovery_request(order_rec_data)
-
-            working_triangle["status"] = "Failed 2"
-            continue
-
-        tribot.log(tribot.LOG_INFO, "Order2: filled {} with fee {}".format(
-            order2.filled_dest_amount, order2.fees[order2.dest_currency]["amount"]))
-
-        # Order 3
-        order3_amount = order2.filled_dest_amount - order2.fees[order2.dest_currency]["amount"]
-
-        price3 = tribot.exchange.price_to_precision(working_triangle["symbol3"],
-                                                    order_books[working_triangle["symbol3"]].get_depth_for_trade_side(
-                                                        order3_amount,
-                                                        working_triangle["leg3-order"]).total_price)
-
-        tribot.log(tribot.LOG_INFO, "Trade 3/3: from {}-{}->{}".format(working_triangle["cur3"],
-                                                                       working_triangle["leg3-order"],
-                                                                       working_triangle["cur1"]))
-
-        tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price3, order3_amount))
-
-        order3 = tribot.do_trade(working_triangle["symbol3"], working_triangle["cur3"], working_triangle["cur1"],
-                                 order3_amount, working_triangle["leg3-order"], price3)
-
-        if order3.filled_dest_amount > 0:
-            resp_trades = tribot.get_trade_results(order3)
-            order3.update_order_from_exchange_resp(resp_trades)
-            order3.fees = tribot.exchange.fees_from_order(order3)
-
-
-            working_triangle["leg3-order-status"] = order3.status
-
-            if order3.filled < order3.amount * 0.9999:
-                working_triangle["leg3-order-result"] = "PartFill"
-
-                working_triangle["leg3-recover-amount"] = order3.amount_start - order3.filled_start_amount
-                working_triangle["leg3-recover-start-curr-best-amount"] = tribot.order3_best_recovery_start_amount(
-                    order1.filled_start_amount, order2.amount, order2.filled, order3.amount, order3.filled)
-
-                order_rec_data = tribot.create_recovery_data(working_triangle["deal-uuid"], working_triangle["cur3"],
-                                                             working_triangle["cur1"],
-                                                             working_triangle["leg3-recover-amount"],
-                                                             working_triangle["leg3-recover-start-curr-best-amount"], 3)
-
-                recovery_data.append(order_rec_data)
-                tribot.print_recovery_data(order_rec_data)
-                tribot.send_recovery_request(order_rec_data)
-
-            else:
-                working_triangle["leg3-order-result"] = "Filled"
-
         else:
-            # recover from order3
-            working_triangle["leg3-order-result"] = "Failed"
-            working_triangle["leg3-order-status"] = order3.status
-            working_triangle["leg3-recover-amount"] = order3.amount_start
+            working_triangle["leg2-order-result"] = "Filled"
+
+    else:
+        # recover from order2
+        working_triangle["leg2-order-result"] = "Failed"
+        working_triangle["leg2-recover-amount"] = order2.amount_start
+        working_triangle["leg2-recover-start-curr-best-amount"] = tribot.order2_best_recovery_start_amount(
+            order1.filled_start_amount, order2.amount, order2.filled)
+
+        order_rec_data = tribot.create_recovery_data(working_triangle["deal-uuid"], working_triangle["cur2"],
+                                                     working_triangle["cur1"],
+                                                     working_triangle["leg2-recover-amount"],
+                                                     working_triangle["leg2-recover-start-curr-best-amount"], 2)
+
+        recovery_data.append(order_rec_data)
+        tribot.print_recovery_data(order_rec_data)
+        tribot.send_recovery_request(order_rec_data)
+
+        working_triangle["status"] = "Failed 2"
+        continue
+
+    tribot.log(tribot.LOG_INFO, "Order2: filled {} with fee {}".format(
+        order2.filled_dest_amount, order2.fees[order2.dest_currency]["amount"]))
+
+    # Order 3
+    order3_amount = order2.filled_dest_amount - order2.fees[order2.dest_currency]["amount"]
+
+    price3 = tribot.exchange.price_to_precision(working_triangle["symbol3"],
+                                                order_books[working_triangle["symbol3"]].get_depth_for_trade_side(
+                                                    order3_amount,
+                                                    working_triangle["leg3-order"]).total_price)
+
+    tribot.log(tribot.LOG_INFO, "Trade 3/3: from {}-{}->{}".format(working_triangle["cur3"],
+                                                                   working_triangle["leg3-order"],
+                                                                   working_triangle["cur1"]))
+
+    tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price3, order3_amount))
+
+    order3 = tribot.do_trade(working_triangle["symbol3"], working_triangle["cur3"], working_triangle["cur1"],
+                             order3_amount, working_triangle["leg3-order"], price3)
+
+    if order3.filled_dest_amount > 0:
+        resp_trades = tribot.get_trade_results(order3)
+        order3.update_order_from_exchange_resp(resp_trades)
+        order3.fees = tribot.exchange.fees_from_order(order3)
+
+
+        working_triangle["leg3-order-status"] = order3.status
+
+        if order3.filled < order3.amount * 0.9999:
+            working_triangle["leg3-order-result"] = "PartFill"
+
+            working_triangle["leg3-recover-amount"] = order3.amount_start - order3.filled_start_amount
             working_triangle["leg3-recover-start-curr-best-amount"] = tribot.order3_best_recovery_start_amount(
                 order1.filled_start_amount, order2.amount, order2.filled, order3.amount, order3.filled)
 
@@ -468,27 +448,45 @@ while True:
             recovery_data.append(order_rec_data)
             tribot.print_recovery_data(order_rec_data)
             tribot.send_recovery_request(order_rec_data)
-            working_triangle["status"] = "Failed 3"
-            continue
 
-        tribot.log(tribot.LOG_INFO, "Order3: filled {} with fee {}".format(
-            order3.filled_dest_amount, order3.fees[order3.dest_currency]["amount"]))
+        else:
+            working_triangle["leg3-order-result"] = "Filled"
 
-        tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
-        tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
-        tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount/order1.filled_start_amount))
+    else:
+        # recover from order3
+        working_triangle["leg3-order-result"] = "Failed"
+        working_triangle["leg3-order-status"] = order3.status
+        working_triangle["leg3-recover-amount"] = order3.amount_start
+        working_triangle["leg3-recover-start-curr-best-amount"] = tribot.order3_best_recovery_start_amount(
+            order1.filled_start_amount, order2.amount, order2.filled, order3.amount, order3.filled)
 
-        print("Fetch_num: {}".format(tribot.fetch_number))
-        print("Errors: {}".format(tribot.errors))
-        print("Good triangles: {} / {} ".format(len(tribot.tri_list_good),
-                                                len(tribot.tri_list)))
-        print("Best triangle {}: {} ".format(tribot.last_proceed_report["best_result"]["triangle"],
-                                             tribot.last_proceed_report["best_result"]["result"]))
-        print("Tickers proceeded {} time".format(len(tribot.tickers)))
-        print("Duration,s: " + str(tribot.timer.results_dict()))
-        print("====================================================================================")
+        order_rec_data = tribot.create_recovery_data(working_triangle["deal-uuid"], working_triangle["cur3"],
+                                                     working_triangle["cur1"],
+                                                     working_triangle["leg3-recover-amount"],
+                                                     working_triangle["leg3-recover-start-curr-best-amount"], 3)
 
+        recovery_data.append(order_rec_data)
+        tribot.print_recovery_data(order_rec_data)
+        tribot.send_recovery_request(order_rec_data)
+        working_triangle["status"] = "Failed 3"
+        continue
 
+    tribot.log(tribot.LOG_INFO, "Order3: filled {} with fee {}".format(
+        order3.filled_dest_amount, order3.fees[order3.dest_currency]["amount"]))
+
+    tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
+    tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
+    tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount/order1.filled_start_amount))
+
+    print("Fetch_num: {}".format(tribot.fetch_number))
+    print("Errors: {}".format(tribot.errors))
+    print("Good triangles: {} / {} ".format(len(tribot.tri_list_good),
+                                            len(tribot.tri_list)))
+    print("Best triangle {}: {} ".format(tribot.last_proceed_report["best_result"]["triangle"],
+                                         tribot.last_proceed_report["best_result"]["result"]))
+    print("Tickers proceeded {} time".format(len(tribot.tickers)))
+    print("Duration,s: " + str(tribot.timer.results_dict()))
+    print("====================================================================================")
 
 tribot.log(tribot.LOG_INFO, "Total time:" + str((tribot.timer.notches[-1]["time"] - tribot.timer.start_time).total_seconds()))
 tribot.log(tribot.LOG_INFO, "Finished")
