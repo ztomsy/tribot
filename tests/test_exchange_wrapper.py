@@ -179,7 +179,7 @@ class ExchageWrapperTestSuite(unittest.TestCase):
 
         self.assertEqual(exchange.price_to_precision(order.symbol, order.price), o["create"]["price"])
         self.assertEqual(exchange.amount_to_precision(order.symbol, order.amount), o["create"]["amount"])
-        self.assertEqual(exchange.price_to_precision(order.symbol, order.amount_dest), o["updates"][-1]["cost"])
+        self.assertEqual(order.amount_dest, o["updates"][-1]["cost"])
 
         exchange._offline_order = o
         exchange._offline_trades = o["trades"]
@@ -191,8 +191,8 @@ class ExchageWrapperTestSuite(unittest.TestCase):
 
         result = exchange.get_trades_results(order)
         # self.assertEqual(result["filled"], 0.5)
-        self.assertEqual(result["cost"], order.cost)
-        self.assertEqual(result["dest_amount"], order.cost)
+        self.assertAlmostEqual(result["cost"], order.cost, 5)
+        self.assertAlmostEqual(result["dest_amount"], order.cost, 5)
         # self.assertEqual(result["src_amount"], 0.5)
         self.assertGreaterEqual(result["price"], order.price)
 

@@ -48,6 +48,7 @@ class TriBot:
         self.order_update_requests_for_time_out = 0
         self.order_update_time_out = 0
         self.max_oder_books_fetch_attempts = 0
+        self.max_order_update_attempts = 0
         self.request_sleep = 0.0  # sleep time between requests in seconds
 
 
@@ -378,7 +379,7 @@ class TriBot:
 
         order_manager = OrderManagerFok(order, None, updates_to_kill=self.order_update_total_requests,
                                         max_cancel_attempts=self.order_update_total_requests,
-                                        max_order_update_attempts=self.order_update_total_requests,
+                                        max_order_update_attempts=self.max_order_update_attempts,
                                         request_sleep=self.request_sleep)
         order_manager.log = self.log
         order_manager.LOG_INFO = self.LOG_INFO

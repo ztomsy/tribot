@@ -44,7 +44,6 @@ class OrderManagerFok(object):
         self.min_filled_dest_amount = float
         self.min_filled_src_amount = float
 
-
         self.updates_to_kill = updates_to_kill
         self.max_cancel_attempts = max_cancel_attempts
         self.max_order_requests_attempts = max_order_update_attempts
@@ -135,7 +134,7 @@ class OrderManagerFok(object):
         results = None
         i = 0
         while bool(results) is not True and i < self.max_order_requests_attempts:
-            self.log(self.LOG_INFO, ".. placing order #{}".format(i))
+            self.log(self.LOG_INFO, ".. placing order #{}/{}".format(i, self.max_order_requests_attempts))
             try:
                 results = exchange_wrapper.place_limit_order(self.order)
             except Exception as e:

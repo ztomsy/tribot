@@ -6,6 +6,7 @@ from datetime import datetime
 from tkgtri import errors
 from tkgtri.errors import *
 import copy
+import time
 
 class OwaManager(object):
 
@@ -14,7 +15,7 @@ class OwaManager(object):
     LOG_ERROR = "ERROR"
     LOG_CRITICAL = "CRITICAL"
 
-    def __init__(self, exchange: ccxtExchangeWrapper, max_order_update_attempts=20, max_cancel_attempts=10):
+    def __init__(self, exchange: ccxtExchangeWrapper, max_order_update_attempts=20, max_cancel_attempts=10, request_sleep=0.0):
         self.orders = list()
 
         self.max_order_update_attempts = max_order_update_attempts
@@ -29,6 +30,7 @@ class OwaManager(object):
         self.supplementary = dict() # dict of supplementary data  as {"order_id": {dict of data}}
 
         self._last_update_closed_orders = list()  # closed orders from last update
+        self.request_sleep = request_sleep
 
     def _create_order(self, order: TradeOrder):
         if self.exchange.offline:
@@ -44,6 +46,10 @@ class OwaManager(object):
                 self.log(self.LOG_ERROR, type(e).__name__)
                 self.log(self.LOG_ERROR, e.args)
                 self.log(self.LOG_INFO, "retrying to create order...")
+
+                self.log(self.LOG_INFO, "Pause for {}s".format(self.request_sleep))
+                time.sleep(self.request_sleep)
+
             i += 1
 
         return results
@@ -59,6 +65,8 @@ class OwaManager(object):
             self.log(self.LOG_ERROR, "Could not update order")
             self.log(self.LOG_ERROR, type(e).__name__)
             self.log(self.LOG_ERROR, e.args)
+            self.log(self.LOG_INFO, "Pause for {}s".format(self.request_sleep))
+            time.sleep(self.request_sleep)
 
         return results
 
@@ -79,19 +87,8 @@ class OwaManager(object):
                 self.log(self.LOG_ERROR, "Could not cancel trade order")
                 self.log(self.LOG_ERROR, type(e).__name__)
                 self.log(self.LOG_ERROR, e.args)
-
-            # finally:
-            #
-            #     try:
-            #         resp = self._update_order(trade_order)
-            #         trade_order.update_order_from_exchange_resp(resp)
-            #     except Exception as e1:
-            #         self.log(self.LOG_ERROR, "Could not update cancelled order")
-            #         self.log(self.LOG_ERROR, type(e).__name__)
-            #         self.log(self.LOG_ERROR, e.args)
-            #
-            #     if cancel_attempt >= self.max_cancel_attempts:
-            #        return False
+                self.log(self.LOG_INFO, "Pause for {}s".format(self.request_sleep))
+                time.sleep(self.request_sleep)
 
         return False
 
@@ -202,8 +199,8 @@ class OwaManager(object):
                     continue
 
                 if "status" in resp and resp["status"] == "closed" or resp["status"] == "canceled":
-                    self.log(self.LOG_INFO, "Order {} trade order have been closed  {} -{}-> {}".format(
-                        order.id, order.start_currency, order.side, order.dest_currency))
+                    self.log(self.LOG_INFO, "Order {} trade order have been closed with status {}  {} -{}-> {}".format(
+                        order.id, resp["status"], order.start_currency, order.side, order.dest_currency))
 
                     # workaround.we should have updated order data before getting the correct trades results from trades
                     order.active_order.update_order_from_exchange_resp(resp)

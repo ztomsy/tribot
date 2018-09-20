@@ -370,7 +370,7 @@ class ccxtExchangeWrapper:
 
     def amount_to_precision(self, symbol, amount):
         if self._ccxt is not None and not self.offline:
-            return self._ccxt.amount_to_precision(symbol, amount)
+            return float(self._ccxt.amount_to_precision(symbol, amount))
 
         elif self.markets is not None and symbol in self.markets and self.markets[symbol] is not None \
                 and "precision" in self.markets[symbol]:
