@@ -504,7 +504,7 @@ class TriBot:
         # adding report data which are not in working triangle
         wt["server-id"] = self.server_id
         wt["exchange-id"] = self.exchange_id
-        wt["dbg"] = self.debug
+        wt["dbg"] = str(self.debug)
         wt["live"] = self.force_best_tri
         wt["session-uuid"] = self.session_uuid
         wt["errors"] = self.errors
