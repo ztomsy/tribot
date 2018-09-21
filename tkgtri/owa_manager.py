@@ -92,7 +92,8 @@ class OwaManager(object):
             finally:
                 self.log(self.LOG_INFO, "Updating the Trade Order to check if it was canceled or closed...")
                 resp = self._update_order(trade_order)
-                if  resp is not None and "status" in resp and (resp["status"] == "closed"
+                self.log(self.LOG_INFO, "Update resp: {}".format(resp))
+                if resp is not None and "status" in resp and (resp["status"] == "closed"
                                                                or resp["status"] == "canceled"):
                     self.log(self.LOG_INFO, "... canceled with status {}".format(resp["status"]))
                     return resp
