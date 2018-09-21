@@ -74,23 +74,30 @@ class OwaManager(object):
         return self.exchange.cancel_order(order)
 
     # blocking method !!!!!
-    def cancel_order(self, trade_order):
+    def cancel_order(self, trade_order: TradeOrder):
         cancel_attempt = 0
 
         while cancel_attempt < self.max_cancel_attempts:
             cancel_attempt += 1
             try:
                 self._cancel_order(trade_order)
-                return True
 
             except Exception as e:
-                self.log(self.LOG_ERROR, "Could not cancel trade order")
+                self.log(self.LOG_ERROR, "Cancellatoin error...")
                 self.log(self.LOG_ERROR, type(e).__name__)
                 self.log(self.LOG_ERROR, e.args)
                 self.log(self.LOG_INFO, "Pause for {}s".format(self.request_sleep))
                 time.sleep(self.request_sleep)
 
-        return False
+            finally:
+                self.log(self.LOG_INFO, "Updating the Trade Order to check if it was canceled or closed...")
+                resp = self._update_order(trade_order)
+                if  resp is not None and "status" in resp and (resp["status"] == "closed"
+                                                               or resp["status"] == "canceled"):
+                    self.log(self.LOG_INFO, "... canceled with status {}".format(resp["status"]))
+                    return resp
+
+        return None
 
     def log(self, level, msg, msg_list=None):
         if msg_list is None:
@@ -228,41 +235,35 @@ class OwaManager(object):
                         o.amount))
 
             elif order.order_command == "cancel":
-                self.log(self.LOG_INFO, "Order {} cancelling trade order  {} -{}-> {} ".format(
-                    order.id, order.start_currency, order.side, order.dest_currency))
+                self.log(self.LOG_INFO, "Order {} cancelling trade order# {} {} {} -{}-> {} ".format(
+                    order.id,order.get_active_order().id, order.get_active_order().symbol, order.start_currency,
+                    order.side, order.dest_currency))
 
                 # if could not cancel - just skip
-                if self.cancel_order(order.get_active_order()):
-
-                    # if canceled update the order
-                    resp = self._update_order(order.get_active_order())
-
-                    if resp is None:
-                        self.log(self.LOG_INFO, "skipping order")
-                        continue
+                resp = self.cancel_order(order.get_active_order())
+                if resp is not None:
 
                     order.active_order.update_order_from_exchange_resp(resp)  # workaround
 
-                    if resp["status"] == "closed" or resp["status"] == "canceled":
-                        if order.get_active_order().filled > 0:
-                            trades = self._get_trade_results(order.get_active_order())
+                    if order.get_active_order().filled > 0:
+                        trades = self._get_trade_results(order.get_active_order())
 
-                            if trades is not None and len(trades["trades"]) > 0:
-                                for key, value in trades.items():
-                                    if value is not None:
-                                        resp[key] = value
+                        if trades is not None and len(trades["trades"]) > 0:
+                            for key, value in trades.items():
+                                if value is not None:
+                                    resp[key] = value
 
-                        resp["status"] = "canceled"  # override exchange responce
-                        # self._update_order_from_exchange(order, resp, {"price": price})
-                        o = order.get_active_order()
-                        self.log(self.LOG_INFO, "Order {} trade order closed {} with status {} filled {}/{}".format(
-                            order.id, o.update_requests_count,  o.status, o.filled,
-                            o.amount))
+                    resp["status"] = "canceled"  # override exchange responce
+                    # self._update_order_from_exchange(order, resp, {"price": price})
+                    o = order.get_active_order()
+                    self.log(self.LOG_INFO, "Order {} trade order closed {} with status {} filled {}/{}".format(
+                        order.id, o.update_requests_count,  o.status, o.filled,
+                        o.amount))
 
-                        self.log(self.LOG_INFO, "Order {} Fetching ticker {}".format(order.id, order.symbol))
-                        price = self._fetch_data_for_order(order)
-                        self.log(self.LOG_INFO, "Order {} New price: {} (was {})".format(order.id, price, order.get_active_order().price))
-                        self._update_order_from_exchange(order, resp, {"price": price})
+                    self.log(self.LOG_INFO, "Order {} Fetching ticker {}".format(order.id, order.symbol))
+                    price = self._fetch_data_for_order(order)
+                    self.log(self.LOG_INFO, "Order {} New price: {} (was {})".format(order.id, price, order.get_active_order().price))
+                    self._update_order_from_exchange(order, resp, {"price": price})
                 else:
                     self.log(self.LOG_ERROR, "Could not cancel. Skipping...")
 
