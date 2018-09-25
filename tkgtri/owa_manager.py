@@ -83,7 +83,7 @@ class OwaManager(object):
                 self._cancel_order(trade_order)
 
             except Exception as e:
-                self.log(self.LOG_ERROR, "Cancellatoin error...")
+                self.log(self.LOG_ERROR, "Cancel error...")
                 self.log(self.LOG_ERROR, type(e).__name__)
                 self.log(self.LOG_ERROR, e.args)
                 self.log(self.LOG_INFO, "Pause for {}s".format(self.request_sleep))
@@ -116,13 +116,14 @@ class OwaManager(object):
             self.log(self.LOG_INFO, "getting trades #{}".format(i))
             try:
                 results = self.exchange.get_trades_results(order)
+                return results
             except Exception as e:
                 self.log(self.LOG_ERROR, type(e).__name__)
                 self.log(self.LOG_ERROR, e.args)
                 self.log(self.LOG_INFO, "retrying to get trades...")
             i += 1
 
-        return results
+        return None
 
     def add_order(self, order: OrderWithAim):
         self.orders.append(order)
@@ -214,14 +215,20 @@ class OwaManager(object):
                     order.active_order.update_order_from_exchange_resp(resp)
 
                     if resp["filled"] > 0:
+                        try:
+                            trades = self._get_trade_results(order.get_active_order())
+                            if trades is not None and len(trades["trades"]) > 0:
+                                for key, value in trades.items():
+                                    if value is not None:
+                                        resp[key] = value
+                            else:
+                                self.log(self.LOG_ERROR, "skipping getting trades for this order")
 
-                        trades = self._get_trade_results(order.get_active_order())
-                        if trades is not None and len(trades["trades"]) > 0:
-                            for key, value in trades.items():
-                                if value is not None:
-                                    resp[key] = value
-                        else:
-                            self.log(self.LOG_ERROR, "skipping getting trades for this order")
+                        except Exception as e:
+                            self.log(self.LOG_ERROR, "Error collecting trades result")
+                            self.log(self.LOG_ERROR, type(e).__name__)
+                            self.log(self.LOG_ERROR, e.args)
+                            self.log(self.LOG_ERROR, "Trades: {}".format(trades))
 
                 self._update_order_from_exchange(order, resp)
 
@@ -248,11 +255,16 @@ class OwaManager(object):
 
                     if order.get_active_order().filled > 0:
                         trades = self._get_trade_results(order.get_active_order())
-
-                        if trades is not None and len(trades["trades"]) > 0:
-                            for key, value in trades.items():
-                                if value is not None:
-                                    resp[key] = value
+                        try:
+                            if trades is not None and trades["trades"] is not None and len(trades["trades"]) > 0:
+                                for key, value in trades.items():
+                                    if value is not None:
+                                        resp[key] = value
+                        except Exception as e:
+                            self.log(self.LOG_ERROR, "Error collecting trades result")
+                            self.log(self.LOG_ERROR, type(e).__name__)
+                            self.log(self.LOG_ERROR, e.args)
+                            self.log(self.LOG_ERROR, "Trades: {}".format(trades))
 
                     resp["status"] = "canceled"  # override exchange responce
                     # self._update_order_from_exchange(order, resp, {"price": price})
