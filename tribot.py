@@ -109,23 +109,24 @@ while True:
 
         report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price, price2,
                                         price3)
-
+        # we are not reporting and reloading balance if OB STOP
         if "status" in working_triangle and working_triangle["status"] != "OB STOP":
             tribot.log(tribot.LOG_INFO, "====================================")
             tribot.log(tribot.LOG_INFO, "============ DEAL REPORT ===========")
             tribot.log_report(report)
             tribot.log(tribot.LOG_INFO, "====================================")
 
-        try:
-            tribot.send_remote_report(report)
-            tribot.timer.notch("time_to_send_report")
-        except Exception as e:
-            tribot.log(tribot.LOG_ERROR, "Error sending report")
-            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+            try:
+                tribot.send_remote_report(report)
+                tribot.timer.notch("time_to_send_report")
+            except Exception as e:
+                tribot.log(tribot.LOG_ERROR, "Error sending report")
+                tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+                tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
 
-        # reload balance
-        tribot.reload_balance(report["result-fact-diff"])
+        # reload balance if it was a deal or error
+        if "status" in working_triangle and working_triangle["status"] != "OB STOP":
+            tribot.reload_balance(report["result-fact-diff"])
 
     if tribot.fetch_number > 0 and tribot.run_once:
         tribot.log(tribot.LOG_INFO, "Exiting because of Run once")
