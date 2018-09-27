@@ -124,9 +124,11 @@ while True:
                 tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
                 tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
 
-        # reload balance if it was a deal or error
-        if "status" in working_triangle and working_triangle["status"] != "OB STOP":
+        # reload balance if it was a deal (noty OB STOP or error)
+        if "status" in working_triangle and \
+                working_triangle["status"] not in ("OB STOP", "ERROR"):
             tribot.reload_balance(report["result-fact-diff"])
+
 
     if tribot.fetch_number > 0 and tribot.run_once:
         tribot.log(tribot.LOG_INFO, "Exiting because of Run once")
