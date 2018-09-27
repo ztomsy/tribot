@@ -285,6 +285,8 @@ while True:
                                                             working_triangle["symbol3"]))
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+
+            working_triangle["status"] = "OB STOP"
             tribot.errors += 1
             continue
 
