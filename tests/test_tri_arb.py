@@ -1,6 +1,6 @@
 from .context import tkgtri
 from tkgtri import tri_arb as ta
-from tkgtri import ccxtExchangeWrapper
+from tkgcore import ccxtExchangeWrapper
 import unittest
 import json
 

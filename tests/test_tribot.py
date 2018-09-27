@@ -2,6 +2,7 @@
 
 from .context import tkgtri
 
+import tkgcore
 import unittest
 import os
 import time
@@ -85,7 +86,7 @@ class BasicTestSuite(unittest.TestCase):
         os.remove(default_log)
 
     def test_timer(self):
-        timer = tkgtri.Timer()
+        timer = tkgcore.Timer()
         timer.notch("start")
         time.sleep(0.1)
         timer.notch("finish")

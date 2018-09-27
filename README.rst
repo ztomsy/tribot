@@ -21,13 +21,16 @@ cd tkg-production
 pip3 install -r requirements.txt
 pip3 install -e .
 
-Running the tests: python3 -m unittest -v -b
+Run the tests: python3 -m unittest -v -b
 
 ---------------
 
 Usage:
 
-launch with default config (_config_default.json): python3 tribot.py
+1. Offline test:
+    python3 tribot.py --config=_kucoin.json --offline --force --force_start_bid 0.1 --runonce --balance 1
+
+2. launch with default config (_config_default.json): python3 tribot.py
 
 cli parameters: python3 tribot.py --help
 

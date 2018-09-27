@@ -1,20 +1,19 @@
 import json
 import logging
 import sys
-from . import utils
-from . import timer
+from tkgcore import utils
+from tkgcore import timer
 from .tri_cli import *
-import tkgtri
 from . import tri_arb as ta
 import uuid
 import copy
-from .reporter import TkgReporter
+from tkgcore.reporter import TkgReporter
 import bisect
 import datetime
 import time
-from .trade_orders import *
-from .trade_manager import *
-from . import rest_server
+from tkgcore.trade_orders import *
+from tkgcore.trade_order_manager import *
+from tkgcore import rest_server
 import collections
 
 
@@ -193,10 +192,10 @@ class TriBot:
         # self.exchange = exchange({'apiKey': self.api_key["apiKey"], 'secret': self.api_key["secret"] })
         # self.exchange.load_markets()
         if not self.noauth:
-            self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"],
+            self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"],
                                                                     self.api_key["secret"])
         else:
-            self.exchange = tkgtri.ccxtExchangeWrapper.load_from_id(self.exchange_id)
+            self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id)
 
     def load_markets(self):
         self.markets = self.exchange.get_markets()
@@ -287,7 +286,7 @@ class TriBot:
 
         order_books = dict()
         for ob in ob_array:
-            order_books[ob["symbol"]] = tkgtri.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+            order_books[ob["symbol"]] = OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         return order_books
 
@@ -316,7 +315,7 @@ class TriBot:
 
         return tri_list_good
 
-    def log_order_create(self, order_manager: tkgtri.OrderManagerFok):
+    def log_order_create(self, order_manager: OrderManagerFok):
         self.log(self.LOG_INFO, "Tick {}: Order {} created. Filled dest curr:{} / {} ".format(
             order_manager.order.update_requests_count,
             order_manager.order.id,
@@ -324,7 +323,7 @@ class TriBot:
             order_manager.order.amount_dest))
 
     # here is the sleep between updates is implemented! needed to be fixed
-    def log_order_update(self, order_manager: tkgtri.OrderManagerFok):
+    def log_order_update(self, order_manager: OrderManagerFok):
         self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled amount:{} / {} ".format(
             order_manager.order.id,
             order_manager.order.update_requests_count,

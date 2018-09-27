@@ -1,5 +1,5 @@
 from tkgtri import TriBot
-from tkgtri import Analyzer
+from tkgcore import Analyzer
 import uuid
 import sys
 import traceback
