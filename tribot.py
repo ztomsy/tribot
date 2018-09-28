@@ -252,7 +252,7 @@ while True:
                                                          bal_to_bid, 100,
                                                          tribot.min_amounts[tribot.start_currency[0]])
         bal_to_bid = max_possible["amount"]
-        expected_result = max_possible["result"] + 1
+        expected_result = max_possible["result"]
 
     except Exception as e:
         working_triangle["status"] = "ERROR"
