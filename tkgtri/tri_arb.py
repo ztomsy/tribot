@@ -103,3 +103,120 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commi
 
     return tri_list
 
+
+def order_book_results(exchange, deal_row, order_books, start_bid):
+    """
+    get result of tri_arb from 3 order books. In case that some of Order Book will not have enought depth for
+    filling - it could take maximum amount of provided order book
+
+    :param exchange: ccxtExcangeWrapper
+    :param deal_row: working triangle
+    :param order_books: dict of order books (starting from index 1  {1: OrderBook, 2: OrderBook , 3: OrderBook}
+    :param start_bid: starging bid of trianlge
+    :return d:  dict of results of tri arb calculation
+        d["result"] = d[3].total_quantity / (start_bid * total_filled_share)
+        d["total_filled_share"] = total_filled_share
+        d["result_amount"] = d[3].total_quantity
+        d["result_diff"] = d[3].total_quantity - (start_bid * total_filled_share)
+        d["filled_start_amount"] = start_bid * total_filled_share
+
+    :return result:
+    """
+
+    d = dict()
+    total_filled_share = 1.0
+
+    for i in range(1, 4):
+        # ob[i] = get_order_book(deal["symbol"+str(i)], bid1_lots, deal["leg"+str(i)+"-order"])
+
+        if i == 1:
+            bid_qty = start_bid
+
+        else:
+            bid_qty = d[i - 1].total_quantity
+
+        if deal_row["leg" + str(i) + "-order"] == "buy":
+            d[i] = order_books[i].get_depth(bid_qty, "buy", "quote")
+            d[i].total_quantity = float(exchange.amount_to_precision(deal_row["symbol" + str(i)], d[i].total_quantity))
+
+        if deal_row["leg" + str(i) + "-order"] == "sell":
+            d[i] = order_books[i].get_depth(bid_qty, "sell", "base")
+            d[i].total_quantity = float(
+                exchange.price_to_precision(deal_row["symbol" + str(i)], d[i].total_quantity))
+
+        d[i].total_price = float(exchange.price_to_precision(deal_row["symbol" + str(i)], d[i].total_price))
+        total_filled_share = total_filled_share * d[i].filled_share
+
+    d["result"] = d[3].total_quantity / (start_bid * total_filled_share)
+    d["total_filled_share"] = total_filled_share
+    d["result_amount"] = d[3].total_quantity
+    d["result_diff"] = d[3].total_quantity - (start_bid * total_filled_share)
+    d["filled_start_amount"] = start_bid * total_filled_share
+    return d
+
+
+def find_counter_order_tickers(past_triangles, max_previous_tickers=5):
+    """
+    find first occurrence (leg and ticker) of counter oder
+    result - dict r[legX-counter-order-match-ticker] if found
+    False - if not found
+
+    :param past_triangles:
+    :param max_previous_tickers:
+    :return:
+    """
+
+    r = dict()
+
+    for i in range(len(past_triangles)-1, len(past_triangles)-1-max_previous_tickers, -1):
+
+        ticker = past_triangles[i]["ticker"]
+
+        for j in range(1, 4):
+
+            leg = "leg"+str(j)
+
+            #
+            # if we're going to buy (sell) , so we are looking for prices from who are selling [asl] (sell/bid)
+            # if bid (ask) price is greater that ask (bid)  price - means that counter order in place
+            # https://tkg-base.atlassian.net/wiki/spaces/WORK/pages/65503234/2018-02-07
+            #
+
+            if past_triangles[i][leg+"-order"] == "buy":
+                if past_triangles[i][leg+"-counter-price"] >= past_triangles[len(past_triangles)-1][leg+"-price"]:
+                    if leg+"-counter-order-match-ticker" not in r :
+                        r[leg+"-counter-order-match-ticker"] = ticker
+                        return r
+
+            if past_triangles[i][leg+"-order"] == "sell":
+                if past_triangles[i][leg+"-counter-price"] <= past_triangles[len(past_triangles)-1][leg+"-price"]:
+                    if leg + "-counter-order-match-ticker" not in r:
+                        r[leg+"-counter-order-match-ticker"] = ticker
+                        return r
+
+    return False
+
+
+def get_maximum_start_amount(exchange, data_row, order_books, maximum_bid, intervals=10, start_amount = None):
+
+    if start_amount is None:
+        start_amount = data_row["min-namnt"]  # legacy code for binance market orders
+
+    if maximum_bid > float(start_amount):
+
+        amount_to_check = np.linspace(float(start_amount), maximum_bid, intervals)
+        results = list(map(
+            lambda x: (order_book_results(exchange, data_row, order_books, float(x))),
+            amount_to_check))
+
+        max_result_dict = max(results, key=lambda x: x["result_diff"])  # max results dict from order books
+
+    else:
+        max_result_dict = order_book_results(exchange, data_row, order_books, float(maximum_bid))
+
+    max_result = max_result_dict["result"]
+    max_start_amount = max_result_dict["filled_start_amount"]
+
+    return {"amount": max_start_amount, "result": max_result}
+
+

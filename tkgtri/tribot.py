@@ -370,7 +370,7 @@ class TriBot:
         order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
 
         if self.offline:
-            o = self.exchange.create_order_offline_data(order, 10)
+            o = self.exchange.create_order_offline_data(order, 2)
             self.exchange._offline_order = copy.copy(o)
             self.exchange._offline_trades = copy.copy(o["trades"])
             self.exchange._offline_order_update_index = 0

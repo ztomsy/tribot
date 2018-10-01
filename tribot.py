@@ -1,5 +1,5 @@
 from tkgtri import TriBot
-from tkgcore import Analyzer
+from tkgtri import tri_arb as ta
 import uuid
 import sys
 import traceback
@@ -245,7 +245,7 @@ while True:
 
     # getting the maximum amount to bid for the  first trade
     try:
-        max_possible = Analyzer.get_maximum_start_amount(tribot.exchange, working_triangle,
+        max_possible = ta.get_maximum_start_amount(tribot.exchange, working_triangle,
                                                          {1: order_books[working_triangle["symbol1"]],
                                                           2: order_books[working_triangle["symbol2"]],
                                                           3: order_books[working_triangle["symbol3"]]},
@@ -272,7 +272,7 @@ while True:
         bal_to_bid = tribot.force_start_amount
         tribot.log(tribot.LOG_INFO, "Force amount to bid:{}".format(tribot.force_start_amount))
         try:
-            expected_result = Analyzer.order_book_results(tribot.exchange, working_triangle,
+            expected_result = ta.order_book_results(tribot.exchange, working_triangle,
                                                           {1: order_books[working_triangle["symbol1"]],
                                                            2: order_books[working_triangle["symbol2"]],
                                                            3: order_books[working_triangle["symbol3"]]},
