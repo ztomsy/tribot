@@ -125,17 +125,18 @@ while True:
                 tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
                 tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
 
+            # saving order books
+            try:
+                tribot.log(tribot.LOG_INFO, "Saving order books")
+                tribot.save_order_books(report["deal-uuid"], order_books)
+            except:
+                tribot.log(tribot.LOG_ERROR, "Could not save Order books")
+
         # reload balance if it was a deal (noty OB STOP or error)
         if "status" in working_triangle and \
                 working_triangle["status"] not in ("OB STOP", "ERROR"):
             tribot.reload_balance(report["result-fact-diff"])
 
-        # saving order books
-        try:
-            tribot.log(tribot.LOG_INFO, "Saving order books")
-            tribot.save_order_books(report["deal-uuid"], order_books)
-        except:
-            tribot.log(tribot.LOG_ERROR, "Could not save Order books")
 
 
     if tribot.fetch_number > 0 and tribot.run_once:
