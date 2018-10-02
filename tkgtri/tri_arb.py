@@ -197,7 +197,8 @@ def find_counter_order_tickers(past_triangles, max_previous_tickers=5):
     return False
 
 
-def get_maximum_start_amount(exchange, data_row, order_books, maximum_bid, intervals=10, start_amount = None):
+def get_maximum_start_amount(exchange, data_row, order_books, maximum_bid, intervals=10, start_amount=None,
+                             results_filter=0.0):
 
     if start_amount is None:
         start_amount = data_row["min-namnt"]  # legacy code for binance market orders
@@ -205,11 +206,17 @@ def get_maximum_start_amount(exchange, data_row, order_books, maximum_bid, inter
     if maximum_bid > float(start_amount):
 
         amount_to_check = np.linspace(float(start_amount), maximum_bid, intervals)
-        results = list(map(
-            lambda x: (order_book_results(exchange, data_row, order_books, float(x))),
-            amount_to_check))
 
-        max_result_dict = max(results, key=lambda x: x["result_diff"])  # max results dict from order books
+        results = map(
+            lambda x: (order_book_results(exchange, data_row, order_books, float(x))),
+            amount_to_check)
+
+        results = list(filter(lambda x:  x["result"] >= results_filter, results))
+
+        if len(results) > 0:
+            max_result_dict = max(results, key=lambda x: x["result_diff"])  # max results dict from order books
+        else:
+            return None
 
     else:
         max_result_dict = order_book_results(exchange, data_row, order_books, float(maximum_bid))

@@ -14,6 +14,7 @@ import time
 from tkgcore.trade_orders import *
 from tkgcore.trade_order_manager import *
 from tkgcore import rest_server
+from tkgcore import DataStorage
 import collections
 
 
@@ -607,8 +608,27 @@ class TriBot:
 
         return False
 
+    def save_order_books(self, deal_uuid: str, order_books):
 
+        ob_file_header = ["deal-uuid", "ticker",
+                          "symbol", "ask", "ask-qty", "bid", "bid-qty"]
 
+        order_book_storage = deal_uuid +"_ob"
+
+        # deal_prefix = list([deal_uuid])
+
+        storage = DataStorage("_{}/deals".format(self.exchange_id))
+        storage.register(order_book_storage, ob_file_header)
+
+        table_to_save = list()
+
+        for i in order_books:
+            ob_rows = order_books[i].csv_rows(10, True)
+            table_to_save.extend(list(map(lambda x: [deal_uuid] + [order_books[i].symbol] + x, ob_rows)))
+
+        storage.save_all(order_book_storage, table_to_save)
+
+        return True
 
     @staticmethod
     def print_logo(product=""):

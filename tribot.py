@@ -111,6 +111,7 @@ while True:
                                         price3)
         # we are not reporting and reloading balance if OB STOP
         if "status" in working_triangle and working_triangle["status"] != "OB STOP":
+
             tribot.log(tribot.LOG_INFO, "====================================")
             tribot.log(tribot.LOG_INFO, "============ DEAL REPORT ===========")
             tribot.log_report(report)
@@ -128,6 +129,13 @@ while True:
         if "status" in working_triangle and \
                 working_triangle["status"] not in ("OB STOP", "ERROR"):
             tribot.reload_balance(report["result-fact-diff"])
+
+        # saving order books
+        try:
+            tribot.log(tribot.LOG_INFO, "Saving order books")
+            tribot.save_order_books(report["deal-uuid"], order_books)
+        except:
+            tribot.log(tribot.LOG_ERROR, "Could not save Order books")
 
 
     if tribot.fetch_number > 0 and tribot.run_once:
@@ -201,17 +209,17 @@ while True:
     if not tribot.force_best_tri and len(tribot.tri_list_good) <= 0:
         continue  # no good triangles
 
+    # check the Order Book result for min amount
     if tribot.force_best_tri:
         working_triangle = tribot.tri_list[0]  # taking best triangle
-        bal_to_bid = tribot.balance  # balance to bid as actual balance or test balance
 
     else:  # taking the best triangle and max balance to bid
         working_triangle = tribot.tri_list_good[0]  # taking best good triangle
 
-        # get the maximum balance to bid because of result
-        bal_to_bid = tribot.get_max_balance_to_bid(tribot.start_currency[0], tribot.balance,
-                                                   working_triangle["result"],
-                                                   working_triangle["result"])
+    # Try to go into deal
+    tribot.log(tribot.LOG_INFO, "============================================================")
+    tribot.log(tribot.LOG_INFO, "Good result: {} for {}".format(working_triangle["result"],
+                                                                working_triangle["triangle"]))
 
     # set the best status for the best!
     working_triangle["status"] = "OK"
@@ -243,54 +251,29 @@ while True:
         tribot.errors += 1
         continue
 
-    # getting the maximum amount to bid for the  first trade
+    # check Order Book result for min amount
     try:
-        max_possible = ta.get_maximum_start_amount(tribot.exchange, working_triangle,
-                                                         {1: order_books[working_triangle["symbol1"]],
-                                                          2: order_books[working_triangle["symbol2"]],
-                                                          3: order_books[working_triangle["symbol3"]]},
-                                                         bal_to_bid, 100,
-                                                         tribot.min_amounts[tribot.start_currency[0]])
-        bal_to_bid = max_possible["amount"]
-        expected_result = max_possible["result"]
+        tribot.log(tribot.LOG_INFO, "Checking OB Result for min amount:{}"
+                   .format(tribot.min_amounts[tribot.start_currency[0]]))
 
+        expected_result = ta.order_book_results(tribot.exchange, working_triangle,
+                                                      {1: order_books[working_triangle["symbol1"]],
+                                                       2: order_books[working_triangle["symbol2"]],
+                                                       3: order_books[working_triangle["symbol3"]]},
+                                                tribot.min_amounts[tribot.start_currency[0]])["result"]
     except Exception as e:
-        working_triangle["status"] = "ERROR"
-
-        tribot.log(tribot.LOG_ERROR, "Error calc the result and amount on order books exchange_id{}:"
-                                     " session_uuid:{} fetch_num:{} :for {}{}{}"
-                   .format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number,
-                           working_triangle["symbol1"], working_triangle["symbol2"],working_triangle["symbol3"]))
-
+        tribot.log(tribot.LOG_ERROR,
+                   "Error calc the result and amount on order books for MIN Amount exchange_id{}: session_uuid:{}"
+                   " fetch_num:{} :""for {}{}{}".format(tribot.exchange_id, tribot.session_uuid,
+                                                        tribot.fetch_number, working_triangle["symbol1"],
+                                                        working_triangle["symbol2"],
+                                                        working_triangle["symbol3"]))
         tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
         tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+
+        working_triangle["status"] = "ERROR"
         tribot.errors += 1
         continue
-
-    # check if need to force start amount and calc the ob result
-    if tribot.force_start_amount:
-        bal_to_bid = tribot.force_start_amount
-        tribot.log(tribot.LOG_INFO, "Force amount to bid:{}".format(tribot.force_start_amount))
-        try:
-            expected_result = ta.order_book_results(tribot.exchange, working_triangle,
-                                                          {1: order_books[working_triangle["symbol1"]],
-                                                           2: order_books[working_triangle["symbol2"]],
-                                                           3: order_books[working_triangle["symbol3"]]},
-                                                          bal_to_bid)["result"]
-
-        except Exception as e:
-            tribot.log(tribot.LOG_ERROR,
-                       "Error calc the result and amount on order books exchange_id{}: session_uuid:{}"
-                       " fetch_num:{} :""for {}{}{}".format(tribot.exchange_id, tribot.session_uuid,
-                                                            tribot.fetch_number, working_triangle["symbol1"],
-                                                            working_triangle["symbol2"],
-                                                            working_triangle["symbol3"]))
-            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-
-            working_triangle["status"] = "OB STOP"
-            tribot.errors += 1
-            continue
 
     working_triangle["ob_result"] = expected_result * ((1-tribot.commission)**3)
 
@@ -300,6 +283,72 @@ while True:
         working_triangle["status"] = "OB STOP"
         tribot.log(tribot.LOG_INFO, "OB STOP")
         tribot.log(tribot.LOG_INFO, "Order book result: {}".format(working_triangle["ob_result"]))
+        continue
+
+    # getting max amount to bid for order book result
+    if not tribot.force_start_amount and not tribot.force_best_tri:
+        bal_to_bid = tribot.get_max_balance_to_bid(tribot.start_currency[0], tribot.balance,
+                                                   working_triangle["result"],
+                                                   working_triangle["ob_result"])
+
+    elif tribot.force_best_tri and not tribot.force_start_amount:
+        bal_to_bid = tribot.balance
+
+    # getting the maximum amount to bid for the first trade from the settings and order book result
+
+    if tribot.force_start_amount:
+        bal_to_bid = tribot.force_start_amount
+    else:
+
+        if tribot.force_best_tri:
+            order_book_threshold = 0  # for filtering the results on order_book_threshold
+        else:
+            order_book_threshold = tribot.threshold_order_book / (1-tribot.commission)**3
+
+        try:
+            tribot.log(tribot.LOG_INFO,
+                       "Increasing start bid with order_book_threshold={}....".format(order_book_threshold))
+
+            max_possible = ta.get_maximum_start_amount(tribot.exchange, working_triangle,
+                                                       {1: order_books[working_triangle["symbol1"]],
+                                                        2: order_books[working_triangle["symbol2"]],
+                                                        3: order_books[working_triangle["symbol3"]]},
+                                                       bal_to_bid, 100,
+                                                       tribot.min_amounts[tribot.start_currency[0]],
+                                                       order_book_threshold)
+            if max_possible is not None:
+                bal_to_bid = max_possible["amount"]
+                expected_result = max_possible["result"]
+                working_triangle["ob_result"] = expected_result * ((1 - tribot.commission) ** 3)
+
+                if bal_to_bid > tribot.min_amounts[tribot.start_currency[0]]:
+                    tribot.log(tribot.LOG_INFO,
+                               "Increase start amount: {} (was {})".format(bal_to_bid,
+                                                                           tribot.min_amounts[tribot.start_currency[0]]))
+            else:
+                tribot.log(tribot.LOG_INFO,
+                           "No good results when getting maximum bid.... Skipping")
+                working_triangle["status"] = "OB STOP"
+                continue
+
+
+        except Exception as e:
+            working_triangle["status"] = "ERROR"
+
+            tribot.log(tribot.LOG_ERROR, "Error calc the result and amount on order books exchange_id{}:"
+                                         " session_uuid:{} fetch_num:{} :for {}{}{}"
+                       .format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number,
+                               working_triangle["symbol1"], working_triangle["symbol2"],working_triangle["symbol3"]))
+
+            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+            tribot.errors += 1
+            continue
+
+    # double check if initial bid is not None and float
+    if bal_to_bid is None or not isinstance(bal_to_bid, float):
+        tribot.log(tribot.LOG_ERROR, "Initial balance is None and/or not float {}".format(bal_to_bid))
+        tribot.errors += 1
         continue
 
     # going to deals

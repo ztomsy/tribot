@@ -46,8 +46,13 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         # start bid is very big
         max_possible = ta.get_maximum_start_amount(exchange, deal.data_row, ob,
                                                                  10, 100, 0.01)
-
         self.assertEqual( {'result': 1.0086905273264402, 'amount': 0.6154545454545455}, max_possible)
+
+        # fillter for minimum result:
+        max_possible = ta.get_maximum_start_amount(exchange, deal.data_row, ob,
+                                                   10, 100, 0.01, 1.1)
+        self.assertEqual(None, max_possible)
+
 
 
     def test_ob_results(self):
@@ -168,13 +173,17 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         self.assertAlmostEqual(0.79, expected_result["result"], 2)
 
+        # start_amount is greater than amount in order book
         expected_result2 = ta.order_book_results(exchange, working_triangle,
                                                               {1: order_books[working_triangle["symbol1"]],
                                                                2: order_books[working_triangle["symbol2"]],
                                                                3: order_books[working_triangle["symbol3"]]},
                                                        10)
 
-        self.assertEqual( expected_result2["result_amount"], 0.83153636)
+        self.assertEqual(expected_result2["result_amount"], 0.83153636)
+
+
+
 
 
 if __name__ == '__main__':
