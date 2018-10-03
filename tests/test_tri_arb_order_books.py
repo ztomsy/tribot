@@ -30,7 +30,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         ob_file = "./test_data/deals_%s_ob.csv" % launch_id
 
         deal = Deal()
-        deal.load_from_csv(tickers_file, "17debfb7-17cc-4d0a-9e9c-ea19b63d3e98")
+        deal.load_from_csv(deal_file, "17debfb7-17cc-4d0a-9e9c-ea19b63d3e98")
         deal.get_order_books_from_csv(ob_file)
 
         ob = dict()
