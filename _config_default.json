@@ -30,6 +30,7 @@
   "good_consecutive_results_threshold":2,
   "lap_time" : 60,
   "max_requests_per_lap": 850,
+  "sleep_on_tickers_error": 15,
 
   "influxdb":
           {"host": "13.231.173.161",

@@ -56,6 +56,7 @@ class TriBot:
 
         self.lap_time = float()
         self.max_requests_per_lap = 0.0
+        self.sleep_on_tickers_error = 0.0  # sleeping time when exception on receiving tickers
 
         self.test_balance = float()
         self.force_start_amount = float()

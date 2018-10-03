@@ -3,6 +3,7 @@ from tkgtri import tri_arb as ta
 import uuid
 import sys
 import traceback
+import time
 
 TriBot.print_logo("TriBot v0.5")
 
@@ -37,6 +38,7 @@ tribot.log(tribot.LOG_INFO, "Debug: {}".format(tribot.debug))
 tribot.log(tribot.LOG_INFO, "Force trades with best result: {}".format(tribot.force_best_tri))
 tribot.log(tribot.LOG_INFO, "Offline mode: {}".format(tribot.offline))
 tribot.log(tribot.LOG_INFO, "Start currency: {}".format(tribot.start_currency[0]))
+tribot.log(tribot.LOG_INFO, "Sleep time on fetching tickers error: {}".format(tribot.sleep_on_tickers_error))
 
 # now we have exchange_id from config file or cli
 tribot.init_reports("_"+tribot.exchange_id+"/")
@@ -177,7 +179,8 @@ while True:
 
         tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
         tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
-
+        tribot.log(tribot.LOG_INFO, "Sleeping for {}s".format(tribot.sleep_on_tickers_error))
+        time.sleep(tribot.sleep_on_tickers_error)
         tribot.errors += 1
         continue  # drop the trades and return to ticker fetch loop
 
