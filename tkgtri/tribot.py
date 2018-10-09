@@ -5,17 +5,16 @@ from tkgcore import utils
 from tkgcore import timer
 from .tri_cli import *
 from . import tri_arb as ta
-import uuid
 import copy
 from tkgcore.reporter import TkgReporter
 import bisect
 import datetime
-import time
 from tkgcore.trade_orders import *
 from tkgcore.trade_order_manager import *
 from tkgcore import rest_server
 from tkgcore import DataStorage
-import collections
+import csv
+import os
 
 
 class TriBot:
@@ -618,7 +617,7 @@ class TriBot:
 
         # deal_prefix = list([deal_uuid])
 
-        storage = DataStorage("_{}/deals".format(self.exchange_id))
+        storage = DataStorage("_{}/".format(self.exchange_id))
         storage.register(order_book_storage, ob_file_header)
 
         table_to_save = list()
@@ -630,6 +629,23 @@ class TriBot:
         storage.save_all(order_book_storage, table_to_save)
 
         return True
+
+    def save_single_deal_csv(self, deal):
+        write_header = False
+
+        file_deals = "_{}/{}.csv".format(self.exchange_id, deal["deal-uuid"])
+
+        if not os.path.isfile(file_deals):
+            write_header = True
+
+        with open(file_deals, 'a', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=self.get_report_fields(), extrasaction="ignore")
+            if write_header:
+                writer.writeheader()
+
+            writer.writerow(deal)
+
+
 
     @staticmethod
     def print_logo(product=""):

@@ -118,6 +118,8 @@ while True:
             tribot.log(tribot.LOG_INFO, "============ DEAL REPORT ===========")
             tribot.log_report(report)
             tribot.log(tribot.LOG_INFO, "====================================")
+            tribot.log(tribot.LOG_INFO, "Saving to file...")
+            tribot.save_single_deal_csv(report)
 
             try:
                 tribot.send_remote_report(report)
