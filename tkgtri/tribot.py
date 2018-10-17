@@ -324,7 +324,7 @@ class TriBot(Bot):
             order_manager.order.filled_dest_amount,
             order_manager.order.amount_dest))
 
-        self.log(self.LOG_INFO, "Cancel threshold: {}".format(order_manager.cancel_threshold))
+        #  self.log(self.LOG_INFO, "Cancel threshold: {}".format(order_manager.cancel_threshold))
 
     # here is the sleep between updates is implemented! needed to be fixed
     def log_order_update(self, order_manager: OrderManagerFok):
@@ -380,13 +380,12 @@ class TriBot(Bot):
             self.exchange._offline_order_update_index = 0
             self.exchange._offline_order_cancelled = False
 
-        cancel_threshold = self.min_order_amount(symbol, price)
+        # cancel_threshold = self.min_order_amount(symbol, price)
 
         order_manager = OrderManagerFok(order, None, updates_to_kill=self.order_update_total_requests,
                                         max_cancel_attempts=self.order_update_total_requests,
                                         max_order_update_attempts=self.max_order_update_attempts,
-                                        request_sleep=self.request_sleep,
-                                        cancel_threshold=cancel_threshold)
+                                        request_sleep=self.request_sleep)
         order_manager.log = self.log
         order_manager.LOG_INFO = self.LOG_INFO
         order_manager.LOG_ERROR = self.LOG_ERROR
