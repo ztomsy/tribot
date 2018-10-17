@@ -11,13 +11,14 @@ import bisect
 import datetime
 from tkgcore.trade_orders import *
 from tkgcore.trade_order_manager import *
+from tkgcore import Bot
 from tkgcore import rest_server
 from tkgcore import DataStorage
 import csv
 import os
 
 
-class TriBot:
+class TriBot(Bot):
 
     def __init__(self, default_config: str, log_filename=None):
 
@@ -323,6 +324,8 @@ class TriBot:
             order_manager.order.filled_dest_amount,
             order_manager.order.amount_dest))
 
+        self.log(self.LOG_INFO, "Cancel threshold: {}".format(order_manager.cancel_threshold))
+
     # here is the sleep between updates is implemented! needed to be fixed
     def log_order_update(self, order_manager: OrderManagerFok):
         self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled amount:{} / {} ".format(
@@ -371,16 +374,19 @@ class TriBot:
         order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
 
         if self.offline:
-            o = self.exchange.create_order_offline_data(order, 2)
+            o = self.exchange.create_order_offline_data(order, 10)
             self.exchange._offline_order = copy.copy(o)
             self.exchange._offline_trades = copy.copy(o["trades"])
             self.exchange._offline_order_update_index = 0
             self.exchange._offline_order_cancelled = False
 
+        cancel_threshold = self.min_order_amount(symbol, price)
+
         order_manager = OrderManagerFok(order, None, updates_to_kill=self.order_update_total_requests,
                                         max_cancel_attempts=self.order_update_total_requests,
                                         max_order_update_attempts=self.max_order_update_attempts,
-                                        request_sleep=self.request_sleep)
+                                        request_sleep=self.request_sleep,
+                                        cancel_threshold=cancel_threshold)
         order_manager.log = self.log
         order_manager.LOG_INFO = self.LOG_INFO
         order_manager.LOG_ERROR = self.LOG_ERROR
