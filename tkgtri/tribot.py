@@ -615,7 +615,7 @@ class TriBot(Bot):
 
     def save_order_books(self, deal_uuid: str, order_books):
 
-        ob_file_header = ["deal-uuid", "ticker",
+        ob_file_header = ["deal-uuid",
                           "symbol", "ask", "ask-qty", "bid", "bid-qty"]
 
         order_book_storage = deal_uuid +"_ob"
