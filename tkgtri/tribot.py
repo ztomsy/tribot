@@ -59,9 +59,13 @@ class TriBot(Bot):
         self.sleep_on_tickers_error = 0.0  # sleeping time when exception on receiving tickers
 
         self.test_balance = float()
+        self.check_order_books = True
+        self.prices_from_ticker = False
+
         self.force_start_amount = float()
 
         self.force_best_tri = bool()
+
         self.debug = bool()
         self.run_once = False
         self.noauth = False
@@ -225,7 +229,7 @@ class TriBot(Bot):
     #
     # get maximum balance to bid in respect to thresholds set in config
     #
-    def get_max_balance_to_bid(self, currency=None, balance=None, result=None, ob_result=None):
+    def max_balance_to_bid_from_thresholds(self, currency=None, balance=None, result=None, ob_result=None):
 
         currency = self.start_currency[0] if currency is None else currency
         balance = self.balance if balance is None else balance
@@ -325,6 +329,84 @@ class TriBot(Bot):
             order_manager.order.amount_dest))
 
         #  self.log(self.LOG_INFO, "Cancel threshold: {}".format(order_manager.cancel_threshold))
+
+    def start_amount_to_bid(self, working_triangle: dict, order_books:dict, force_best_tri=False,
+                            force_start_amount: float = 0.0):
+
+        """
+        Returns the amount to bid in first leg in accordance to parameters.
+
+        :param working_triangle: working triangle dict, should contain following fields: result, ob_result, symbol1,
+         symbol2, symbol3,  leg{1,2,3}-order
+        :param order_books: dict of order books, where keys are leg numbers and values are order_books objects for
+        corresponding symbols. Ex:  {1: order_books[working_triangle["symbol1"]],
+                                                            2: order_books[working_triangle["symbol2"]],
+                                                            3: order_books[working_triangle["symbol3"]]}
+
+        :param force_best_tri: bot option
+        :param force_start_amount: bot option
+        :return: amount to bid or None in case of error
+        """
+
+        if not force_start_amount and not force_best_tri:
+            bal_to_bid = self.max_balance_to_bid_from_thresholds(self.start_currency[0], self.balance,
+                                                                 working_triangle["result"],
+                                                                 working_triangle["ob_result"])
+            if bal_to_bid is None:
+                return None
+
+        elif force_best_tri and not force_start_amount:
+            bal_to_bid = self.balance * self.share_balance_to_bid
+
+            bal_to_bid = self.max_balance_to_bid_from_thresholds(self.start_currency[0], self.balance,
+                                                                 self.threshold,
+                                                                 self.threshold_order_book)
+
+        if force_start_amount:
+            bal_to_bid = force_start_amount
+
+        # check if need to restrict max bid to share_balance_to_bid
+
+        if bal_to_bid > self.balance * self.share_balance_to_bid:
+
+            bal_to_bid = self.balance * self.share_balance_to_bid
+            self.log(self.LOG_INFO, "Small balance, applying  share_balance_to_bid={}  ".format(
+                self.share_balance_to_bid))
+
+        return bal_to_bid
+
+        # getting the maximum amount to bid for the first trade from the settings and order book result
+
+    def restrict_amount_to_bid_from_order_book(self, bal_to_bid,  working_triangle, order_books, force_best_tri=False):
+
+        if force_best_tri:
+            order_book_threshold = 0  # for filtering the results on order_book_threshold
+        else:
+            order_book_threshold = self.threshold_order_book / (1 - self.commission) ** 3
+
+        self.log(self.LOG_INFO, "Getting start bid with from the Order book (order_book_threshold={})....".format(
+            order_book_threshold))
+        max_possible = ta.get_maximum_start_amount(self.exchange, working_triangle,
+                                                   {1: order_books[working_triangle["symbol1"]],
+                                                    2: order_books[working_triangle["symbol2"]],
+                                                    3: order_books[working_triangle["symbol3"]]},
+                                                   bal_to_bid, 100,
+                                                   self.min_amounts[self.start_currency[0]],
+                                                   order_book_threshold)
+        if max_possible is None:
+            self.log(self.LOG_INFO,
+                     "No good results when getting maximum bid from OB.... Skipping")
+            # working_triangle["status"] = "OB STOP"
+            return None, None, None
+
+        bal_to_bid = max_possible["amount"]
+        expected_result = max_possible["result"]
+        ob_result = expected_result * ((1 - self.commission) ** 3)
+        if bal_to_bid > self.min_amounts[self.start_currency[0]]:
+            self.log(self.LOG_INFO,
+                     "Increase start amount: {} (was {})".format(bal_to_bid,
+                                                                 self.min_amounts[self.start_currency[0]]))
+        return expected_result, ob_result, bal_to_bid
 
     # here is the sleep between updates is implemented! needed to be fixed
     def log_order_update(self, order_manager: OrderManagerFok):

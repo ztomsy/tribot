@@ -199,14 +199,14 @@ class BasicTestSuite(unittest.TestCase):
     def test_get_max_balance_to_bid(self):
         self.tribot.load_config_from_file(self.default_config)
 
-        self.assertEqual(self.tribot.get_max_balance_to_bid("ETH", 1, 1.006, 1.006), 1)
-        self.assertEqual(self.tribot.get_max_balance_to_bid("ETH", 20, 1.006, 1.006), 5)
-        self.assertEqual(self.tribot.get_max_balance_to_bid("ETH", 20, 1.01, 1.01), 10)
+        self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("ETH", 1, 1.006, 1.006), 1)
+        self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("ETH", 20, 1.006, 1.006), 5)
+        self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("ETH", 20, 1.01, 1.01), 10)
 
-        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 1, 1.001, 1.001), None)  # threshold too low
-        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 1, 1.005, 1.005), 0.5)   # 1st threshold
-        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 0.7, 1.01, 1.01), 0.7)   # 2nd threshold
-        self.assertEqual(self.tribot.get_max_balance_to_bid("BTC", 2, 1.01, 1.01), 1)       # 2nd max balance cap
+        self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("BTC", 1, 1.001, 1.001), None)  # threshold too low
+        self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("BTC", 1, 1.005, 1.005), 0.5)   # 1st threshold
+        self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("BTC", 0.7, 1.01, 1.01), 0.7)   # 2nd threshold
+        self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("BTC", 2, 1.01, 1.01), 1)       # 2nd max balance cap
 
     def test_best_recovery_amount_order2(self):
 
@@ -361,6 +361,141 @@ class BasicTestSuite(unittest.TestCase):
 
         self.tribot.save_order_books(str(uuid.uuid4()), order_books)
 
+    def _prepare_bot_for_test_start_amount(self):
+        import test_data.order_books_data as td  # getting sample order books
+
+        self.tribot.load_config_from_file(self.default_config)
+        self.tribot.init_exchange()
+        self.tribot.exchange.offline = True
+
+        working_triangle = dict()
+        working_triangle["result"] = 1.006
+        working_triangle["ob_result"] = 1.006
+
+        working_triangle["symbol1"] = "ETH/BTC"
+        working_triangle["symbol2"] = "MANA/BTC"
+        working_triangle["symbol3"] = "MANA/ETH"
+
+        working_triangle["leg1-order"] = "sell"
+        working_triangle["leg2-order"] = "buy"
+        working_triangle["leg3-order"] = "sell"
+
+        order_books_data = td.get_order_books()
+
+        order_books = dict()
+        for key, ob in order_books_data.items():
+            order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+
+        return (order_books, working_triangle)
+
+    def test_start_amount_default_parameters(self):
+        order_books, working_triangle = self._prepare_bot_for_test_start_amount()
+
+        self.tribot.balance = 1
+        bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books)
+        self.assertEqual(0.5, bal_to_bid)
+
+        # balance is less than in config
+        self.tribot.balance = 0.5
+        bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books)
+        self.assertEqual(0.5*self.tribot.share_balance_to_bid, bal_to_bid)
+
+        # results less than thresholds
+        self.tribot.balance = 0.5
+        working_triangle["result"] = 0.99
+        working_triangle["ob-result"] = 0.99
+
+        bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books)
+        self.assertEqual(None, bal_to_bid)
+
+    def test_start_amount_force_best_tri(self):
+        order_books, working_triangle = self._prepare_bot_for_test_start_amount()
+
+        self.tribot.balance = 1
+        working_triangle["result"] = 0.99  # this should be ignored and results will be taken from config
+        working_triangle["ob-result"] = 0.99
+
+        bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books, True)
+        self.assertEqual(0.5, bal_to_bid)
+
+        # balance is less than in config
+        self.tribot.balance = 0.5
+        bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books, True)
+        self.assertEqual(0.5 * self.tribot.share_balance_to_bid, bal_to_bid)
+
+    def test_start_amount_force_start_bid(self):
+
+        order_books, working_triangle = self._prepare_bot_for_test_start_amount()
+
+        self.tribot.balance = 10
+        self.tribot.force_best_tri = False
+        self.tribot.force_start_amount = 6
+        # working_triangle["result"] = 0.99  # this should be ignored and results will be taken from config
+        # working_triangle["ob-result"] = 0.99
+
+        bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books, self.tribot.force_best_tri,
+                                                     self.tribot.force_start_amount)
+
+        self.assertEqual(6, bal_to_bid)
+
+    def test_restrict_amount_to_bid_from_order_book_default_parameters_short_ob(self):
+
+        order_books, working_triangle = self._prepare_bot_for_test_start_amount()
+
+        order_books_data_2 = {"asks": list([[0.0000200000, 100]]), "bids":  list([[0.0000200000, 100]])}
+        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+
+        self.tribot.balance = 1
+        bal_to_bid = 5
+
+        expected_result, ob_result, bid_from_order_book = self.tribot.restrict_amount_to_bid_from_order_book(
+            bal_to_bid, working_triangle, order_books)
+
+        self.assertAlmostEqual(1.2268, expected_result, 4)
+        self.assertAlmostEqual(0.02812, bid_from_order_book, 4)
+
+    def test_restrict_amount_to_bid_from_order_book_default_parameters_longer_ob(self):
+        order_books, working_triangle = self._prepare_bot_for_test_start_amount()
+
+        order_books_data_2 = {"asks": list([[0.0000200000, 100],
+                                            [0.0000300000, 100]]),
+                              "bids": list([[0.0000200000, 100]])}
+
+        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+
+        self.tribot.balance = 1
+        bal_to_bid = 5
+
+        expected_result, ob_result, bid_from_order_book = self.tribot.restrict_amount_to_bid_from_order_book(
+            bal_to_bid, working_triangle, order_books, True)
+
+        self.assertAlmostEqual(0.02, bid_from_order_book, 4)
+
+        # start amount is less (0.02 vs 0.028) because in case of short order book from  previous test case
+        # (test_restrict_amount_to_bid_from_order_book_default_parameters_short_ob) the last checked amount
+        # of order book is the max available amount in order book (0.028) which has the better price than the result of
+        # max available amount in bigger OB (~0.029) which has the lesser result
+
+    def test_restrict_amount_to_bid_from_order_book_force_start_tri(self):
+        order_books, working_triangle = self._prepare_bot_for_test_start_amount()
+
+        order_books_data_2 = {"asks": list([[0.0000200000, 10],
+                                            [0.0000300000, 100]]),
+                              "bids": list([[0.0000200000, 100]])}
+
+        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+
+        self.tribot.balance = 1
+        bal_to_bid = 5
+
+        # should return None for everything because OB results are less than threshold
+        self.assertEqual((None, None, None), self.tribot.restrict_amount_to_bid_from_order_book(
+            bal_to_bid, working_triangle, order_books, False)  )
+
+        expected_result, ob_result, bid_from_order_book = self.tribot.restrict_amount_to_bid_from_order_book(
+            bal_to_bid, working_triangle, order_books, True)
+
+        self.assertAlmostEqual(0.02, bid_from_order_book, 4)
 
 if __name__ == '__main__':
     unittest.main()
