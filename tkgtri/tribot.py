@@ -27,10 +27,12 @@ class TriBot(Bot):
         self.errors = 0
 
         self.config_filename = default_config
+
         self.exchange_id = ""
         self.server_id = ""
         self.script_id = ""
         self.start_currency = list()
+
         self.share_balance_to_bid = float()
         self.max_recovery_attempts = int()
         self.min_amounts = dict()
@@ -69,7 +71,11 @@ class TriBot(Bot):
         self.debug = bool()
         self.run_once = False
         self.noauth = False
+
         self.offline = False
+        self.offline_tickers_file = ""
+        self.offline_order_books_file = ""
+        self.offline_markets_file = ""
 
         self.recovery_server = ""
 

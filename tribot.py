@@ -109,7 +109,7 @@ while True:
 
         tribot.timer.notch("time_after_deals")
 
-        report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price, price2,
+        report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price1, price2,
                                         price3)
         # we are not reporting and reloading balance if OB STOP
         if "status" in working_triangle and working_triangle["status"] != "OB STOP":
@@ -158,7 +158,7 @@ while True:
     recovery_data = list()  # list of recovery data dict
     report = dict()
     order1, order2, order3 = (None, None, None)
-    price, price2, price3 = (None, None, None)
+    price1, price2, price3 = (None, None, None)
 
     # exit when debugging and because of errors
     if tribot.debug is True and tribot.errors > 0:
@@ -353,18 +353,18 @@ while True:
     working_triangle["status"] = "OK"
 
     # Order 1
-    price = tribot.exchange.price_to_precision(working_triangle["symbol1"],
-                                               order_books[working_triangle["symbol1"]].get_depth_for_trade_side(
+    price1 = tribot.exchange.price_to_precision(working_triangle["symbol1"],
+                                                order_books[working_triangle["symbol1"]].get_depth_for_trade_side(
                                                    bal_to_bid, working_triangle["leg1-order"]).total_price)
 
     tribot.log(tribot.LOG_INFO, "Trade 1/3: from {}-{}->{}".format(working_triangle["cur1"],
                                                                    working_triangle["leg1-order"],
                                                                    working_triangle["cur2"]))
 
-    tribot.log(tribot.LOG_INFO, "Price: {}. Src Amount {}".format(price, bal_to_bid))
+    tribot.log(tribot.LOG_INFO, "Price: {}. Src Amount {}".format(price1, bal_to_bid))
 
     order1 = tribot.do_trade(working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
-                             bal_to_bid, working_triangle["leg1-order"], price)
+                             bal_to_bid, working_triangle["leg1-order"], price1)
 
     if order1.filled_dest_amount > 0:
         resp_trades = tribot.get_trade_results(order1)

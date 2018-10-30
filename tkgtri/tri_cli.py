@@ -37,7 +37,8 @@ def get_cli_parameters(args):
                         default=False,
                         action="store_true")
 
-    parser.add_argument("--force_start_bid", help="ignore max amount for order books and use this amount to start deals",
+    parser.add_argument("--force_start_bid",
+                        help="ignore max amount for order books and use this amount to start deals",
                         dest="force_start_amount",
                         default=None,
                         type=float,
@@ -49,14 +50,28 @@ def get_cli_parameters(args):
                         default=False,
                         action="store_true")
 
-    parser.add_argument("--offline",
-                        help="offline mode from files: test_data/markets.json test_data/tickers.csv",
-                        dest="offline",
-                        default=False,
-                        action="store_true")
+    subparsers = parser.add_subparsers(help="Running mode. Online in default")
+    subparsers.required = False
+    offline = subparsers.add_parser("offline", help="Set the working  mode")
+    # offline = subparsers.add_parser("online", help="Set the offline mode")
+    offline.set_defaults(offline=True)
+
+    offline.add_argument("--tickers", "-t",
+                         help="path to csv tickers file",
+                         dest="offline_tickers_file",
+                         default=None,
+                         action="store")
+
+    offline.add_argument("--order_books","-ob",
+                         help="path to csv order books file",
+                         dest="offline_order_books_file",
+                         default=None,
+                         action="store")
+
+    offline.add_argument("--markets", "-m",
+                         help="path to markets json file",
+                         dest="offline_markets_file",
+                         default=None,
+                         action="store")
 
     return parser.parse_args(args)
-
-
-
-

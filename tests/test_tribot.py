@@ -392,6 +392,7 @@ class BasicTestSuite(unittest.TestCase):
         order_books, working_triangle = self._prepare_bot_for_test_start_amount()
 
         self.tribot.balance = 1
+        self.tribot.start_currency = ["BTC"]
         bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books)
         self.assertEqual(0.5, bal_to_bid)
 
@@ -412,6 +413,7 @@ class BasicTestSuite(unittest.TestCase):
         order_books, working_triangle = self._prepare_bot_for_test_start_amount()
 
         self.tribot.balance = 1
+        self.tribot.start_currency = ["BTC"]
         working_triangle["result"] = 0.99  # this should be ignored and results will be taken from config
         working_triangle["ob-result"] = 0.99
 
