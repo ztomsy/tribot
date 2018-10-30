@@ -234,7 +234,7 @@ while True:
     working_triangle["deal-uuid"] = str(uuid.uuid4())
     tribot.log(tribot.LOG_INFO, "Deal-uuid: {}".format(working_triangle["deal-uuid"]))
 
-    # fetching the order books for symbols in triangle
+    # fetching the order books for symbols in triangle if the check_order_books option is activated
     if tribot.check_order_books:
         try:
             tribot.log(tribot.LOG_INFO, "Try to fetch order books: {} {} {} ".format(working_triangle["symbol1"],
@@ -283,6 +283,8 @@ while True:
             continue
 
         working_triangle["ob_result"] = expected_result * ((1-tribot.commission)**3)
+        tribot.log(tribot.LOG_INFO, "...order book result w commission for min amount {}: {}".format(
+            tribot.min_amounts[tribot.start_currency[0]],working_triangle["ob_result"]))
 
         # checking OB STOP
         if working_triangle["ob_result"] < tribot.threshold_order_book and\
@@ -297,31 +299,37 @@ while True:
     bal_to_bid = tribot.start_amount_to_bid(working_triangle, order_books, tribot.force_best_tri,
                                             tribot.force_start_amount)
 
-    # getting max amount to bid from order book if order books are requested
-
+    # getting max amount to bid from order book if the option "check_order_books" is activated requested
     if tribot.check_order_books:
+
         try:
-            expected_result, ob_result, bid_from_order_book = tribot.restrict_amount_to_bid_from_order_book(bal_to_bid, tribot.force_start_amount)
-
+            expected_result, ob_result, bid_from_order_book =\
+                tribot.restrict_amount_to_bid_from_order_book(bal_to_bid, working_triangle, order_books,
+                                                              tribot.force_start_amount)
+            working_triangle["ob_result"] = ob_result
         except Exception as e:
-
             working_triangle["status"] = "ERROR"
-
-            tribot.log(tribot.LOG_ERROR, "Error calc the result and amount on order books exchange_id{}:"
+            tribot.log(tribot.LOG_ERROR, "Error. Start amount from order books exchange_id{}:"
                                          " session_uuid:{} fetch_num:{} :for {}{}{}"
                        .format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number,
                                working_triangle["symbol1"], working_triangle["symbol2"],
                                working_triangle["symbol3"]))
-
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
             tribot.errors += 1
             continue
 
-        working_triangle["ob_result"] = ob_result
-
+        # apply results from tickers prices if  needed
         if tribot.force_start_amount > bid_from_order_book and tribot.prices_from_ticker:
+
+            tribot.log(tribot.LOG_INFO, "Force start amount greater than from OB {} > {} ".format(
+                tribot.force_start_amount, bid_from_order_book))
+            tribot.log(tribot.LOG_INFO, "... going with ticker prices")
+
             bal_to_bid = tribot.force_start_amount
+            expected_result = working_triangle["result"]
+            working_triangle["ob_result"] = working_triangle["result"]
+
 
     # double check if initial bid is not None and float
     if bal_to_bid is None or not isinstance(bal_to_bid, float):
@@ -335,8 +343,9 @@ while True:
                                                          bal_to_bid * expected_result)
 
     tribot.log(tribot.LOG_INFO, "Start amount:{}".format(bal_to_bid))
-    tribot.log(tribot.LOG_INFO, "Expected amount: {}".format(expected_amount))
-    tribot.log(tribot.LOG_INFO, "Expected result: {}".format(expected_result))
+    tribot.log(tribot.LOG_INFO, "Expected amount w/o commission: {}".format(expected_amount))
+    tribot.log(tribot.LOG_INFO, "Expected result w/o commission: {}".format(expected_result))
+    tribot.log(tribot.LOG_INFO, "Commission: {}".format(tribot.commission))
 
     tribot.assign_updates_functions_for_order_manager()
 

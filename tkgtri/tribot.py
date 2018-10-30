@@ -370,7 +370,7 @@ class TriBot(Bot):
         if bal_to_bid > self.balance * self.share_balance_to_bid:
 
             bal_to_bid = self.balance * self.share_balance_to_bid
-            self.log(self.LOG_INFO, "Small balance, applying  share_balance_to_bid={}  ".format(
+            self.log(self.LOG_INFO, "Balance less than allowed for current result, applying  share_balance_to_bid={}  ".format(
                 self.share_balance_to_bid))
 
         return bal_to_bid

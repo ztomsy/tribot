@@ -29,17 +29,17 @@
   "max_past_triangles" : 100,
   "good_consecutive_results_threshold":2,
   "lap_time" : 60,
-  "max_requests_per_lap": 850,
+  "max_requests_per_lap": 1200,
   "sleep_on_tickers_error": 15,
 
   "influxdb":
-          {"host": "13.231.173.161",
+          {"host": "666.666.666.6666",
             "port": 8086,
             "db": "tkg_dev",
             "measurement": "tri_status"},
 
   "recovery_server": {
-          "host": "http://localhost",
+          "host": "http://999.999.999.999",
           "port": 8080
   },
 
@@ -52,3 +52,4 @@
   "request_sleep": 0.1
 
 }
+
