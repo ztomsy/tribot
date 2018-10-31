@@ -49,7 +49,11 @@
   "max_trades_updates": 20,
   "max_oder_books_fetch_attempts": 10,
   "max_order_update_attempts":10,
-  "request_sleep": 0.1
+  "request_sleep": 0.1,
+
+  "offline_markets_file": "test_data/markets.json",
+  "offline_tickers_file": "test_data/tickers.csv",
+  "offline_order_books_file": false
 
 }
 

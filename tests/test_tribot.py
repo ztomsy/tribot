@@ -499,5 +499,8 @@ class BasicTestSuite(unittest.TestCase):
 
         self.assertAlmostEqual(0.02, bid_from_order_book, 4)
 
+
+
+
 if __name__ == '__main__':
     unittest.main()

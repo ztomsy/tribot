@@ -35,12 +35,40 @@ class TriCliTestSuite(unittest.TestCase):
         self.assertEqual(self.tribot.offline_order_books_file, "ob.csv")
         self.assertEqual(self.tribot.offline_markets_file, "markets.json")
 
-    def test_cli_set_all_offline_files(self):
+    def test_cli_set_offline_tickers(self):
 
         cli = "offline --tickers tickers.csv"
         self.tribot.set_from_cli(cli.split(" "))
         self.assertEqual(self.tribot.offline, True)
         self.assertEqual(self.tribot.offline_tickers_file, "tickers.csv")
+
+    def test_cli_deal_uuid(self):
+        cli = "offline --deal 123456 -t tickers.csv -m markets.json -ob order_books.csv"
+
+        self.tribot.set_from_cli(cli.split(" "))
+        self.assertEqual(self.tribot.offline, True)
+        self.assertEqual(self.tribot.offline_deal_uuid, "123456")
+        self.assertEqual(self.tribot.offline_markets_file, "markets.json")
+        self.assertEqual(self.tribot.offline_tickers_file, "tickers.csv")
+        self.assertEqual(self.tribot.offline_order_books_file, "order_books.csv")
+
+    def test_cli_override_depth_amount(self):
+        self.assertEqual(self.tribot.override_depth_amount, 0.0)
+
+        cli = "--override_depth_amount 0.5"
+        self.tribot.set_from_cli(cli.split(" "))
+        self.assertEqual(self.tribot.override_depth_amount, 0.5)
+
+    def test_cli_skip_order_books(self):
+        self.assertEqual(self.tribot.skip_order_books, False)
+        cli = "--skip_order_books"
+        self.tribot.set_from_cli(cli.split(" "))
+        self.assertEqual(self.tribot.skip_order_books, True)
+
+
+
+
+
 
 
 if __name__ == '__main__':

@@ -36,6 +36,7 @@ tribot.log(tribot.LOG_INFO, "Exchange ID:" + tribot.exchange_id)
 tribot.log(tribot.LOG_INFO, "session_uuid:" + tribot.session_uuid)
 tribot.log(tribot.LOG_INFO, "Debug: {}".format(tribot.debug))
 tribot.log(tribot.LOG_INFO, "Force trades with best result: {}".format(tribot.force_best_tri))
+tribot.log(tribot.LOG_INFO, "Force start amount: {}".format(tribot.force_start_amount))
 tribot.log(tribot.LOG_INFO, "Offline mode: {}".format(tribot.offline))
 tribot.log(tribot.LOG_INFO, "Start currency: {}".format(tribot.start_currency[0]))
 tribot.log(tribot.LOG_INFO, "Sleep time on fetching tickers error: {}".format(tribot.sleep_on_tickers_error))
@@ -51,12 +52,22 @@ except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
     tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
     tribot.log(tribot.LOG_INFO, "Continue....", e.args)
-try:
 
+# init the exchange
+try:
     tribot.init_exchange()
     if tribot.offline:
-        tribot.log(tribot.LOG_INFO, "Loading from offline test_data/markets.json test_data/tickers.csv")
-        tribot.exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
+
+        tribot.init_offline_mode()  # set offline files from the cli or config
+
+        tribot.log(tribot.LOG_INFO, "Offline Mode")
+        tribot.log(tribot.LOG_INFO, "..markets file: {}".format(tribot.offline_markets_file))
+        tribot.log(tribot.LOG_INFO, "..tickers file: {}".format(tribot.offline_tickers_file))
+        if tribot.offline_order_books_file:
+            tribot.log(tribot.LOG_INFO, "..order books file: {}".format(tribot.offline_order_books_file))
+        else:
+            tribot.log(tribot.LOG_INFO, "..order books will be created from tickers")
+
     else:
         tribot.exchange.init_async_exchange()
 
@@ -136,16 +147,15 @@ while True:
             except:
                 tribot.log(tribot.LOG_ERROR, "Could not save Order books")
 
+            if tribot.run_once:
+                tribot.log(tribot.LOG_INFO, "Exiting because of Run once")
+                sys.exit(666)
+
         # reload balance if it was a deal (noty OB STOP or error)
         if "status" in working_triangle and \
                 working_triangle["status"] not in ("OB STOP", "ERROR"):
             tribot.reload_balance(report["result-fact-diff"])
 
-
-
-    if tribot.fetch_number > 0 and tribot.run_once:
-        tribot.log(tribot.LOG_INFO, "Exiting because of Run once")
-        sys.exit(666)
 
     # reset timer
     tribot.timer.reset_notches()
@@ -159,6 +169,7 @@ while True:
     report = dict()
     order1, order2, order3 = (None, None, None)
     price1, price2, price3 = (None, None, None)
+    force_ticker_prices = False
 
     # exit when debugging and because of errors
     if tribot.debug is True and tribot.errors > 0:
@@ -234,8 +245,8 @@ while True:
     working_triangle["deal-uuid"] = str(uuid.uuid4())
     tribot.log(tribot.LOG_INFO, "Deal-uuid: {}".format(working_triangle["deal-uuid"]))
 
-    # fetching the order books for symbols in triangle if the check_order_books option is activated
-    if tribot.check_order_books:
+    # fetching the order books for symbols in triangle if the skip_order_books option is not activated
+    if not tribot.skip_order_books:
         try:
             tribot.log(tribot.LOG_INFO, "Try to fetch order books: {} {} {} ".format(working_triangle["symbol1"],
                                                                                      working_triangle["symbol2"],
@@ -288,7 +299,7 @@ while True:
 
         # checking OB STOP
         if working_triangle["ob_result"] < tribot.threshold_order_book and\
-                (not tribot.force_start_amount and not tribot.force_best_tri):
+                (not tribot.force_best_tri):
             working_triangle["status"] = "OB STOP"
             tribot.log(tribot.LOG_INFO, "OB STOP")
             tribot.log(tribot.LOG_INFO, "Order book result: {}".format(working_triangle["ob_result"]))
@@ -300,7 +311,7 @@ while True:
                                             tribot.force_start_amount)
 
     # getting max amount to bid from order book if the option "check_order_books" is activated requested
-    if tribot.check_order_books:
+    if not tribot.skip_order_books:
 
         try:
             expected_result, ob_result, bid_from_order_book =\
@@ -319,17 +330,22 @@ while True:
             tribot.errors += 1
             continue
 
-        # apply results from tickers prices if  needed
-        if tribot.force_start_amount > bid_from_order_book and tribot.prices_from_ticker:
+        # check if need to override start amount from order books and use ticker prices
+        if tribot.override_depth_amount > bid_from_order_book:
 
-            tribot.log(tribot.LOG_INFO, "Force start amount greater than from OB {} > {} ".format(
-                tribot.force_start_amount, bid_from_order_book))
+            bal_to_bid = tribot.override_depth_amount
+            force_ticker_prices = True
+
+            tribot.log(tribot.LOG_INFO, "Overriding start amount greater than from OB {} > {} ".format(
+                tribot.override_depth_amount, bid_from_order_book))
             tribot.log(tribot.LOG_INFO, "... going with ticker prices")
+        else:
+            # use the start amount from order books
+            bal_to_bid = bid_from_order_book
 
-            bal_to_bid = tribot.force_start_amount
-            expected_result = working_triangle["result"]
-            working_triangle["ob_result"] = working_triangle["result"]
-
+    if force_ticker_prices:
+        expected_result = working_triangle["result"]
+        working_triangle["ob_result"] = working_triangle["result"]
 
     # double check if initial bid is not None and float
     if bal_to_bid is None or not isinstance(bal_to_bid, float):
@@ -353,9 +369,12 @@ while True:
     working_triangle["status"] = "OK"
 
     # Order 1
-    price1 = tribot.exchange.price_to_precision(working_triangle["symbol1"],
-                                                order_books[working_triangle["symbol1"]].get_depth_for_trade_side(
-                                                   bal_to_bid, working_triangle["leg1-order"]).total_price)
+    if force_ticker_prices:
+        price1 = working_triangle["leg1-price"]
+    else:
+        price1 = tribot.exchange.price_to_precision(working_triangle["symbol1"],
+                                                    order_books[working_triangle["symbol1"]].get_depth_for_trade_side(
+                                                       bal_to_bid, working_triangle["leg1-order"]).total_price)
 
     tribot.log(tribot.LOG_INFO, "Trade 1/3: from {}-{}->{}".format(working_triangle["cur1"],
                                                                    working_triangle["leg1-order"],
@@ -387,10 +406,13 @@ while True:
     # Order 2
     order2_amount = order1.filled_dest_amount - order1.fees[order1.dest_currency]["amount"]
 
-    price2 = tribot.exchange.price_to_precision(working_triangle["symbol2"],
-                                               order_books[working_triangle["symbol2"]].get_depth_for_trade_side(
-                                                   order2_amount,
-                                                   working_triangle["leg2-order"]).total_price)
+    if force_ticker_prices:
+        price2 = working_triangle["leg2-price"]
+    else:
+        price2 = tribot.exchange.price_to_precision(working_triangle["symbol2"],
+                                                   order_books[working_triangle["symbol2"]].get_depth_for_trade_side(
+                                                       order2_amount,
+                                                       working_triangle["leg2-order"]).total_price)
 
     tribot.log(tribot.LOG_INFO, "Trade 2/3: from {}-{}->{}".format(working_triangle["cur2"],
                                                                    working_triangle["leg2-order"],
@@ -452,10 +474,13 @@ while True:
     # Order 3
     order3_amount = order2.filled_dest_amount - order2.fees[order2.dest_currency]["amount"]
 
-    price3 = tribot.exchange.price_to_precision(working_triangle["symbol3"],
-                                                order_books[working_triangle["symbol3"]].get_depth_for_trade_side(
-                                                    order3_amount,
-                                                    working_triangle["leg3-order"]).total_price)
+    if force_ticker_prices:
+        price3 = working_triangle["leg3-price"]
+    else:
+        price3 = tribot.exchange.price_to_precision(working_triangle["symbol3"],
+                                                    order_books[working_triangle["symbol3"]].get_depth_for_trade_side(
+                                                        order3_amount,
+                                                        working_triangle["leg3-order"]).total_price)
 
     tribot.log(tribot.LOG_INFO, "Trade 3/3: from {}-{}->{}".format(working_triangle["cur3"],
                                                                    working_triangle["leg3-order"],

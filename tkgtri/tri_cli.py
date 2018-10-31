@@ -1,8 +1,16 @@
 import argparse
 
+class SmartFormatter(argparse.HelpFormatter):
+
+    def _split_lines(self, text, width):
+        if text.startswith('R|'):
+            return text[2:].splitlines()
+        # this is the RawTextHelpFormatter._split_lines
+        return argparse.HelpFormatter._split_lines(self, text, width)
+
 
 def get_cli_parameters(args):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=SmartFormatter)
 
     parser.add_argument("--config", help="config file",
                         dest="config_filename",
@@ -38,11 +46,29 @@ def get_cli_parameters(args):
                         action="store_true")
 
     parser.add_argument("--force_start_bid",
-                        help="ignore max amount for order books and use this amount to start deals",
+                        help="Set the starting bid amount. Ignore the max bid checking because of results thresholds.",
                         dest="force_start_amount",
                         default=None,
                         type=float,
                         action="store")
+
+    parser.add_argument("--override_depth_amount",
+                        help="Override the start amount from the order books when it is less than this parameter. "
+                             "In this case ticker prices will be used.",
+                        dest="override_depth_amount",
+                        default=None,
+                        type=float,
+                        action="store")
+
+    parser.add_argument("--skip_order_books",
+                        help="R|Do not check order books!!\n"
+                             "In this case the start amount will be set from (in order of priority):\n"
+                             "1. override_depth_amount \n"
+                             "2. force_start_bid \n"
+                             "3. max bid from the threshold configuration (balance_bid_thresholds) \n",
+                        dest="skip_order_books",
+                        default=False,
+                        action="store_true")
 
     parser.add_argument("--noauth",
                         help="do not use the credentianls for exchange",
@@ -50,10 +76,10 @@ def get_cli_parameters(args):
                         default=False,
                         action="store_true")
 
-    subparsers = parser.add_subparsers(help="Running mode. Online in default")
+    subparsers = parser.add_subparsers(help="Offline mode")
     subparsers.required = False
-    offline = subparsers.add_parser("offline", help="Set the working  mode")
-    # offline = subparsers.add_parser("online", help="Set the offline mode")
+    offline = subparsers.add_parser("offline", help="Set the working  mode. offline -h for help")
+    # online = subparsers.add_parser("online", help="Set the online mode")
     offline.set_defaults(offline=True)
 
     offline.add_argument("--tickers", "-t",
@@ -73,5 +99,15 @@ def get_cli_parameters(args):
                          dest="offline_markets_file",
                          default=None,
                          action="store")
+
+    offline.add_argument("--deal", "-d",
+                         help="load offline tickers, markets and order books from <deal_uuid>.csv, "
+                              "<deal_uuid>_markets.csv "
+                              "<deal_uuid>_ob.csv",
+                         dest="offline_deal_uuid",
+                         default=None,
+                         action="store")
+
+
 
     return parser.parse_args(args)

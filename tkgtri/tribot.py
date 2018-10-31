@@ -14,6 +14,7 @@ from tkgcore.trade_order_manager import *
 from tkgcore import Bot
 from tkgcore import rest_server
 from tkgcore import DataStorage
+from tkgcore import ccxtExchangeWrapper
 import csv
 import os
 
@@ -61,21 +62,22 @@ class TriBot(Bot):
         self.sleep_on_tickers_error = 0.0  # sleeping time when exception on receiving tickers
 
         self.test_balance = float()
-        self.check_order_books = True
-        self.prices_from_ticker = False
 
+        # start amount parameters
         self.force_start_amount = float()
-
         self.force_best_tri = bool()
+        self.override_depth_amount = float()
+        self.skip_order_books = False
 
         self.debug = bool()
         self.run_once = False
         self.noauth = False
 
         self.offline = False
-        self.offline_tickers_file = ""
+        self.offline_tickers_file = "test_data/tickers.csv"
         self.offline_order_books_file = ""
-        self.offline_markets_file = ""
+        self.offline_markets_file = "test_data/markets.json"
+        self.offline_deal_uuid = ""
 
         self.recovery_server = ""
 
@@ -100,9 +102,9 @@ class TriBot(Bot):
         self.deals_file_id = int()
 
         self.influxdb = dict()
-        self.reporter = ...  # type: tkgtri.TkgReporter
+        self.reporter = ...  # type: TkgReporter
 
-        self.exchange = ...  # type: tkgtri.ccxtExchangeWrapper
+        self.exchange = ...  # type: ccxtExchangeWrapper
 
         self.basic_triangles = list()
         self.basic_triangles_count = int()
@@ -209,6 +211,12 @@ class TriBot(Bot):
         else:
             self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id)
 
+    def init_offline_mode(self):
+        self.exchange.set_offline_mode(self.offline_markets_file, self.offline_tickers_file)
+
+        if self.offline_order_books_file:
+            self.exchange.load_offline_order_books_from_csv(self.offline_order_books_file)
+
     def load_markets(self):
         self.markets = self.exchange.get_markets()
 
@@ -299,6 +307,9 @@ class TriBot(Bot):
         order_books = dict()
         for ob in ob_array:
             order_books[ob["symbol"]] = OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+
+            if self.offline and "from_ticker" in ob and ob["from_ticker"]:
+                self.log(self.LOG_INFO, "Order Book for {} created from TICKER".format(ob["symbol"]))
 
         return order_books
 
