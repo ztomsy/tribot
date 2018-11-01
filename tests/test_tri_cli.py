@@ -2,7 +2,6 @@
 
 from .context import tkgtri
 
-import tkgcore
 import unittest
 import os
 import time
@@ -64,6 +63,15 @@ class TriCliTestSuite(unittest.TestCase):
         cli = "--skip_order_books"
         self.tribot.set_from_cli(cli.split(" "))
         self.assertEqual(self.tribot.skip_order_books, True)
+
+    def test_cli_offline_test(self):
+        self.assertEqual(self.tribot.offline, False)
+        self.assertEqual(self.tribot.offline_run_test, False)
+
+        cli = "offline --test"
+        self.tribot.set_from_cli(cli.split(" "))
+        self.assertEqual(True, self.tribot.offline)
+        self.assertEqual(True, self.tribot.offline_run_test)
 
 
 

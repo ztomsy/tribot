@@ -116,6 +116,13 @@ class BasicTestSuite(unittest.TestCase):
         r = self.tribot.reporter.push_to_influx()
         self.assertEqual(r, True)
 
+    def test_config_report(self):
+        self.tribot.load_config_from_file(self.default_config)
+        config_report = self.tribot.get_config_report()
+
+        self.assertEqual(25, config_report["_config_order_update_total_requests"])
+
+
     def test_exchange_init(self):
         pass
 

@@ -100,6 +100,13 @@ def get_cli_parameters(args):
                          default=None,
                          action="store")
 
+    offline.add_argument("--test",
+                         help="Test run. Deal uuid is forced to be a 'test'. Reports saved into _test folder. "
+                              "Previous test files renamed into test_X.csv",
+                         dest="offline_run_test",
+                         default=None,
+                         action="store_true")
+
     offline.add_argument("--deal", "-d",
                          help="load offline tickers, markets and order books from <deal_uuid>.csv, "
                               "<deal_uuid>_markets.csv "

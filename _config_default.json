@@ -3,7 +3,7 @@
   "script_id": "triarb_production",
   "exchange_id":"binance",
 
-  "start_currency":["ETH","BTC"],
+  "start_currency":["ETH"],
   "share_balance_to_bid":0.8,
   "max_recovery_attempts": 20,
   "min_amounts":

@@ -10,7 +10,7 @@ TriBot.print_logo("TriBot v0.5")
 #
 # set default parameters
 #
-tribot = TriBot("_config.json", "_tri.log")
+tribot = TriBot("_config_default.json", "_tri.log")
 
 tribot.report_all_deals_filename = "%s/_all_deals.csv"  # full path will be exchange_id/all_deals.csv
 tribot.report_tickers_filename = "%s/all_tickers_%s.csv"
@@ -56,6 +56,7 @@ except Exception as e:
 # init the exchange
 try:
     tribot.init_exchange()
+    # init offline mode
     if tribot.offline:
 
         tribot.init_offline_mode()  # set offline files from the cli or config
@@ -67,6 +68,9 @@ try:
             tribot.log(tribot.LOG_INFO, "..order books file: {}".format(tribot.offline_order_books_file))
         else:
             tribot.log(tribot.LOG_INFO, "..order books will be created from tickers")
+
+        if tribot.offline_run_test:
+            tribot.init_test_run()
 
     else:
         tribot.exchange.init_async_exchange()
@@ -241,8 +245,9 @@ while True:
     # set the best status for the best!
     working_triangle["status"] = "OK"
 
-    # create deal_uuid
-    working_triangle["deal-uuid"] = str(uuid.uuid4())
+    # create deal_uuid or take it predefined in case of test run
+    working_triangle["deal-uuid"] = str(uuid.uuid4()) if not tribot.offline_run_test else tribot.deal_uuid
+
     tribot.log(tribot.LOG_INFO, "Deal-uuid: {}".format(working_triangle["deal-uuid"]))
 
     # fetching the order books for symbols in triangle if the skip_order_books option is not activated

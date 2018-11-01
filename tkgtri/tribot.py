@@ -17,9 +17,21 @@ from tkgcore import DataStorage
 from tkgcore import ccxtExchangeWrapper
 import csv
 import os
+import glob
+import uuid
 
 
 class TriBot(Bot):
+
+    # attributes of bot to be saved in reports. intended to be as a configuration parameters with config_ prefix
+
+    CONFIG_PARAMETERS = ["share_balance_to_bid", "commission", "threshold",
+                         "threshold_order_book", "max_trades_updates", "order_update_total_requests",
+                         "order_update_requests_for_time_out", "order_update_time_out",
+                         "max_oder_books_fetch_attempts", "max_order_update_attempts", "request_sleep", "lap_time",
+                         "max_requests_per_lap", "sleep_on_tickers_error", "force_start_amount", "force_best_tri",
+                         "override_depth_amount", "skip_order_books"]
+
 
     def __init__(self, default_config: str, log_filename=None):
 
@@ -54,7 +66,6 @@ class TriBot(Bot):
         self.max_order_update_attempts = 0
         self.request_sleep = 0.0  # sleep time between requests in seconds
 
-
         self.timer = ...  # type: timer.Timer
 
         self.lap_time = float()
@@ -78,6 +89,7 @@ class TriBot(Bot):
         self.offline_order_books_file = ""
         self.offline_markets_file = "test_data/markets.json"
         self.offline_deal_uuid = ""
+        self.offline_run_test = False  # if to run the test
 
         self.recovery_server = ""
 
@@ -113,6 +125,7 @@ class TriBot(Bot):
 
         self.markets = dict()
         self.tickers = dict()
+        self.deal_uuid = ""
 
         self.tri_list = list()
         self.tri_list_good = list()
@@ -187,8 +200,8 @@ class TriBot(Bot):
 
         self.deals_file_id = utils.get_next_report_filename(directory, self.report_deals_filename)
 
-        self.report_deals_filename = self.report_deals_filename % (directory, self.deals_file_id)
-        self.report_prev_tickers_filename = self.report_prev_tickers_filename % (directory, self.deals_file_id)
+        # self.report_deals_filename = self.report_deals_filename % (directory, self.deals_file_id)
+        # self.report_prev_tickers_filename = self.report_prev_tickers_filename % (directory, self.deals_file_id)
         self.report_dir = directory
 
     def init_remote_reports(self):
@@ -207,7 +220,7 @@ class TriBot(Bot):
         # self.exchange.load_markets()
         if not self.noauth:
             self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"],
-                                                                    self.api_key["secret"])
+                                                             self.api_key["secret"])
         else:
             self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id)
 
@@ -216,6 +229,27 @@ class TriBot(Bot):
 
         if self.offline_order_books_file:
             self.exchange.load_offline_order_books_from_csv(self.offline_order_books_file)
+
+    def init_test_run(self):
+
+        self.log(self.LOG_INFO, "Init offline test. Will set run once to TRUE")
+
+        self.deal_uuid = "test"
+        self.exchange_id = "test"
+        self.run_once = True
+
+        path = "_{}/".format(self.exchange_id)
+        files = glob.glob(path + "test*")
+
+        for f in files:
+            self.log(self.LOG_INFO, "Deleting test file {}".format(f))
+
+            try:
+                os.remove(f)
+            except Exception as e:
+                self.log(self.LOG_ERROR, "Could not delete  file {}".format(f))
+                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+                self.log(self.LOG_ERROR, "Exception body:", e.args)
 
     def load_markets(self):
         self.markets = self.exchange.get_markets()
@@ -347,7 +381,7 @@ class TriBot(Bot):
 
         #  self.log(self.LOG_INFO, "Cancel threshold: {}".format(order_manager.cancel_threshold))
 
-    def start_amount_to_bid(self, working_triangle: dict, order_books:dict, force_best_tri=False,
+    def start_amount_to_bid(self, working_triangle: dict, order_books: dict, force_best_tri=False,
                             force_start_amount: float = 0.0):
 
         """
@@ -385,16 +419,16 @@ class TriBot(Bot):
         # check if need to restrict max bid to share_balance_to_bid
 
         if bal_to_bid > self.balance * self.share_balance_to_bid:
-
             bal_to_bid = self.balance * self.share_balance_to_bid
-            self.log(self.LOG_INFO, "Balance less than allowed for current result, applying  share_balance_to_bid={}  ".format(
-                self.share_balance_to_bid))
+            self.log(self.LOG_INFO,
+                     "Balance less than allowed for current result, applying  share_balance_to_bid={}  ".format(
+                         self.share_balance_to_bid))
 
         return bal_to_bid
 
         # getting the maximum amount to bid for the first trade from the settings and order book result
 
-    def restrict_amount_to_bid_from_order_book(self, bal_to_bid,  working_triangle, order_books, force_best_tri=False):
+    def restrict_amount_to_bid_from_order_book(self, bal_to_bid, working_triangle, order_books, force_best_tri=False):
 
         if force_best_tri:
             order_book_threshold = 0  # for filtering the results on order_book_threshold
@@ -583,9 +617,8 @@ class TriBot(Bot):
         self.log(self.LOG_INFO, "Response: {}".format(resp))
         return resp
 
-    @staticmethod
-    def get_report_fields():
-        return list([
+    def get_report_fields(self):
+        report_fields = list([
             "server-id", "exchange-id", "session-uuid", "fetch-number", "deal-uuid", "dbg", "triangle", "status",
             "start-qty", "start-filled", "finish-qty", "result-fact-diff", "for-recover",
             "leg2-recover-amount", "leg2-recover-target", "leg3-recover-amount", "leg3-recover-target",
@@ -596,6 +629,24 @@ class TriBot(Bot):
             "leg1-order-updates", "leg2-order-updates", "leg3-order-updates",
             "cur1", "cur2", "cur3", "leg1-order", 'leg2-order', 'leg3-order', 'symbol1', 'symbol2', 'symbol3',
             "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals"])
+
+        for a in self.CONFIG_PARAMETERS:
+            report_fields.append("_config_" + a)
+
+        return report_fields
+
+
+    def get_config_report(self):
+        """
+        collect config report fields where keys are set in CONFIG_PARAMETERS
+        :return:
+        """
+        report =dict()
+
+        for f in self.CONFIG_PARAMETERS:
+            if hasattr(self, f):
+                report["_config_{}".format(f)] = getattr(self, f)
+        return report
 
     def get_deal_report(self, working_triangle: dict, recovery_data, order1: TradeOrder, order2: TradeOrder = None,
                         order3: TradeOrder = None, price1=None, price2=None, price3=None):
@@ -665,7 +716,6 @@ class TriBot(Bot):
 
         # collect timer data
         time_report = self.timer.results_dict()
-
         for f in time_report:
             report_fields.append(f)
             wt[f] = time_report[f]
@@ -674,6 +724,10 @@ class TriBot(Bot):
         for f in report_fields:
             if f in wt:
                 report[f] = wt[f]
+
+        # insert config report
+
+        report.update(self.get_config_report())
 
         return report
 
@@ -697,7 +751,7 @@ class TriBot(Bot):
                 self.load_balance()
                 self.log(self.LOG_INFO, "Updating balance.. {}/{}".format(i, self.max_trades_updates))
 
-                if self.balance > (prev_balance + result_fact_diff)*0.9:
+                if self.balance > (prev_balance + result_fact_diff) * 0.9:
                     self.log(self.LOG_INFO, "Balance Updated: {} ( was: {})".format(self.balance, prev_balance))
                     return True
 
@@ -717,7 +771,7 @@ class TriBot(Bot):
         ob_file_header = ["deal-uuid",
                           "symbol", "ask", "ask-qty", "bid", "bid-qty"]
 
-        order_book_storage = deal_uuid +"_ob"
+        order_book_storage = deal_uuid + "_ob"
 
         # deal_prefix = list([deal_uuid])
 
@@ -748,8 +802,6 @@ class TriBot(Bot):
                 writer.writeheader()
 
             writer.writerow(deal)
-
-
 
     @staticmethod
     def print_logo(product=""):
