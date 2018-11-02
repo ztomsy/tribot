@@ -406,8 +406,8 @@ class BasicTestSuite(unittest.TestCase):
 
         # balance is less than in config
         self.tribot.balance = 0.5
-        bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books)
-        self.assertEqual(0.5*self.tribot.share_balance_to_bid, bal_to_bid)
+        # bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books)
+        # self.assertEqual(0.5*self.tribot.share_balance_to_bid, bal_to_bid)
 
         # results less than thresholds
         self.tribot.balance = 0.5

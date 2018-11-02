@@ -263,8 +263,12 @@ while True:
 
     tribot.log(tribot.LOG_INFO, "Deal-uuid: {}".format(working_triangle["deal-uuid"]))
 
-    # fetching the order books for symbols in triangle if the skip_order_books option is not activated
-    if not tribot.skip_order_books:
+    if tribot.skip_order_books:
+        working_triangle["ob_result"] = working_triangle["result"]
+        force_ticker_prices = True
+
+    else:
+        # fetching the order books for symbols in triangle if the skip_order_books option is not activated
         try:
             tribot.log(tribot.LOG_INFO, "Try to fetch order books: {} {} {} ".format(working_triangle["symbol1"],
                                                                                      working_triangle["symbol2"],
@@ -323,10 +327,12 @@ while True:
             tribot.log(tribot.LOG_INFO, "Order book result: {}".format(working_triangle["ob_result"]))
             continue
 
-    # getting max amount to bid from balance and bot's parameters
-
-    bal_to_bid = tribot.start_amount_to_bid(working_triangle, order_books, tribot.force_best_tri,
-                                            tribot.force_start_amount)
+    if tribot.override_depth_amount and tribot.skip_order_books:
+        bal_to_bid = tribot.override_depth_amount
+    else:
+        # getting max amount to bid from balance and bot's parameters, order book result and etc
+        bal_to_bid = tribot.start_amount_to_bid(working_triangle, order_books, tribot.force_best_tri,
+                                                tribot.force_start_amount, tribot.skip_order_books)
 
     # getting max amount to bid from order book if the option "check_order_books" is activated requested
     if not tribot.skip_order_books:
@@ -431,7 +437,7 @@ while True:
         price2 = working_triangle["leg2-price"]
     else:
         price2 = tribot.exchange.price_to_precision(working_triangle["symbol2"],
-                                                   order_books[working_triangle["symbol2"]].get_depth_for_trade_side(
+                                                    order_books[working_triangle["symbol2"]].get_depth_for_trade_side(
                                                        order2_amount,
                                                        working_triangle["leg2-order"]).total_price)
 
@@ -517,7 +523,6 @@ while True:
         order3.update_order_from_exchange_resp(resp_trades)
         order3.fees = tribot.exchange.fees_from_order(order3)
 
-
         working_triangle["leg3-order-status"] = order3.status
 
         if order3.filled < order3.amount * 0.9999:
@@ -574,13 +579,4 @@ while True:
     print("Tickers proceeded {} time".format(len(tribot.tickers)))
     print("Duration,s: " + str(tribot.timer.results_dict()))
     print("====================================================================================")
-
-tribot.log(tribot.LOG_INFO, "Total time:" + str((tribot.timer.notches[-1]["time"] - tribot.timer.start_time).total_seconds()))
-tribot.log(tribot.LOG_INFO, "Finished")
-
-
-
-
-
-
 

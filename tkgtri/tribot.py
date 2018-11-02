@@ -382,7 +382,7 @@ class TriBot(Bot):
         #  self.log(self.LOG_INFO, "Cancel threshold: {}".format(order_manager.cancel_threshold))
 
     def start_amount_to_bid(self, working_triangle: dict, order_books: dict, force_best_tri=False,
-                            force_start_amount: float = 0.0):
+                            force_start_amount: float=0.0, skip_order_books=False):
 
         """
         Returns the amount to bid in first leg in accordance to parameters.
@@ -398,6 +398,8 @@ class TriBot(Bot):
         :param force_start_amount: bot option
         :return: amount to bid or None in case of error
         """
+        if  skip_order_books:
+            working_triangle["ob_result"] = 100000
 
         if not force_start_amount and not force_best_tri:
             bal_to_bid = self.max_balance_to_bid_from_thresholds(self.start_currency[0], self.balance,
@@ -409,6 +411,7 @@ class TriBot(Bot):
         elif force_best_tri and not force_start_amount:
             bal_to_bid = self.balance
 
+            # we take max balances from initial thresholds
             bal_to_bid = self.max_balance_to_bid_from_thresholds(self.start_currency[0], self.balance,
                                                                  self.threshold,
                                                                  self.threshold_order_book)
