@@ -114,6 +114,19 @@ except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Exiting")
     sys.exit("666")
 
+# first time vars init
+working_triangle = None
+order_books = dict()
+expected_result = 0.0
+bal_to_bid = 0.0
+recovery_data = list()  # list of recovery data dict
+report = dict()
+order1, order2, order3 = (None, None, None)
+price1, price2, price3 = (None, None, None)
+force_ticker_prices = False
+
+
+
 # main loop
 while True:
 
@@ -351,6 +364,9 @@ while True:
     if force_ticker_prices:
         expected_result = working_triangle["result"]
         working_triangle["ob_result"] = working_triangle["result"]
+
+    # finalize start amount - if need to apply the share bal to bid:
+    bal_to_bid = tribot.finalize_start_amount(bal_to_bid)
 
     # double check if initial bid is not None and float
     if bal_to_bid is None or not isinstance(bal_to_bid, float):

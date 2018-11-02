@@ -7,6 +7,7 @@ import unittest
 import os
 import time
 import uuid
+import glob
 
 
 # todo - tests for reports directories creation
@@ -430,7 +431,7 @@ class BasicTestSuite(unittest.TestCase):
         # balance is less than in config
         self.tribot.balance = 0.5
         bal_to_bid = self.tribot.start_amount_to_bid(working_triangle, order_books, True)
-        self.assertEqual(0.5 * self.tribot.share_balance_to_bid, bal_to_bid)
+        self.assertEqual(0.5, bal_to_bid)
 
     def test_start_amount_force_start_bid(self):
 
@@ -506,7 +507,47 @@ class BasicTestSuite(unittest.TestCase):
 
         self.assertAlmostEqual(0.02, bid_from_order_book, 4)
 
+    def test_finalize_start_amount(self):
 
+        self.tribot.load_config_from_file(self.default_config)
+
+        self.tribot.balance = 1
+        self.assertEqual(0.8, self.tribot.finalize_start_amount(1))
+        self.assertEqual(0.6, self.tribot.finalize_start_amount(0.6))
+
+    def test_offline_test_init(self):
+        default_config = "_config_default.json"
+        tribot = tkgtri.TriBot(default_config)
+
+        tribot.exchange_id = "test"  # override
+        path = "_{}".format(tribot.exchange_id)
+
+        if not os.path.exists(path):
+            os.mkdir(path)
+
+        f = open(path+"/test.csv", "w+")
+        f.write("test")
+        f.close()
+
+        f = open(path + "/test_ob.csv", "w+")
+        f.write("test")
+        f.close()
+
+        f = open(path + "/test_m.json", "w+")
+        f.write("test")
+        f.close()
+
+        num_files = len(glob.glob(path+"/test*"))
+        self.assertEqual(3, num_files)
+
+        tribot.init_test_run()
+
+        num_files = len(glob.glob(path + "/test*"))
+
+        self.assertEqual(0, num_files)
+        self.assertEqual("test", tribot.deal_uuid)
+        self.assertEqual("test", tribot.exchange_id)
+        self.assertEqual(True, tribot.run_once)
 
 
 if __name__ == '__main__':

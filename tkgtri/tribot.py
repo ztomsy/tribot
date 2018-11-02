@@ -407,7 +407,7 @@ class TriBot(Bot):
                 return None
 
         elif force_best_tri and not force_start_amount:
-            bal_to_bid = self.balance * self.share_balance_to_bid
+            bal_to_bid = self.balance
 
             bal_to_bid = self.max_balance_to_bid_from_thresholds(self.start_currency[0], self.balance,
                                                                  self.threshold,
@@ -416,19 +416,29 @@ class TriBot(Bot):
         if force_start_amount:
             bal_to_bid = force_start_amount
 
-        # check if need to restrict max bid to share_balance_to_bid
-
-        if bal_to_bid > self.balance * self.share_balance_to_bid:
-            bal_to_bid = self.balance * self.share_balance_to_bid
-            self.log(self.LOG_INFO,
-                     "Balance less than allowed for current result, applying  share_balance_to_bid={}  ".format(
-                         self.share_balance_to_bid))
-
         return bal_to_bid
 
-        # getting the maximum amount to bid for the first trade from the settings and order book result
+    def finalize_start_amount(self, start_amount):
+        """
+        check if need to restrict max bid to share_balance_to_bid
 
-    def restrict_amount_to_bid_from_order_book(self, bal_to_bid, working_triangle, order_books, force_best_tri=False):
+        :param start_amount:
+        :return:
+        """
+
+        if start_amount > self.balance * self.share_balance_to_bid:
+            final_start_amount = self.balance * self.share_balance_to_bid
+            self.log(self.LOG_INFO,
+                     "Start amount is greater than max allowed by share_balance_to_bid={}. Decrease to{} ".format(
+                         self.share_balance_to_bid, start_amount))
+        else:
+            final_start_amount = start_amount
+
+        return final_start_amount
+
+    # getting the maximum amount to bid for the first trade from the settings and order book result
+
+    def restrict_amount_to_bid_from_order_book(self, start_amount, working_triangle, order_books, force_best_tri=False):
 
         if force_best_tri:
             order_book_threshold = 0  # for filtering the results on order_book_threshold
@@ -441,7 +451,7 @@ class TriBot(Bot):
                                                    {1: order_books[working_triangle["symbol1"]],
                                                     2: order_books[working_triangle["symbol2"]],
                                                     3: order_books[working_triangle["symbol3"]]},
-                                                   bal_to_bid, 100,
+                                                   start_amount, 100,
                                                    self.min_amounts[self.start_currency[0]],
                                                    order_book_threshold)
         if max_possible is None:
@@ -450,14 +460,14 @@ class TriBot(Bot):
             # working_triangle["status"] = "OB STOP"
             return None, None, None
 
-        bal_to_bid = max_possible["amount"]
+        start_amount = max_possible["amount"]
         expected_result = max_possible["result"]
         ob_result = expected_result * ((1 - self.commission) ** 3)
-        if bal_to_bid > self.min_amounts[self.start_currency[0]]:
+        if start_amount > self.min_amounts[self.start_currency[0]]:
             self.log(self.LOG_INFO,
-                     "Increase start amount: {} (was {})".format(bal_to_bid,
+                     "Increase start amount: {} (was {})".format(start_amount,
                                                                  self.min_amounts[self.start_currency[0]]))
-        return expected_result, ob_result, bal_to_bid
+        return expected_result, ob_result, start_amount
 
     # here is the sleep between updates is implemented! needed to be fixed
     def log_order_update(self, order_manager: OrderManagerFok):
@@ -628,7 +638,7 @@ class TriBot(Bot):
             "leg3-order-result", "leg3-filled", "leg3-price-fact", "leg3-ob-price", "leg3-price", "leg3-fee",
             "leg1-order-updates", "leg2-order-updates", "leg3-order-updates",
             "cur1", "cur2", "cur3", "leg1-order", 'leg2-order', 'leg3-order', 'symbol1', 'symbol2', 'symbol3',
-            "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals"])
+            "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals", "balance"])
 
         for a in self.CONFIG_PARAMETERS:
             report_fields.append("_config_" + a)
@@ -665,6 +675,7 @@ class TriBot(Bot):
         wt["session-uuid"] = self.session_uuid
         wt["errors"] = self.errors
         wt["fetch_number"] = self.fetch_number
+        wt["balance"] = self.balance
 
         wt["start-qty"] = float(order1.amount_start) if order1 is not None else 0.0
         wt["start-filled"] = float(order1.filled_start_amount) if order1 is not None else 0.0

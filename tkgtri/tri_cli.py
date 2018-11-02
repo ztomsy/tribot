@@ -46,7 +46,9 @@ def get_cli_parameters(args):
                         action="store_true")
 
     parser.add_argument("--force_start_bid",
-                        help="Set the starting bid amount. Ignore the max bid checking because of results thresholds.",
+                        help="Set the starting bid amount. Ignore the max bid checking because of results thresholds. "
+                             "Mainly used for tests with the --force when it's needed to run test through whole"
+                             " triangle with amount bigger than min amount ",
                         dest="force_start_amount",
                         default=None,
                         type=float,
@@ -63,8 +65,8 @@ def get_cli_parameters(args):
     parser.add_argument("--skip_order_books",
                         help="R|Do not check order books!!\n"
                              "In this case the start amount will be set from (in order of priority):\n"
-                             "1. override_depth_amount \n"
-                             "2. force_start_bid \n"
+                             "1. override_depth_amount (if present) \n"
+                             "2. force_start_bid (if present)\n"
                              "3. max bid from the threshold configuration (balance_bid_thresholds) \n",
                         dest="skip_order_books",
                         default=False,
