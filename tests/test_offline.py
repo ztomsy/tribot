@@ -12,7 +12,8 @@ import tkgtri.analyzer as ta
 class TriOfflineTestSuite(unittest.TestCase):
     """ TriBot Cli tests"""
 
-    def _run_bot_offine(self, cli):
+    @staticmethod
+    def _run_bot_offine(cli):
         """
         returns the deal loaded from the csv result file in _test/test.csv
         :param cli: cli parameters for bot
@@ -22,6 +23,7 @@ class TriOfflineTestSuite(unittest.TestCase):
         call("python3 tribot.py {}".format(cli), shell=True)
         deal = ta.Deal()
         deal.load_from_csv("_test/test.csv", "test")
+
         return deal
 
     def test_e2e_general_mode(self):
@@ -127,6 +129,40 @@ class TriOfflineTestSuite(unittest.TestCase):
 
         self.assertEqual(0.5, float(deal.data_row["start-qty"]))
         self.assertEqual(0.024282400000000093, float(deal.data_row["result-fact-diff"]))
+
+        # check if prices are from tickers
+        self.assertEqual(float(deal.data_row["leg1-price"]), float(deal.data_row["leg1-ob-price"]))
+        self.assertEqual(float(deal.data_row["leg2-price"]), float(deal.data_row["leg2-ob-price"]))
+        self.assertEqual(float(deal.data_row["leg3-price"]), float(deal.data_row["leg3-ob-price"]))
+
+    def test_skip_order_books_general(self):
+        cli = "--balance 1 --skip_order_books offline --test -ob test_data/order_books.csv "
+        deal = self._run_bot_offine(cli)
+
+        self.assertEqual(0.8, float(deal.data_row["start-qty"]))
+        self.assertEqual(0.03883667000000002, float(deal.data_row["result-fact-diff"]))
+
+        # check if prices are from tickers
+        self.assertEqual(float(deal.data_row["leg1-price"]), float(deal.data_row["leg1-ob-price"]))
+        self.assertEqual(float(deal.data_row["leg2-price"]), float(deal.data_row["leg2-ob-price"]))
+        self.assertEqual(float(deal.data_row["leg3-price"]), float(deal.data_row["leg3-ob-price"]))
+
+    def test_skip_order_books_force_start_bid(self):
+        cli = "--balance 1 --skip_order_books --force_start_bid 0.1 offline --test -ob test_data/order_books.csv "
+        deal = self._run_bot_offine(cli)
+
+        self.assertEqual(0.1, float(deal.data_row["start-qty"]))
+
+        # check if prices are from tickers
+        self.assertEqual(float(deal.data_row["leg1-price"]), float(deal.data_row["leg1-ob-price"]))
+        self.assertEqual(float(deal.data_row["leg2-price"]), float(deal.data_row["leg2-ob-price"]))
+        self.assertEqual(float(deal.data_row["leg3-price"]), float(deal.data_row["leg3-ob-price"]))
+
+    def test_skip_order_books_force_start_bid_and_override_depth(self):
+        cli = "--balance 1 --skip_order_books --force_start_bid 0.1 --override_depth_amount 0.5 offline --test -ob test_data/order_books.csv "
+        deal = self._run_bot_offine(cli)
+
+        self.assertEqual(0.5, float(deal.data_row["start-qty"]))
 
         # check if prices are from tickers
         self.assertEqual(float(deal.data_row["leg1-price"]), float(deal.data_row["leg1-ob-price"]))
