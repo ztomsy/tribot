@@ -14,11 +14,24 @@ from tkgcore.trade_order_manager import *
 from tkgcore import Bot
 from tkgcore import rest_server
 from tkgcore import DataStorage
+from tkgcore import ccxtExchangeWrapper
 import csv
 import os
+import glob
+import uuid
 
 
 class TriBot(Bot):
+
+    # attributes of bot to be saved in reports. intended to be as a configuration parameters with config_ prefix
+
+    CONFIG_PARAMETERS = ["share_balance_to_bid", "commission", "threshold",
+                         "threshold_order_book", "max_trades_updates", "order_update_total_requests",
+                         "order_update_requests_for_time_out", "order_update_time_out",
+                         "max_oder_books_fetch_attempts", "max_order_update_attempts", "request_sleep", "lap_time",
+                         "max_requests_per_lap", "sleep_on_tickers_error", "force_start_amount", "force_best_tri",
+                         "override_depth_amount", "skip_order_books"]
+
 
     def __init__(self, default_config: str, log_filename=None):
 
@@ -27,10 +40,12 @@ class TriBot(Bot):
         self.errors = 0
 
         self.config_filename = default_config
+
         self.exchange_id = ""
         self.server_id = ""
         self.script_id = ""
         self.start_currency = list()
+
         self.share_balance_to_bid = float()
         self.max_recovery_attempts = int()
         self.min_amounts = dict()
@@ -51,7 +66,6 @@ class TriBot(Bot):
         self.max_order_update_attempts = 0
         self.request_sleep = 0.0  # sleep time between requests in seconds
 
-
         self.timer = ...  # type: timer.Timer
 
         self.lap_time = float()
@@ -59,13 +73,23 @@ class TriBot(Bot):
         self.sleep_on_tickers_error = 0.0  # sleeping time when exception on receiving tickers
 
         self.test_balance = float()
-        self.force_start_amount = float()
 
+        # start amount parameters
+        self.force_start_amount = float()
         self.force_best_tri = bool()
+        self.override_depth_amount = float()
+        self.skip_order_books = False
+
         self.debug = bool()
         self.run_once = False
         self.noauth = False
+
         self.offline = False
+        self.offline_tickers_file = "test_data/tickers.csv"
+        self.offline_order_books_file = ""
+        self.offline_markets_file = "test_data/markets.json"
+        self.offline_deal_uuid = ""
+        self.offline_run_test = False  # if to run the test
 
         self.recovery_server = ""
 
@@ -90,9 +114,9 @@ class TriBot(Bot):
         self.deals_file_id = int()
 
         self.influxdb = dict()
-        self.reporter = ...  # type: tkgtri.TkgReporter
+        self.reporter = ...  # type: TkgReporter
 
-        self.exchange = ...  # type: tkgtri.ccxtExchangeWrapper
+        self.exchange = ...  # type: ccxtExchangeWrapper
 
         self.basic_triangles = list()
         self.basic_triangles_count = int()
@@ -101,6 +125,7 @@ class TriBot(Bot):
 
         self.markets = dict()
         self.tickers = dict()
+        self.deal_uuid = ""
 
         self.tri_list = list()
         self.tri_list_good = list()
@@ -173,10 +198,17 @@ class TriBot(Bot):
 
     def init_reports(self, directory):
 
-        self.deals_file_id = utils.get_next_report_filename(directory, self.report_deals_filename)
+        try:
+            os.stat(directory)
 
-        self.report_deals_filename = self.report_deals_filename % (directory, self.deals_file_id)
-        self.report_prev_tickers_filename = self.report_prev_tickers_filename % (directory, self.deals_file_id)
+        except:
+            os.mkdir(directory)
+            print("New directory created:", directory)
+
+        # self.deals_file_id = utils.get_next_report_filename(directory, self.report_deals_filename)
+
+        # self.report_deals_filename = self.report_deals_filename % (directory, self.deals_file_id)
+        # self.report_prev_tickers_filename = self.report_prev_tickers_filename % (directory, self.deals_file_id)
         self.report_dir = directory
 
     def init_remote_reports(self):
@@ -195,9 +227,38 @@ class TriBot(Bot):
         # self.exchange.load_markets()
         if not self.noauth:
             self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"],
-                                                                    self.api_key["secret"])
+                                                             self.api_key["secret"])
         else:
             self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id)
+
+    def init_offline_mode(self):
+        self.exchange.set_offline_mode(self.offline_markets_file, self.offline_tickers_file)
+
+        if self.offline_order_books_file:
+            self.exchange.load_offline_order_books_from_csv(self.offline_order_books_file)
+
+    def init_test_run(self):
+
+        self.log(self.LOG_INFO, "Init offline test. Will set run once to TRUE")
+
+        self.deal_uuid = "test"
+        self.exchange_id = "test"
+        self.run_once = True
+
+        self.init_reports("_" + self.exchange_id + "/")
+
+        path = "_{}/".format(self.exchange_id)
+        files = glob.glob(path + "test*")
+
+        for f in files:
+            self.log(self.LOG_INFO, "Deleting test file {}".format(f))
+
+            try:
+                os.remove(f)
+            except Exception as e:
+                self.log(self.LOG_ERROR, "Could not delete  file {}".format(f))
+                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+                self.log(self.LOG_ERROR, "Exception body:", e.args)
 
     def load_markets(self):
         self.markets = self.exchange.get_markets()
@@ -225,7 +286,7 @@ class TriBot(Bot):
     #
     # get maximum balance to bid in respect to thresholds set in config
     #
-    def get_max_balance_to_bid(self, currency=None, balance=None, result=None, ob_result=None):
+    def max_balance_to_bid_from_thresholds(self, currency=None, balance=None, result=None, ob_result=None):
 
         currency = self.start_currency[0] if currency is None else currency
         balance = self.balance if balance is None else balance
@@ -290,6 +351,9 @@ class TriBot(Bot):
         for ob in ob_array:
             order_books[ob["symbol"]] = OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
+            if self.offline and "from_ticker" in ob and ob["from_ticker"]:
+                self.log(self.LOG_INFO, "Order Book for {} created from TICKER".format(ob["symbol"]))
+
         return order_books
 
     def fetch_tickers(self):
@@ -325,6 +389,97 @@ class TriBot(Bot):
             order_manager.order.amount_dest))
 
         #  self.log(self.LOG_INFO, "Cancel threshold: {}".format(order_manager.cancel_threshold))
+
+    def start_amount_to_bid(self, working_triangle: dict, order_books: dict, force_best_tri=False,
+                            force_start_amount: float=0.0, skip_order_books=False):
+
+        """
+        Returns the amount to bid in first leg in accordance to parameters.
+
+        :param working_triangle: working triangle dict, should contain following fields: result, ob_result, symbol1,
+         symbol2, symbol3,  leg{1,2,3}-order
+        :param order_books: dict of order books, where keys are leg numbers and values are order_books objects for
+        corresponding symbols. Ex:  {1: order_books[working_triangle["symbol1"]],
+                                                            2: order_books[working_triangle["symbol2"]],
+                                                            3: order_books[working_triangle["symbol3"]]}
+
+        :param force_best_tri: bot option
+        :param force_start_amount: bot option
+        :return: amount to bid or None in case of error
+        """
+        if  skip_order_books:
+            working_triangle["ob_result"] = 100000
+
+        if not force_start_amount and not force_best_tri:
+            bal_to_bid = self.max_balance_to_bid_from_thresholds(self.start_currency[0], self.balance,
+                                                                 working_triangle["result"],
+                                                                 working_triangle["ob_result"])
+            if bal_to_bid is None:
+                return None
+
+        elif force_best_tri and not force_start_amount:
+            bal_to_bid = self.balance
+
+            # we take max balances from initial thresholds
+            bal_to_bid = self.max_balance_to_bid_from_thresholds(self.start_currency[0], self.balance,
+                                                                 self.threshold,
+                                                                 self.threshold_order_book)
+
+        if force_start_amount:
+            bal_to_bid = force_start_amount
+
+        return bal_to_bid
+
+    def finalize_start_amount(self, start_amount):
+        """
+        check if need to restrict max bid to share_balance_to_bid
+
+        :param start_amount:
+        :return:
+        """
+
+        if start_amount > self.balance * self.share_balance_to_bid:
+            final_start_amount = self.balance * self.share_balance_to_bid
+            self.log(self.LOG_INFO,
+                     "Start amount is greater than max allowed by share_balance_to_bid={}. Decrease to{} ".format(
+                         self.share_balance_to_bid, start_amount))
+        else:
+            final_start_amount = start_amount
+
+        return final_start_amount
+
+    # getting the maximum amount to bid for the first trade from the settings and order book result
+
+    def restrict_amount_to_bid_from_order_book(self, start_amount, working_triangle, order_books, force_best_tri=False):
+
+        if force_best_tri:
+            order_book_threshold = 0  # for filtering the results on order_book_threshold
+        else:
+            order_book_threshold = self.threshold_order_book / (1 - self.commission) ** 3
+
+        self.log(self.LOG_INFO, "Getting start bid with from the Order book (order_book_threshold={})....".format(
+            order_book_threshold))
+        max_possible = ta.get_maximum_start_amount(self.exchange, working_triangle,
+                                                   {1: order_books[working_triangle["symbol1"]],
+                                                    2: order_books[working_triangle["symbol2"]],
+                                                    3: order_books[working_triangle["symbol3"]]},
+                                                   start_amount, 100,
+                                                   self.min_amounts[self.start_currency[0]],
+                                                   order_book_threshold)
+        if max_possible is None:
+            self.log(self.LOG_INFO,
+                     "No good results when getting maximum bid from OB.... Skipping")
+            # working_triangle["status"] = "OB STOP"
+            return None, None, None
+
+        start_amount = max_possible["amount"]
+        expected_result = max_possible["result"]
+        ob_result = expected_result * ((1 - self.commission) ** 3)
+        if start_amount > self.min_amounts[self.start_currency[0]]:
+            self.log(self.LOG_INFO,
+                     "Increase start amount: {} (was {})".format(start_amount,
+                                                                 self.min_amounts[self.start_currency[0]]))
+        return expected_result, ob_result, start_amount
 
     # here is the sleep between updates is implemented! needed to be fixed
     def log_order_update(self, order_manager: OrderManagerFok):
@@ -484,9 +639,8 @@ class TriBot(Bot):
         self.log(self.LOG_INFO, "Response: {}".format(resp))
         return resp
 
-    @staticmethod
-    def get_report_fields():
-        return list([
+    def get_report_fields(self):
+        report_fields = list([
             "server-id", "exchange-id", "session-uuid", "fetch-number", "deal-uuid", "dbg", "triangle", "status",
             "start-qty", "start-filled", "finish-qty", "result-fact-diff", "for-recover",
             "leg2-recover-amount", "leg2-recover-target", "leg3-recover-amount", "leg3-recover-target",
@@ -496,7 +650,25 @@ class TriBot(Bot):
             "leg3-order-result", "leg3-filled", "leg3-price-fact", "leg3-ob-price", "leg3-price", "leg3-fee",
             "leg1-order-updates", "leg2-order-updates", "leg3-order-updates",
             "cur1", "cur2", "cur3", "leg1-order", 'leg2-order', 'leg3-order', 'symbol1', 'symbol2', 'symbol3',
-            "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals"])
+            "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals", "balance"])
+
+        for a in self.CONFIG_PARAMETERS:
+            report_fields.append("_config_" + a)
+
+        return report_fields
+
+
+    def get_config_report(self):
+        """
+        collect config report fields where keys are set in CONFIG_PARAMETERS
+        :return:
+        """
+        report =dict()
+
+        for f in self.CONFIG_PARAMETERS:
+            if hasattr(self, f):
+                report["_config_{}".format(f)] = getattr(self, f)
+        return report
 
     def get_deal_report(self, working_triangle: dict, recovery_data, order1: TradeOrder, order2: TradeOrder = None,
                         order3: TradeOrder = None, price1=None, price2=None, price3=None):
@@ -515,6 +687,7 @@ class TriBot(Bot):
         wt["session-uuid"] = self.session_uuid
         wt["errors"] = self.errors
         wt["fetch_number"] = self.fetch_number
+        wt["balance"] = self.balance
 
         wt["start-qty"] = float(order1.amount_start) if order1 is not None else 0.0
         wt["start-filled"] = float(order1.filled_start_amount) if order1 is not None else 0.0
@@ -566,7 +739,6 @@ class TriBot(Bot):
 
         # collect timer data
         time_report = self.timer.results_dict()
-
         for f in time_report:
             report_fields.append(f)
             wt[f] = time_report[f]
@@ -575,6 +747,10 @@ class TriBot(Bot):
         for f in report_fields:
             if f in wt:
                 report[f] = wt[f]
+
+        # insert config report
+
+        report.update(self.get_config_report())
 
         return report
 
@@ -598,7 +774,7 @@ class TriBot(Bot):
                 self.load_balance()
                 self.log(self.LOG_INFO, "Updating balance.. {}/{}".format(i, self.max_trades_updates))
 
-                if self.balance > (prev_balance + result_fact_diff)*0.9:
+                if self.balance > (prev_balance + result_fact_diff) * 0.9:
                     self.log(self.LOG_INFO, "Balance Updated: {} ( was: {})".format(self.balance, prev_balance))
                     return True
 
@@ -618,7 +794,7 @@ class TriBot(Bot):
         ob_file_header = ["deal-uuid",
                           "symbol", "ask", "ask-qty", "bid", "bid-qty"]
 
-        order_book_storage = deal_uuid +"_ob"
+        order_book_storage = deal_uuid + "_ob"
 
         # deal_prefix = list([deal_uuid])
 
@@ -649,8 +825,6 @@ class TriBot(Bot):
                 writer.writeheader()
 
             writer.writerow(deal)
-
-
 
     @staticmethod
     def print_logo(product=""):

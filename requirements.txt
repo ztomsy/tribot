@@ -1,4 +1,4 @@
-influxdb
-ccxt
 numpy
+ccxt
+setuptools
 networkx

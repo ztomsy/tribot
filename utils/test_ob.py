@@ -27,7 +27,7 @@ for i in range(1, 4):
     ob[i] = deal.order_books[deal.symbols[i - 1]]
 
 # within available volumes in order book
-max_possible = ta.get_maximum_start_amount(exchange, deal.data_row, ob, None, 100, 0.002, 1.0025540552372683)
+max_possible = ta.get_maximum_start_amount(exchange, deal.data_row, ob, 0.5, 10, 0.002, 1.005)
 
 expected_result = ta.order_book_results(exchange, deal.data_row,
                                         ob, 0.002)

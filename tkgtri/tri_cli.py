@@ -1,8 +1,16 @@
 import argparse
 
+class SmartFormatter(argparse.HelpFormatter):
+
+    def _split_lines(self, text, width):
+        if text.startswith('R|'):
+            return text[2:].splitlines()
+        # this is the RawTextHelpFormatter._split_lines
+        return argparse.HelpFormatter._split_lines(self, text, width)
+
 
 def get_cli_parameters(args):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=SmartFormatter)
 
     parser.add_argument("--config", help="config file",
                         dest="config_filename",
@@ -37,11 +45,32 @@ def get_cli_parameters(args):
                         default=False,
                         action="store_true")
 
-    parser.add_argument("--force_start_bid", help="ignore max amount for order books and use this amount to start deals",
+    parser.add_argument("--force_start_bid",
+                        help="Set the starting bid amount. Ignore the max bid checking because of results thresholds. "
+                             "Mainly used for tests with the --force when it's needed to run test through whole"
+                             " triangle with amount bigger than min amount ",
                         dest="force_start_amount",
                         default=None,
                         type=float,
                         action="store")
+
+    parser.add_argument("--override_depth_amount",
+                        help="Override the start amount from the order books when it is less than this parameter. "
+                             "In this case ticker prices will be used.",
+                        dest="override_depth_amount",
+                        default=None,
+                        type=float,
+                        action="store")
+
+    parser.add_argument("--skip_order_books",
+                        help="R|Do not check order books!!\n"
+                             "In this case the start amount will be set from (in order of priority):\n"
+                             "1. override_depth_amount (if present) \n"
+                             "2. force_start_bid (if present)\n"
+                             "3. max bid from the threshold configuration (balance_bid_thresholds) \n",
+                        dest="skip_order_books",
+                        default=False,
+                        action="store_true")
 
     parser.add_argument("--noauth",
                         help="do not use the credentianls for exchange",
@@ -49,14 +78,45 @@ def get_cli_parameters(args):
                         default=False,
                         action="store_true")
 
-    parser.add_argument("--offline",
-                        help="offline mode from files: test_data/markets.json test_data/tickers.csv",
-                        dest="offline",
-                        default=False,
-                        action="store_true")
+    subparsers = parser.add_subparsers(help="Offline mode")
+    subparsers.required = False
+    offline = subparsers.add_parser("offline", help="Set the working  mode. offline -h for help")
+    # online = subparsers.add_parser("online", help="Set the online mode")
+    offline.set_defaults(offline=True)
+
+    offline.add_argument("--tickers", "-t",
+                         help="path to csv tickers file",
+                         dest="offline_tickers_file",
+                         default=None,
+                         action="store")
+
+    offline.add_argument("--order_books","-ob",
+                         help="path to csv order books file",
+                         dest="offline_order_books_file",
+                         default=None,
+                         action="store")
+
+    offline.add_argument("--markets", "-m",
+                         help="path to markets json file",
+                         dest="offline_markets_file",
+                         default=None,
+                         action="store")
+
+    offline.add_argument("--test",
+                         help="Test run. Deal uuid is forced to be a 'test'. Reports saved into _test folder. "
+                              "Previous test files renamed into test_X.csv",
+                         dest="offline_run_test",
+                         default=None,
+                         action="store_true")
+
+    offline.add_argument("--deal", "-d",
+                         help="load offline tickers, markets and order books from <deal_uuid>.csv, "
+                              "<deal_uuid>_markets.csv "
+                              "<deal_uuid>_ob.csv",
+                         dest="offline_deal_uuid",
+                         default=None,
+                         action="store")
+
+
 
     return parser.parse_args(args)
-
-
-
-

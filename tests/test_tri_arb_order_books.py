@@ -39,21 +39,19 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         # within available volumes in order book
         max_possible = ta.get_maximum_start_amount(exchange, deal.data_row, ob,
-                                                                 float(deal.data_row["bal-before"]) * 0.8, 10)
+                                                   float(deal.data_row["bal-before"]) * 0.8, 10)
 
         self.assertEqual(max_possible, {'result': 1.0084931822214618, 'amount': 0.64426264})
 
         # start bid is very big
         max_possible = ta.get_maximum_start_amount(exchange, deal.data_row, ob,
-                                                                 10, 100, 0.01)
-        self.assertEqual( {'result': 1.0086905273264402, 'amount': 0.6154545454545455}, max_possible)
+                                                   10, 100, 0.01)
+        self.assertEqual({'result': 1.0086905273264402, 'amount': 0.6154545454545455}, max_possible)
 
         # fillter for minimum result:
         max_possible = ta.get_maximum_start_amount(exchange, deal.data_row, ob,
                                                    10, 100, 0.01, 1.1)
         self.assertEqual(None, max_possible)
-
-
 
     def test_ob_results(self):
 
@@ -137,7 +135,6 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         for key, ob in order_books_data.items():
             order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
-
         working_triangle = dict()
 
         working_triangle["symbol1"] = "ETH/BTC"
@@ -150,12 +147,12 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         working_triangle["leg3-order"] = "sell"
 
         expected_result = ta.order_book_results(exchange, working_triangle,
-                                                  {1: order_books[working_triangle["symbol1"]],
-                                                   2: order_books[working_triangle["symbol2"]],
-                                                   3: order_books[working_triangle["symbol3"]]},
-                                                  5.4)
+                                                {1: order_books[working_triangle["symbol1"]],
+                                                 2: order_books[working_triangle["symbol2"]],
+                                                 3: order_books[working_triangle["symbol3"]]},
+                                                5.4)
 
-        self.assertAlmostEqual(1.23, expected_result["result"], 2 )
+        self.assertAlmostEqual(1.23, expected_result["result"], 2)
 
         # starting from BTC
         working_triangle["symbol1"] = "ETH/BTC"
@@ -167,19 +164,19 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         working_triangle["leg3-order"] = "sell"
 
         expected_result = ta.order_book_results(exchange, working_triangle,
-                                                              {1: order_books[working_triangle["symbol1"]],
-                                                               2: order_books[working_triangle["symbol2"]],
-                                                               3: order_books[working_triangle["symbol3"]]},
-                                                              0.1)
+                                                {1: order_books[working_triangle["symbol1"]],
+                                                 2: order_books[working_triangle["symbol2"]],
+                                                 3: order_books[working_triangle["symbol3"]]},
+                                                0.1)
 
         self.assertAlmostEqual(0.79, expected_result["result"], 2)
 
         # start_amount is greater than amount in order book
         expected_result2 = ta.order_book_results(exchange, working_triangle,
-                                                              {1: order_books[working_triangle["symbol1"]],
-                                                               2: order_books[working_triangle["symbol2"]],
-                                                               3: order_books[working_triangle["symbol3"]]},
-                                                       10)
+                                                 {1: order_books[working_triangle["symbol1"]],
+                                                  2: order_books[working_triangle["symbol2"]],
+                                                  3: order_books[working_triangle["symbol3"]]},
+                                                 10)
 
         self.assertEqual(expected_result2["result_amount"], 0.83153636)
 
@@ -195,15 +192,13 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         for key, ob in order_books_data.items():
             order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
-
         expected_result = ta.order_book_results(exchange, working_triangle,
-                                                              {1: order_books[working_triangle["symbol1"]],
-                                                               2: order_books[working_triangle["symbol2"]],
-                                                               3: order_books[working_triangle["symbol3"]]},
-                                                              0.5)
+                                                {1: order_books[working_triangle["symbol1"]],
+                                                 2: order_books[working_triangle["symbol2"]],
+                                                 3: order_books[working_triangle["symbol3"]]},
+                                                0.5)
 
         self.assertEqual(0.02, expected_result["result_amount"])  # equal to 3rd ob quantity
-
 
     def test_ob_results_short_ob(self):
 
@@ -287,7 +282,6 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         for key, ob in order_books_data.items():
             order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
-
         working_triangle = dict()
 
         working_triangle["symbol1"] = "ETH/BTC"
@@ -300,7 +294,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         working_triangle["leg3-order"] = "sell"
 
         order_books_data_2 = dict()
-        order_books_data_2= {"asks": list([[0.0712040000, 1]]), "bids":  list([[0.0711150000, 1]])}
+        order_books_data_2 = {"asks": list([[0.0712040000, 1]]), "bids": list([[0.0711150000, 1]])}
 
         order_books["ETH/BTC"] = tkgcore.OrderBook("ETH/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
 
@@ -309,10 +303,10 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         #     order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         expected_result = ta.order_book_results(exchange, working_triangle,
-                                                              {1: order_books[working_triangle["symbol1"]],
-                                                               2: order_books[working_triangle["symbol2"]],
-                                                               3: order_books[working_triangle["symbol3"]]},
-                                                               5)
+                                                {1: order_books[working_triangle["symbol1"]],
+                                                 2: order_books[working_triangle["symbol2"]],
+                                                 3: order_books[working_triangle["symbol3"]]},
+                                                5)
 
         self.assertEqual(1, expected_result["filled_start_amount"])  # equal to 1st ob quantity
 
@@ -320,36 +314,81 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         for key, ob in order_books_data.items():
             order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
-        order_books_data_2 = {"asks": list([[0.0000200000, 100]]), "bids":  list([[0.0000200000, 100]])}
+        order_books_data_2 = {"asks": list([[0.0000200000, 100]]), "bids": list([[0.0000200000, 100]])}
 
         order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
 
         expected_result = ta.order_book_results(exchange, working_triangle,
-                                                              {1: order_books[working_triangle["symbol1"]],
-                                                               2: order_books[working_triangle["symbol2"]],
-                                                               3: order_books[working_triangle["symbol3"]]},
-                                                               5)
+                                                {1: order_books[working_triangle["symbol1"]],
+                                                 2: order_books[working_triangle["symbol2"]],
+                                                 3: order_books[working_triangle["symbol3"]]},
+                                                5)
 
         self.assertEqual(0.034501, expected_result["result_amount"])  # equal to 2st ob quantity in ETH for 100 Mana
+        self.assertEqual(1.2267693074999997, expected_result["result"])
+
+    def _prepare_bot_for_test_start_amount(self):
+        import test_data.order_books_data as td  # getting sample order books
+
+        working_triangle = dict()
+        working_triangle["result"] = 1.006
+        working_triangle["ob_result"] = 1.006
+
+        working_triangle["symbol1"] = "ETH/BTC"
+        working_triangle["symbol2"] = "MANA/BTC"
+        working_triangle["symbol3"] = "MANA/ETH"
+
+        working_triangle["leg1-order"] = "sell"
+        working_triangle["leg2-order"] = "buy"
+        working_triangle["leg3-order"] = "sell"
+
+        order_books_data = td.get_order_books()
+
+        order_books = dict()
+        for key, ob in order_books_data.items():
+            order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+
+        return (order_books, working_triangle)
+
+    def test_ob_results_bigger_depth_price(self):
+        exchange = tkgcore.ccxtExchangeWrapper.load_from_id("binance")
+        exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
+        exchange.get_markets()
+
+        order_books, working_triangle = self._prepare_bot_for_test_start_amount()
+
+        order_books_data_2 = {"asks": list([[0.0000200000, 100]]), "bids": list([[0.0000200000, 100]])}
+
+        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+
+        expected_result = ta.order_book_results(exchange, working_triangle,
+                                                {1: order_books[working_triangle["symbol1"]],
+                                                 2: order_books[working_triangle["symbol2"]],
+                                                 3: order_books[working_triangle["symbol3"]]},
+                                                5)
+
+        self.assertEqual(0.034501, expected_result["result_amount"])  # equal to 2st ob quantity in ETH for 100 Mana
+        self.assertEqual(1.2267693074999997, expected_result["result"])
+        self.assertAlmostEqual(0.028, expected_result["filled_start_amount"], 3)
+
+        order_books_data_2 = {"asks": list([[0.0000200000, 100],
+                                            [0.0000300000, 100]]),
+                              "bids": list([[0.0000200000, 100]])}
+
+        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+
+        # set the start amount is greater than max start amount from the short order book (0.028)
+        expected_result2 = ta.order_book_results(exchange, working_triangle,
+                                                 {1: order_books[working_triangle["symbol1"]],
+                                                  2: order_books[working_triangle["symbol2"]],
+                                                  3: order_books[working_triangle["symbol3"]]},
+                                                 0.029)
+
+        self.assertLess(expected_result["result_amount"],
+                        expected_result2["result_amount"])
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        # self.assertEqual(1.2267693074999997, expected_result["result"])
 
 
 if __name__ == '__main__':
