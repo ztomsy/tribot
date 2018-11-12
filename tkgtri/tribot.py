@@ -198,7 +198,14 @@ class TriBot(Bot):
 
     def init_reports(self, directory):
 
-        self.deals_file_id = utils.get_next_report_filename(directory, self.report_deals_filename)
+        try:
+            os.stat(directory)
+
+        except:
+            os.mkdir(directory)
+            print("New directory created:", directory)
+
+        # self.deals_file_id = utils.get_next_report_filename(directory, self.report_deals_filename)
 
         # self.report_deals_filename = self.report_deals_filename % (directory, self.deals_file_id)
         # self.report_prev_tickers_filename = self.report_prev_tickers_filename % (directory, self.deals_file_id)
@@ -237,6 +244,8 @@ class TriBot(Bot):
         self.deal_uuid = "test"
         self.exchange_id = "test"
         self.run_once = True
+
+        self.init_reports("_" + self.exchange_id + "/")
 
         path = "_{}/".format(self.exchange_id)
         files = glob.glob(path + "test*")

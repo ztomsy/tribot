@@ -340,7 +340,7 @@ while True:
         try:
             expected_result, ob_result, bid_from_order_book =\
                 tribot.restrict_amount_to_bid_from_order_book(bal_to_bid, working_triangle, order_books,
-                                                              tribot.force_start_amount)
+                                                              tribot.force_best_tri)
             working_triangle["ob_result"] = ob_result
         except Exception as e:
             working_triangle["status"] = "ERROR"
