@@ -217,6 +217,7 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("BTC", 2, 1.01, 1.01), 1)       # 2nd max balance cap
 
     def test_best_recovery_amount_order2(self):
+        self.tribot.load_config_from_file(self.default_config)
 
         start_currency_filled = 1
 
@@ -227,7 +228,7 @@ class BasicTestSuite(unittest.TestCase):
         order2_recover_best_start_curr_amount = self.tribot.order2_best_recovery_start_amount(start_currency_filled,
                                                                                               order2_amount,
                                                                                               order2_filled)
-        self.assertEqual(order2_recover_best_start_curr_amount, 1/4)
+        self.assertEqual(1/4 * self.tribot.recover_factor, order2_recover_best_start_curr_amount,)
 
         # order 2 zero fill
         order2_amount = 4
@@ -235,7 +236,7 @@ class BasicTestSuite(unittest.TestCase):
         order2_recover_best_start_curr_amount = self.tribot.order2_best_recovery_start_amount(start_currency_filled,
                                                                                               order2_amount,
                                                                                               order2_filled)
-        self.assertEqual(order2_recover_best_start_curr_amount, 1)
+        self.assertEqual(1 * self.tribot.recover_factor, order2_recover_best_start_curr_amount)
 
         # order 2 complete fill - no recovery
         order2_amount = 4
@@ -257,16 +258,16 @@ class BasicTestSuite(unittest.TestCase):
                                                                                               order2_amount,
                                                                                               order2_filled)
 
-        self.assertEqual(order2_recover_best_start_curr_amount, 1/2)
+        self.assertEqual(1/2 * self.tribot.recover_factor, order2_recover_best_start_curr_amount)
 
         # order 3 partial fill
         order3_amount = 1/2
         order3_filled = 1/4
 
         order3_recover_best_start_curr_amount = self.tribot.order3_best_recovery_start_amount(
-            start_currency_filled,order2_amount, order2_filled, order3_amount, order3_filled)
+            start_currency_filled, order2_amount, order2_filled, order3_amount, order3_filled)
 
-        self.assertEqual(1/2 - 1/4, order3_recover_best_start_curr_amount)
+        self.assertEqual((1/2 - 1/4) * self.tribot.recover_factor, order3_recover_best_start_curr_amount)
 
         # order 3 fill
         order3_amount = 1/2
@@ -284,7 +285,7 @@ class BasicTestSuite(unittest.TestCase):
         order3_recover_best_start_curr_amount = self.tribot.order3_best_recovery_start_amount(
             start_currency_filled, order2_amount, order2_filled, order3_amount, order3_filled)
 
-        self.assertEqual(1/2, order3_recover_best_start_curr_amount)
+        self.assertEqual(1/2 * self.tribot.recover_factor , order3_recover_best_start_curr_amount)
 
     @unittest.skip
     def test_order_books_save(self):

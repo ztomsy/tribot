@@ -30,8 +30,7 @@ class TriBot(Bot):
                          "order_update_requests_for_time_out", "order_update_time_out",
                          "max_oder_books_fetch_attempts", "max_order_update_attempts", "request_sleep", "lap_time",
                          "max_requests_per_lap", "sleep_on_tickers_error", "force_start_amount", "force_best_tri",
-                         "override_depth_amount", "skip_order_books"]
-
+                         "override_depth_amount", "skip_order_books", "recover_factor"]
 
     def __init__(self, default_config: str, log_filename=None):
 
@@ -56,6 +55,8 @@ class TriBot(Bot):
         self.api_key = dict()
         self.max_past_triangles = int()
         self.good_consecutive_results_threshold = int()
+
+        self.recover_factor = 0.0  # multiplier applied to target recovery amount
 
         self.max_trades_updates = 0
 
@@ -586,20 +587,19 @@ class TriBot(Bot):
 
         return results
 
-    @staticmethod
-    def order2_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled):
+    def order2_best_recovery_start_amount(self, filled_start_currency_amount, order2_amount, order2_filled):
         res = 0.0
         if order2_amount > 0:
             res = filled_start_currency_amount - (order2_filled / order2_amount) * filled_start_currency_amount
+            res = res * self.recover_factor
         return res
 
-    @staticmethod
-    def order3_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled, order3_amoumt,
+    def order3_best_recovery_start_amount(self, filled_start_currency_amount, order2_amount, order2_filled, order3_amoumt,
                                           order3_filled):
         res = 0.0
         if order2_amount > 0 and order3_amoumt > 0:
             res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled / order3_amoumt))
-
+            res = res * self.recover_factor
         return res
 
     def create_recovery_data(self, deal_uuid, start_cur: str, dest_cur: str, start_amount: float,

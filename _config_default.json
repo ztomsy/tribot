@@ -12,6 +12,7 @@
   "commission" : 0.0005,
   "threshold" : 1.005,
   "threshold_order_book" : 1.005,
+  "recover_factor":1.004,
 
   "balance_bid_thresholds" : {
     "ETH":
