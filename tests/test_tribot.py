@@ -201,7 +201,7 @@ class BasicTestSuite(unittest.TestCase):
         self.tribot.proceed_triangles()
 
         # first set of ignore
-        self.tribot.ignore_currencies = list(["AMB", "BNB"])
+        self.tribot.ignore_currency = list(["AMB", "BNB"])
         self.tribot.tri_list_good = self.tribot.get_good_triangles()
 
         # good_triangles = ["ETH-BNB-AMB", "ETH-BTC-TRX", 'BTC-TRX-ETH'] good triangle without ignore option
@@ -215,7 +215,7 @@ class BasicTestSuite(unittest.TestCase):
             self.assertNotIn(i["triangle"], ["ETH-BNB-AMB"])
 
         # second set of ignore
-        self.tribot.ignore_currencies = list(["TRX"])
+        self.tribot.ignore_currency = list(["TRX"])
         self.tribot.tri_list_good = self.tribot.get_good_triangles()
 
         # good triangle without ignore option
@@ -229,7 +229,7 @@ class BasicTestSuite(unittest.TestCase):
             self.assertNotIn(i["triangle"], ["ETH-BTC-TRX", 'BTC-TRX-ETH'])
 
         # third set of ignore and not exist currency
-        self.tribot.ignore_currencies = list(["TRX", "BTC", "ETH", "AMB", "XYZ"])
+        self.tribot.ignore_currency = list(["TRX", "BTC", "ETH", "AMB", "XYZ"])
         self.tribot.tri_list_good = self.tribot.get_good_triangles()
 
         # good triangle without ignore option

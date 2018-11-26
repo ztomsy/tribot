@@ -43,7 +43,7 @@ class TriBot(Bot):
         self.server_id = ""
         self.script_id = ""
         self.start_currency = list()
-        self.ignore_currencies = list()
+        self.ignore_currency = list()
 
         self.share_balance_to_bid = float()
         self.max_recovery_attempts = int()
@@ -364,7 +364,7 @@ class TriBot(Bot):
     def check_good_triangles(self, triangle: dict):
 
         threshold = self.threshold
-        ignore_currencies = self.ignore_currencies
+        ignore_currencies = self.ignore_currency
 
         if ignore_currencies is None:
             if triangle['result'] is not None and triangle['result'] > threshold:
