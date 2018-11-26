@@ -188,6 +188,59 @@ class BasicTestSuite(unittest.TestCase):
         for i in self.tribot.tri_list_good:
             self.assertIn(i["triangle"], good_triangles)
 
+    def test_good_results_ignore_currency(self):
+
+        self.tribot.load_config_from_file(self.default_config)
+
+        self.tribot.init_exchange()
+        self.tribot.exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
+        self.tribot.load_markets()
+        self.tribot.set_triangles()
+        self.tribot.fetch_tickers()
+        self.tribot.fetch_tickers()  # 2nd fetch have good results
+        self.tribot.proceed_triangles()
+
+        # first set of ignore
+        self.tribot.ignore_currencies = list(["AMB", "BNB"])
+        self.tribot.tri_list_good = self.tribot.get_good_triangles()
+
+        # good_triangles = ["ETH-BNB-AMB", "ETH-BTC-TRX", 'BTC-TRX-ETH'] good triangle without ignore option
+
+        good_triangles = ["ETH-BTC-TRX", 'BTC-TRX-ETH']
+
+        self.assertEqual(len(self.tribot.tri_list_good), len(good_triangles))
+
+        for i in self.tribot.tri_list_good:
+            self.assertIn(i["triangle"], good_triangles)
+            self.assertNotIn(i["triangle"], ["ETH-BNB-AMB"])
+
+        # second set of ignore
+        self.tribot.ignore_currencies = list(["TRX"])
+        self.tribot.tri_list_good = self.tribot.get_good_triangles()
+
+        # good triangle without ignore option
+        # good_triangles = ["ETH-BNB-AMB", "ETH-BTC-TRX", 'BTC-TRX-ETH']
+
+        good_triangles = ["ETH-BNB-AMB"]
+        self.assertEqual(len(self.tribot.tri_list_good), len(good_triangles))
+
+        for i in self.tribot.tri_list_good:
+            self.assertIn(i["triangle"], good_triangles)
+            self.assertNotIn(i["triangle"], ["ETH-BTC-TRX", 'BTC-TRX-ETH'])
+
+        # third set of ignore and not exist currency
+        self.tribot.ignore_currencies = list(["TRX", "BTC", "ETH", "AMB", "XYZ"])
+        self.tribot.tri_list_good = self.tribot.get_good_triangles()
+
+        # good triangle without ignore option
+        # good_triangles = ["ETH-BNB-AMB", "ETH-BTC-TRX", 'BTC-TRX-ETH']
+
+        self.assertEqual(0, len(self.tribot.tri_list_good))
+
+        for i in self.tribot.tri_list_good:
+            self.assertIn(i["triangle"], good_triangles)
+            self.assertNotIn(i["triangle"], ["ETH-BTC-TRX", 'BTC-TRX-ETH'])
+
     def test_no_good_results(self):
         self.tribot.load_config_from_file(self.default_config)
 

@@ -22,7 +22,6 @@ import uuid
 
 
 class TriBot(Bot):
-
     # attributes of bot to be saved in reports. intended to be as a configuration parameters with config_ prefix
 
     CONFIG_PARAMETERS = ["share_balance_to_bid", "commission", "threshold",
@@ -44,6 +43,7 @@ class TriBot(Bot):
         self.server_id = ""
         self.script_id = ""
         self.start_currency = list()
+        self.ignore_currencies = list()
 
         self.share_balance_to_bid = float()
         self.max_recovery_attempts = int()
@@ -361,9 +361,25 @@ class TriBot(Bot):
         self.fetch_number += 1
         self.tickers = self.exchange.get_tickers()
 
+    def check_good_triangles(self, triangle: dict):
+
+        threshold = self.threshold
+        ignore_currencies = self.ignore_currencies
+
+        if ignore_currencies is None:
+            if triangle['result'] is not None and triangle['result'] > threshold:
+                return True
+
+        if ignore_currencies is not None:
+            if triangle["cur1"] not in ignore_currencies \
+                    and triangle["cur2"] not in ignore_currencies \
+                    and triangle["cur3"] not in ignore_currencies:
+                if triangle['result'] is not None and triangle['result'] > threshold:
+                    return True
+        return False
+
     def get_good_triangles(self):
         """
-
         :return: sorted by result list of good triangles
         """
         # tri_list = list(filter(lambda x: x['result'] > 0, self.tri_list))
@@ -372,8 +388,7 @@ class TriBot(Bot):
         threshold = self.threshold
 
         tri_list_good = list(
-            filter(lambda x:
-                   x['result'] is not None and x['result'] > threshold,
+            filter(self.check_good_triangles,
                    self.tri_list))
 
         # self.tri_list_good = tri_list_good
@@ -392,7 +407,7 @@ class TriBot(Bot):
         #  self.log(self.LOG_INFO, "Cancel threshold: {}".format(order_manager.cancel_threshold))
 
     def start_amount_to_bid(self, working_triangle: dict, order_books: dict, force_best_tri=False,
-                            force_start_amount: float=0.0, skip_order_books=False):
+                            force_start_amount: float = 0.0, skip_order_books=False):
 
         """
         Returns the amount to bid in first leg in accordance to parameters.
@@ -408,7 +423,7 @@ class TriBot(Bot):
         :param force_start_amount: bot option
         :return: amount to bid or None in case of error
         """
-        if  skip_order_books:
+        if skip_order_books:
             working_triangle["ob_result"] = 100000
 
         if not force_start_amount and not force_best_tri:
@@ -594,7 +609,8 @@ class TriBot(Bot):
             res = res * self.recover_factor
         return res
 
-    def order3_best_recovery_start_amount(self, filled_start_currency_amount, order2_amount, order2_filled, order3_amoumt,
+    def order3_best_recovery_start_amount(self, filled_start_currency_amount, order2_amount, order2_filled,
+                                          order3_amoumt,
                                           order3_filled):
         res = 0.0
         if order2_amount > 0 and order3_amoumt > 0:
@@ -657,13 +673,12 @@ class TriBot(Bot):
 
         return report_fields
 
-
     def get_config_report(self):
         """
         collect config report fields where keys are set in CONFIG_PARAMETERS
         :return:
         """
-        report =dict()
+        report = dict()
 
         for f in self.CONFIG_PARAMETERS:
             if hasattr(self, f):
