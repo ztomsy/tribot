@@ -223,8 +223,8 @@ class TriBot(Bot):
 
         if self.mongo is not None:
             self.mongo_reporter = MongoReporter(self.server_id, self.exchange_id)
-            self.mongo_reporter.init_db(self.mongo["host"], self.mongo["port"], self.mongo["db"],
-                                        self.mongo["tables"]["tri_results"], self.mongo["user"], self.mongo["password"])
+            self.mongo_reporter.init_db(self.mongo["host"], None, self.mongo["db"],
+                                        self.mongo["tables"]["tri_results"])
         else:
             self.log(self.LOG_ERROR, "No Mongo DB configured.. exiting")
             sys.exit()
