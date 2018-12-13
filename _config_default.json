@@ -44,6 +44,8 @@
             "host": "localhost",
             "port": 27017,
             "db": "tkg_dev",
+            "user": "app_user",
+            "password": "password",
             "tables":{
               "trade_orders": "trade_orders",
               "tri_results": "tri_results"
