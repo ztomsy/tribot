@@ -40,6 +40,16 @@
             "db": "tkg_dev",
             "measurement": "tri_status"},
 
+  "mongo": {
+            "host": "localhost",
+            "port": 27017,
+            "db": "tkg_dev",
+            "tables":{
+              "trade_orders": "trade_orders",
+              "tri_results": "tri_results"
+            }
+    },
+
   "recovery_server": {
           "host": "http://999.999.999.999",
           "port": 8080

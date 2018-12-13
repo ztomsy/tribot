@@ -6,7 +6,7 @@ from tkgcore import timer
 from .tri_cli import *
 from . import tri_arb as ta
 import copy
-from tkgcore.reporter import TkgReporter
+from tkgcore.reporter import TkgReporter, MongoReporter
 import bisect
 import datetime
 from tkgcore.trade_orders import *
@@ -19,6 +19,7 @@ import csv
 import os
 import glob
 import uuid
+import collections
 
 
 class TriBot(Bot):
@@ -116,6 +117,9 @@ class TriBot(Bot):
 
         self.influxdb = dict()
         self.reporter = ...  # type: TkgReporter
+
+        self.mongo = dict()  # mongo configuration
+        self.mongo_reporter = None  # type: MongoReporter
 
         self.exchange = ...  # type: ccxtExchangeWrapper
 
@@ -216,6 +220,14 @@ class TriBot(Bot):
         self.reporter = TkgReporter(self.server_id, self.exchange_id)
         self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
                               self.influxdb["measurement"])
+
+        if self.mongo_reporter is not None:
+            self.mongo_reporter = MongoReporter(self.server_id, self.exchange_id)
+            self.mongo_reporter.init_db(self.mongo["host"], self.mongo["port"], self.mongo["db"],
+                                        self.mongo["tables"]["tri_results"])
+        else:
+            self.log(self.LOG_ERROR, "No Mongo DB configured.. exiting")
+            sys.exit()
 
     def init_timer(self):
         self.timer = timer.Timer()
@@ -665,6 +677,7 @@ class TriBot(Bot):
             "leg2-order-result", "leg2-filled", "leg2-price-fact", "leg2-ob-price", "leg2-price", "leg2-fee",
             "leg3-order-result", "leg3-filled", "leg3-price-fact", "leg3-ob-price", "leg3-price", "leg3-fee",
             "leg1-order-updates", "leg2-order-updates", "leg3-order-updates",
+            "order1-internal_id", "order2-internal_id", "order3-internal_id",
             "cur1", "cur2", "cur3", "leg1-order", 'leg2-order', 'leg3-order', 'symbol1', 'symbol2', 'symbol3',
             "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals", "balance"])
 
@@ -678,7 +691,7 @@ class TriBot(Bot):
         collect config report fields where keys are set in CONFIG_PARAMETERS
         :return:
         """
-        report = dict()
+        report = collections.OrderedDict()
 
         for f in self.CONFIG_PARAMETERS:
             if hasattr(self, f):
@@ -690,7 +703,7 @@ class TriBot(Bot):
 
         report_fields = self.get_report_fields()
 
-        report = dict()
+        report = collections.OrderedDict()
 
         wt = copy.copy(working_triangle)
 
@@ -712,6 +725,11 @@ class TriBot(Bot):
         wt["leg1-order-status"] = order1.status if order1 is not None else None
         wt["leg2-order-status"] = order2.status if order2 is not None else None
         wt["leg3-order-status"] = order3.status if order3 is not None else None
+
+        wt["order1-internal_id"] = order1.internal_id if order1 is not None else None
+        wt["order2-internal_id"] = order2.internal_id if order2 is not None else None
+        wt["order3-internal_id"] = order3.internal_id if order3 is not None else None
+
 
         wt["leg1-filled"] = order1.filled / order1.amount if order1 is not None and order1.amount != 0 else 0.0
         wt["leg2-filled"] = order2.filled / order2.amount if order2 is not None and order2.amount != 0 else 0.0
@@ -769,15 +787,48 @@ class TriBot(Bot):
 
         return report
 
+    def get_orders_report(self, order1: TradeOrder, order2: TradeOrder = None,
+                        order3: TradeOrder = None):
+
+        report = list()
+
+        if order1 is not None:
+            report.append(order1.report())
+
+        if order2 is not None:
+            report.append(order2.report())
+
+        if order3 is not None:
+            report.append(order3.report())
+
+        return report
+
     def log_report(self, report):
         for r in self.get_report_fields():
             self.log(self.LOG_INFO, "{} = {}".format(r, report[r] if r in report else "None"))
 
-    def send_remote_report(self, report):
-        for r in report:
-            self.reporter.set_indicator(r, report[r])
-        self.reporter.push_to_influx()
-        self.log(self.LOG_INFO, "Sending report to influx....")
+    def send_remote_report(self, report, orders_report=None):
+
+        try:
+            self.log(self.LOG_INFO, "Sending report to influx....")
+            for r in report:
+                self.reporter.set_indicator(r, report[r])
+            self.reporter.push_to_influx()
+        except Exception as e:
+            self.log(self.LOG_ERROR, "Error sending report")
+            self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            self.log(self.LOG_ERROR, "Exception body:", e.args)
+
+        try:
+            self.log(self.LOG_INFO, "Sending report to mongo....")
+            self.mongo_reporter.push_report(report, self.mongo["tables"]["tri_results"])
+            self.mongo_reporter.push_report(orders_report, self.mongo["tables"]["trade_orders"])
+
+
+        except Exception as e:
+            self.log(self.LOG_ERROR, "Error sending report")
+            self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            self.log(self.LOG_ERROR, "Exception body:", e.args)
 
     def reload_balance(self, result_fact_diff: float = 0.0):
 
