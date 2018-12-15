@@ -4,6 +4,7 @@ import uuid
 import sys
 import traceback
 import time
+import datetime
 
 TriBot.print_logo("TriBot v0.5")
 
@@ -125,8 +126,6 @@ order1, order2, order3 = (None, None, None)
 price1, price2, price3 = (None, None, None)
 force_ticker_prices = False
 
-
-
 # main loop
 while True:
 
@@ -134,6 +133,9 @@ while True:
     if tribot.fetch_number > 0 and working_triangle is not None:
         print("Previous results")
         # additional reporting collection
+        timestamps["triangle_complete"] = datetime.datetime.now().timestamp()
+
+        working_triangle["timestamps"] = timestamps
 
         tribot.timer.notch("time_after_deals")
 
@@ -190,6 +192,7 @@ while True:
     order1, order2, order3 = (None, None, None)
     price1, price2, price3 = (None, None, None)
     force_ticker_prices = False
+    timestamps = dict()
 
     # exit when debugging and because of errors
     if tribot.debug is True and tribot.errors > 0:
@@ -204,6 +207,7 @@ while True:
         tribot.timer.check_timer()
         tribot.timer.notch("time_from_start")
         tribot.fetch_tickers()
+        timestamps["tickers_fetched"] = datetime.datetime.now().timestamp()
         tribot.timer.notch("time_fetch")
         print("Tickers fetched {}".format(len(tribot.tickers)))
     except Exception as e:
