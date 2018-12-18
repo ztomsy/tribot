@@ -679,7 +679,8 @@ class TriBot(Bot):
             "leg1-order-updates", "leg2-order-updates", "leg3-order-updates",
             "order1-internal_id", "order2-internal_id", "order3-internal_id",
             "cur1", "cur2", "cur3", "leg1-order", 'leg2-order', 'leg3-order', 'symbol1', 'symbol2', 'symbol3',
-            "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals", "balance"])
+            "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals", "balance", "timestamp",
+            "timestamp_finish"])
 
         for a in self.CONFIG_PARAMETERS:
             report_fields.append("_config_" + a)
@@ -708,6 +709,13 @@ class TriBot(Bot):
         wt = copy.copy(working_triangle)
 
         # adding report data which are not in working triangle
+        try:
+            timer_report = self.timer.timestamps()
+            wt["timestamp"] = timer_report["time_from_start"]
+            wt["timestamp_finish"] = timer_report["time_after_deals"]
+        finally:
+            pass
+
         wt["server-id"] = self.server_id
         wt["exchange-id"] = self.exchange_id
         wt["dbg"] = self.debug
