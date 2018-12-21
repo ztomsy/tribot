@@ -41,8 +41,9 @@
             "measurement": "tri_status"},
 
   "mongo": {
+
             "host": "mongodb://app_user:password@localhost:27017/?authSource=tkg_dev",
-            "#host for cloud server": "mongodb://reporter_app:<PASSWORD>@tkg-reporting-shard-00-00-izwsm.mongodb.net:27017,tkg-reporting-shard-00-01-izwsm.mongodb.net:27017,tkg-reporting-shard-00-02-izwsm.mongodb.net:27017/test?ssl=true&replicaSet=TKG-Reporting-shard-0&authSource=admin&retryWrites=true",
+            "#host for cloud server": "mongodb://<LOGIN>:<PASSWORD>@tkg-reporting-shard-00-00-izwsm.mongodb.net:27017,tkg-reporting-shard-00-01-izwsm.mongodb.net:27017,tkg-reporting-shard-00-02-izwsm.mongodb.net:27017/test?ssl=true&replicaSet=TKG-Reporting-shard-0&authSource=admin&retryWrites=true",
             "db": "tkg_dev",
             "tables":{
               "trade_orders": "trade_orders",
