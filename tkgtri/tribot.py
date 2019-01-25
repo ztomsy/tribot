@@ -30,7 +30,7 @@ class TriBot(Bot):
                          "order_update_requests_for_time_out", "order_update_time_out",
                          "max_oder_books_fetch_attempts", "max_order_update_attempts", "request_sleep", "lap_time",
                          "max_requests_per_lap", "sleep_on_tickers_error", "force_start_amount", "force_best_tri",
-                         "override_depth_amount", "skip_order_books", "recover_factor"]
+                         "override_depth_amount", "skip_order_books", "recover_factor", "not_request_trades"]
 
     def __init__(self, default_config: str, log_filename=None):
 
