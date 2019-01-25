@@ -420,8 +420,11 @@ while True:
                              bal_to_bid, working_triangle["leg1-order"], price1)
 
     if order1.filled_dest_amount > 0:
-        resp_trades = tribot.get_trade_results(order1)
-        order1.update_order_from_exchange_resp(resp_trades)
+
+        if not tribot.not_request_trades:
+            resp_trades = tribot.get_trade_results(order1)
+            order1.update_order_from_exchange_resp(resp_trades)
+
         order1.fees = tribot.exchange.fees_from_order(order1)
 
         if order1.filled < order1.amount * 0.99999:
@@ -458,8 +461,11 @@ while True:
                              order2_amount, working_triangle["leg2-order"], price2)
 
     if order2.filled_dest_amount > 0:
-        resp_trades = tribot.get_trade_results(order2)
-        order2.update_order_from_exchange_resp(resp_trades)
+
+        if not tribot.not_request_trades:
+            resp_trades = tribot.get_trade_results(order2)
+            order2.update_order_from_exchange_resp(resp_trades)
+
         order2.fees = tribot.exchange.fees_from_order(order2)
 
         working_triangle["leg2-price-fact"] = order2.filled / order2.cost
@@ -526,8 +532,10 @@ while True:
                              order3_amount, working_triangle["leg3-order"], price3)
 
     if order3.filled_dest_amount > 0:
-        resp_trades = tribot.get_trade_results(order3)
-        order3.update_order_from_exchange_resp(resp_trades)
+        if not tribot.not_request_trades:
+            resp_trades = tribot.get_trade_results(order3)
+            order3.update_order_from_exchange_resp(resp_trades)
+
         order3.fees = tribot.exchange.fees_from_order(order3)
 
         working_triangle["leg3-order-status"] = order3.status

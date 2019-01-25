@@ -60,6 +60,7 @@ class TriBot(Bot):
         self.recover_factor = 0.0  # multiplier applied to target recovery amount
 
         self.max_trades_updates = 0
+        self.not_request_trades = False  # if to request trades
 
         self.order_update_total_requests = 0
         self.order_update_requests_for_time_out = 0
