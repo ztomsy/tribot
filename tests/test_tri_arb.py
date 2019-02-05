@@ -93,9 +93,9 @@ class TriArbTestSuite(unittest.TestCase):
         ex = ccxtExchangeWrapper.load_from_id("Exchange")
         ex.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
 
-        markets = ex.get_markets()
-        ex.get_tickers()
-        tickers = ex.get_tickers()  # none values for XEN in second fetch
+        markets = ex.load_markets()
+        ex.fetch_tickers()
+        tickers = ex.fetch_tickers()  # none values for XEN in second fetch
         triangles = ta.get_basic_triangles_from_markets(markets)
 
         all_triangles = ta.get_all_triangles(triangles, start_currencies)
@@ -132,10 +132,10 @@ class TriArbTestSuite(unittest.TestCase):
         ex = ccxtExchangeWrapper.load_from_id("Exchange")
         ex.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
 
-        markets = ex.get_markets()
-        ex.get_tickers()
-        ex.get_tickers()
-        tickers = ex.get_tickers()  # none values for XEN in second fetch
+        markets = ex.load_markets()
+        ex.fetch_tickers()
+        ex.fetch_tickers()
+        tickers = ex.fetch_tickers()  # none values for XEN in second fetch
         triangles = ta.get_basic_triangles_from_markets(markets)
 
         all_triangles = ta.get_all_triangles(triangles, start_currencies)

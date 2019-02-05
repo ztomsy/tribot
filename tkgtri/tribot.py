@@ -275,7 +275,7 @@ class TriBot(Bot):
                 self.log(self.LOG_ERROR, "Exception body:", e.args)
 
     def load_markets(self):
-        self.markets = self.exchange.get_markets()
+        self.markets = self.exchange.load_markets()
 
     def set_triangles(self):
 
@@ -372,7 +372,7 @@ class TriBot(Bot):
 
     def fetch_tickers(self):
         self.fetch_number += 1
-        self.tickers = self.exchange.get_tickers()
+        self.tickers = self.exchange.fetch_tickers()
 
     def check_good_triangles(self, triangle: dict):
 

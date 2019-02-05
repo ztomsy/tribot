@@ -57,7 +57,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         exchange = tkgcore.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
-        exchange.get_markets()
+        exchange.load_markets()
 
         order_books_data = dict()
         order_books_data["ETH/BTC"] = dict()
@@ -204,7 +204,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         exchange = tkgcore.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
-        exchange.get_markets()
+        exchange.load_markets()
 
         order_books_data = dict()
         order_books_data["ETH/BTC"] = dict()
@@ -353,7 +353,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
     def test_ob_results_bigger_depth_price(self):
         exchange = tkgcore.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
-        exchange.get_markets()
+        exchange.load_markets()
 
         order_books, working_triangle = self._prepare_bot_for_test_start_amount()
 
