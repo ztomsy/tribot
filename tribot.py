@@ -204,7 +204,11 @@ while True:
 
     # fetching tickers
     try:
-        tribot.timer.check_timer()
+        # tribot.timer.check_timer()
+        sleep_time = tribot.exchange.requests_throttle.sleep_time()
+        print("Sleeping for {}s".format(sleep_time))
+        time.sleep(sleep_time)
+
         tribot.timer.notch("time_from_start")
         tribot.fetch_tickers()
         timestamps["tickers_fetched"] = datetime.datetime.now().timestamp()

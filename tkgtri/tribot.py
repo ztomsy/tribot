@@ -241,9 +241,12 @@ class TriBot(Bot):
         # self.exchange.load_markets()
         if not self.noauth:
             self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id, self.api_key["apiKey"],
-                                                             self.api_key["secret"])
+                                                             self.api_key["secret"])  # type: ccxtExchangeWrapper
         else:
-            self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id)
+            self.exchange = ccxtExchangeWrapper.load_from_id(self.exchange_id)  # type: ccxtExchangeWrapper
+
+        # enabling throttling
+        self.exchange.enable_requests_throttle(self.lap_time, self.max_requests_per_lap)
 
     def init_offline_mode(self):
         self.exchange.set_offline_mode(self.offline_markets_file, self.offline_tickers_file)
