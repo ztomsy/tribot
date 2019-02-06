@@ -69,6 +69,9 @@ class TriBot(Bot):
         self.max_order_update_attempts = 0
         self.request_sleep = 0.0  # sleep time between requests in seconds
 
+        self.fullthrottle = dict()  # fullthrottle mode settings. dict of {"enabled":True, "start_at":10}
+        self.state = "go"  # or could be "wait" in fullthrottle mode
+
         self.timer = ...  # type: timer.Timer
 
         self.lap_time = float()
@@ -903,6 +906,31 @@ class TriBot(Bot):
                 writer.writeheader()
 
             writer.writerow(deal)
+
+    def update_state(self, current_state: str, timestamp: float, fullthrottle_enabled: bool, start_at: list,
+                     previous_periods_from_start: int, current_periods_from_start: int):
+
+        self.state = current_state
+
+        if fullthrottle_enabled:
+            timestamp_int_str = "{:.0f}".format(timestamp // 1)  # str int part of timestamp
+            len_of_start_at = len(start_at[0])
+
+            if current_state == "wait" and len_of_start_at <= len(timestamp_int_str) \
+                    and timestamp_int_str[-len_of_start_at:] in start_at and \
+                    (current_periods_from_start > previous_periods_from_start or current_periods_from_start == 0):
+                self.state = "go"
+                # return self.state
+
+            if current_state == "go" and current_periods_from_start > previous_periods_from_start:
+                self.state = "wait"
+                # return self.state
+
+        else:
+            self.state = "go"
+            # return self.state
+
+        return self.state
 
     @staticmethod
     def print_logo(product=""):

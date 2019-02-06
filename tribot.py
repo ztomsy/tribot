@@ -5,6 +5,7 @@ import sys
 import traceback
 import time
 import datetime
+import decimal
 
 TriBot.print_logo("TriBot v0.5")
 
@@ -202,13 +203,20 @@ while True:
     # resetting error
     tribot.errors = 0
 
+    # check timer
+    sleep_time = tribot.exchange.requests_throttle.sleep_time()
+    print("Sleeping for {}s".format(sleep_time))
+    time.sleep(sleep_time)
+
+    # update state
+    # tribot.update_state(,,)
+
+    if tribot.state == "wait":
+        continue
+
     # fetching tickers
     try:
         # tribot.timer.check_timer()
-        sleep_time = tribot.exchange.requests_throttle.sleep_time()
-        print("Sleeping for {}s".format(sleep_time))
-        time.sleep(sleep_time)
-
         tribot.timer.notch("time_from_start")
         tribot.fetch_tickers()
         timestamps["tickers_fetched"] = datetime.datetime.now().timestamp()

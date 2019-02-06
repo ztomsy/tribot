@@ -64,6 +64,11 @@
   "max_order_update_attempts":10,
   "request_sleep": 0.001,
 
+  "fullthrottle": {
+    "enabled": false,
+    "start_at": ["00","50"]
+  },
+
   "offline_markets_file": "test_data/markets.json",
   "offline_tickers_file": "test_data/tickers.csv",
   "offline_order_books_file": false
