@@ -133,6 +133,10 @@ if tribot.fullthrottle["enabled"]:
 else:
     tribot.state = "go"
 
+previous_periods_from_start = 0
+prev_state = tribot.state
+
+
 # main loop
 while True:
 
@@ -201,7 +205,6 @@ while True:
     force_ticker_prices = False
     timestamps = dict()
 
-    previous_periods_from_start = 0
 
     # exit when debugging and because of errors
     if tribot.debug is True and tribot.errors > 0:
@@ -226,10 +229,18 @@ while True:
     if tribot.state == "wait":
         print("Timestamp {} Waiting for {}".format(datetime.datetime.now().timestamp(),
                                                    tribot.fullthrottle["start_at"]))
+        prev_state = "wait"
         time.sleep(0.1)
         continue
     else:
         previous_periods_from_start = tribot.exchange.requests_throttle.periods_since_start
+
+        if tribot.fullthrottle["enabled"]:
+            if prev_state == "wait":
+                tribot.exchange.requests_throttle.total_requests_current_period = 0
+                tribot.exchange.requests_throttle.requests_current_period = list()
+                tribot.exchange.requests_throttle.update()
+        prev_state = "go"
 
     # fetching tickers
     try:
