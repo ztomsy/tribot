@@ -33,7 +33,6 @@ tribot.load_config_from_file(tribot.config_filename)  # config taken from cli or
 tribot.init_timer()
 tribot.timer.notch("start")
 
-
 tribot.log(tribot.LOG_INFO, "Exchange ID:" + tribot.exchange_id)
 tribot.log(tribot.LOG_INFO, "session_uuid:" + tribot.session_uuid)
 tribot.log(tribot.LOG_INFO, "Debug: {}".format(tribot.debug))
@@ -44,7 +43,7 @@ tribot.log(tribot.LOG_INFO, "Start currency: {}".format(tribot.start_currency[0]
 tribot.log(tribot.LOG_INFO, "Sleep time on fetching tickers error: {}".format(tribot.sleep_on_tickers_error))
 
 # now we have exchange_id from config file or cli
-tribot.init_reports("_"+tribot.exchange_id+"/")
+tribot.init_reports("_" + tribot.exchange_id + "/")
 
 # init the remote reporting
 try:
@@ -103,7 +102,6 @@ if len(tribot.all_triangles) < 1:
 
 tribot.log(tribot.LOG_INFO, "Triangles found: {}".format(len(tribot.all_triangles)))
 
-
 # fetching the balance for first start currency or taking test balance from the cli/config
 try:
     tribot.load_balance()
@@ -135,7 +133,6 @@ else:
 
 previous_periods_from_start = 0
 prev_state = tribot.state
-
 
 # main loop
 while True:
@@ -172,7 +169,6 @@ while True:
                 tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
                 tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
 
-
             # saving order books
             try:
                 tribot.log(tribot.LOG_INFO, "Saving order books")
@@ -189,7 +185,6 @@ while True:
                 working_triangle["status"] not in ("OB STOP", "ERROR"):
             tribot.reload_balance(report["result-fact-diff"])
 
-
     # reset timer
     tribot.timer.reset_notches()
 
@@ -205,7 +200,6 @@ while True:
     force_ticker_prices = False
     timestamps = dict()
 
-
     # exit when debugging and because of errors
     if tribot.debug is True and tribot.errors > 0:
         tribot.log(tribot.LOG_INFO, "Exit on errors, debugging")
@@ -216,20 +210,28 @@ while True:
 
     # check timer
     sleep_time = tribot.exchange.requests_throttle.sleep_time()
+    print("Current period time {cur_period_time}/{period}. "
+          "Requests in curtent period {cur_requests_in_period}/{req_in_per}. ".format(
+            cur_period_time=tribot.exchange.requests_throttle._current_period_time,
+            period=tribot.exchange.requests_throttle.period,
+            cur_requests_in_period=tribot.exchange.requests_throttle.total_requests_current_period,
+            req_in_per=tribot.exchange.requests_throttle.requests_per_period))
+
     print("Sleeping for {}s".format(sleep_time))
     time.sleep(sleep_time)
 
     # update state
     tribot.update_state(tribot.state, datetime.datetime.now().timestamp(), tribot.fullthrottle["enabled"],
-                        tribot.fullthrottle["start_at"], previous_periods_from_start,
-                        tribot.exchange.requests_throttle.periods_since_start)
+                        tribot.fullthrottle["start_at"], tribot.lap_time,
+                        tribot.start_ft_timestamp)
 
     print("State:{}".format(tribot.state))
 
     if tribot.state == "wait":
-        print("Timestamp {} Waiting for {}".format(datetime.datetime.now().timestamp(),
-                                                   tribot.fullthrottle["start_at"]))
+        print("Time is {} Waiting for {}".format(datetime.datetime.now(),
+                                                 tribot.fullthrottle["start_at"]))
         prev_state = "wait"
+        tribot.exchange.requests_throttle.update()
         time.sleep(0.1)
         continue
     else:
@@ -237,9 +239,8 @@ while True:
 
         if tribot.fullthrottle["enabled"]:
             if prev_state == "wait":
-                tribot.exchange.requests_throttle.total_requests_current_period = 0
-                tribot.exchange.requests_throttle.requests_current_period = list()
-                tribot.exchange.requests_throttle.update()
+                tribot.start_ft_timestamp = datetime.datetime.now().timestamp()
+
         prev_state = "go"
 
     # fetching tickers
@@ -332,7 +333,7 @@ while True:
                                          " fetch_num:{}:"
                                          " for {}{}{}".
                        format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number, working_triangle["symbol1"],
-                              working_triangle["symbol2"],working_triangle["symbol3"]))
+                              working_triangle["symbol2"], working_triangle["symbol3"]))
             tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
             tribot.errors += 1
@@ -344,9 +345,9 @@ while True:
                        .format(tribot.min_amounts[tribot.start_currency[0]]))
 
             expected_result = ta.order_book_results(tribot.exchange, working_triangle,
-                                                          {1: order_books[working_triangle["symbol1"]],
-                                                           2: order_books[working_triangle["symbol2"]],
-                                                           3: order_books[working_triangle["symbol3"]]},
+                                                    {1: order_books[working_triangle["symbol1"]],
+                                                     2: order_books[working_triangle["symbol2"]],
+                                                     3: order_books[working_triangle["symbol3"]]},
                                                     tribot.min_amounts[tribot.start_currency[0]])["result"]
         except Exception as e:
             tribot.log(tribot.LOG_ERROR,
@@ -362,12 +363,12 @@ while True:
             tribot.errors += 1
             continue
 
-        working_triangle["ob_result"] = expected_result * ((1-tribot.commission)**3)
+        working_triangle["ob_result"] = expected_result * ((1 - tribot.commission) ** 3)
         tribot.log(tribot.LOG_INFO, "...order book result w commission for min amount {}: {}".format(
-            tribot.min_amounts[tribot.start_currency[0]],working_triangle["ob_result"]))
+            tribot.min_amounts[tribot.start_currency[0]], working_triangle["ob_result"]))
 
         # checking OB STOP
-        if working_triangle["ob_result"] < tribot.threshold_order_book and\
+        if working_triangle["ob_result"] < tribot.threshold_order_book and \
                 (not tribot.force_best_tri):
             working_triangle["status"] = "OB STOP"
             tribot.log(tribot.LOG_INFO, "OB STOP")
@@ -385,7 +386,7 @@ while True:
     if not tribot.skip_order_books:
 
         try:
-            expected_result, ob_result, bid_from_order_book =\
+            expected_result, ob_result, bid_from_order_book = \
                 tribot.restrict_amount_to_bid_from_order_book(bal_to_bid, working_triangle, order_books,
                                                               tribot.force_best_tri)
             working_triangle["ob_result"] = ob_result
@@ -448,7 +449,7 @@ while True:
     else:
         price1 = tribot.exchange.price_to_precision(working_triangle["symbol1"],
                                                     order_books[working_triangle["symbol1"]].get_depth_for_trade_side(
-                                                       bal_to_bid, working_triangle["leg1-order"]).total_price)
+                                                        bal_to_bid, working_triangle["leg1-order"]).total_price)
 
     tribot.log(tribot.LOG_INFO, "Trade 1/3: from {}-{}->{}".format(working_triangle["cur1"],
                                                                    working_triangle["leg1-order"],
@@ -488,8 +489,8 @@ while True:
     else:
         price2 = tribot.exchange.price_to_precision(working_triangle["symbol2"],
                                                     order_books[working_triangle["symbol2"]].get_depth_for_trade_side(
-                                                       order2_amount,
-                                                       working_triangle["leg2-order"]).total_price)
+                                                        order2_amount,
+                                                        working_triangle["leg2-order"]).total_price)
 
     tribot.log(tribot.LOG_INFO, "Trade 2/3: from {}-{}->{}".format(working_triangle["cur2"],
                                                                    working_triangle["leg2-order"],
@@ -623,7 +624,7 @@ while True:
 
     tribot.log(tribot.LOG_INFO, "Result Amount: {}".format(order3.filled_dest_amount))
     tribot.log(tribot.LOG_INFO, "Result Diff: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
-    tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount/order1.filled_start_amount))
+    tribot.log(tribot.LOG_INFO, "Result %%: {}".format(order3.filled_dest_amount / order1.filled_start_amount))
 
     print("Fetch_num: {}".format(tribot.fetch_number))
     print("Errors: {}".format(tribot.errors))
@@ -634,4 +635,3 @@ while True:
     print("Tickers proceeded {} time".format(len(tribot.tickers)))
     print("Duration,s: " + str(tribot.timer.results_dict()))
     print("====================================================================================")
-

@@ -8,6 +8,7 @@ import os
 import time
 import uuid
 import glob
+import datetime
 
 
 # todo - tests for reports directories creation
@@ -612,113 +613,119 @@ class BasicTestSuite(unittest.TestCase):
     def test_fullthrottle_init(self):
         self.tribot.load_config_from_file(self.tribot.config_filename)
         self.assertEqual(False, self.tribot.fullthrottle["enabled"])
-        self.assertEqual(["00", "50"], self.tribot.fullthrottle["start_at"])
+        self.assertEqual([0, 50], self.tribot.fullthrottle["start_at"])
 
     def test_update_state(self):
 
         # fullthrottle not enabled
         timestamp = 0
         current_state = "go"
-        previous_periods_from_start = 0
-        current_periods_from_start = 1
+        lap_time = 60
+        prev_throttle_start_timestamp = 0
         fullthrottle_enabled = False
-        start_at = ["00", "50"]
+        start_at = [0, 50]
 
         new_state = self.tribot.update_state(current_state, timestamp, fullthrottle_enabled, start_at,
-                                             previous_periods_from_start, current_periods_from_start)
+                                             lap_time, prev_throttle_start_timestamp)
 
         self.assertEqual("go", new_state)
 
-        # fullthrottle enabled - earlier - timestamp length less that start_at
+        # fullthrottle enabled - earlier - on start
         timestamp = 0
         current_state = "wait"
-        previous_periods_from_start = 0
-        current_periods_from_start = 0
+        lap_time = 60
+        prev_throttle_start_timestamp = 0
         fullthrottle_enabled = True
-        start_at = ["00", "50"]
+        start_at = [0, 50]
 
         new_state = self.tribot.update_state(current_state, timestamp, fullthrottle_enabled, start_at,
-                                             previous_periods_from_start, current_periods_from_start)
+                                             lap_time, prev_throttle_start_timestamp)
+
+        self.assertEqual("go", new_state)
+
+        # fullthrottle enabled - earlier - timestamp nor fits
+
+        timestamp = datetime.datetime(2019, 1, 1, 13, 1, 1).timestamp()
+        current_state = "wait"
+        lap_time = 60
+        prev_throttle_start_timestamp = 0
+        fullthrottle_enabled = True
+        start_at = [0, 50]
+
+        new_state = self.tribot.update_state(current_state, timestamp, fullthrottle_enabled, start_at,
+                                             lap_time, prev_throttle_start_timestamp)
 
         self.assertEqual("wait", new_state)
 
-        # fullthrottle enabled - earlier - timestamp nor fits
-        timestamp = 1549480489.225424
+        # fullthrottle enabled - earlier - timestamp not fits
+        timestamp = datetime.datetime(2019, 1, 1, 13, 1, 59).timestamp()
         current_state = "wait"
-        previous_periods_from_start = 0
-        current_periods_from_start = 0
+        lap_time = 60
+        prev_throttle_start_timestamp = 0
         fullthrottle_enabled = True
-        start_at = ["00", "50"]
+        start_at = [0, 50]
 
         new_state = self.tribot.update_state(current_state, timestamp, fullthrottle_enabled, start_at,
-                                             previous_periods_from_start, current_periods_from_start)
-
-        self.assertEqual("wait", new_state)
-
-        # fullthrottle enabled - earlier - timestamp nor fits
-        timestamp = 1549480499.999
-        current_state = "wait"
-        previous_periods_from_start = 0
-        current_periods_from_start = 0
-        fullthrottle_enabled = True
-        start_at = ["00", "50"]
-
-        new_state = self.tribot.update_state(current_state, timestamp, fullthrottle_enabled, start_at,
-                                             previous_periods_from_start, current_periods_from_start)
+                                             lap_time, prev_throttle_start_timestamp)
 
         self.assertEqual("wait", new_state)
 
         # fullthrottle enabled - earlier - timestamp is good
-        timestamp = 1549480400.225424
+        timestamp = datetime.datetime(2019, 1, 1, 13, 1, 0).timestamp()
         current_state = "wait"
-        previous_periods_from_start = 0
-        current_periods_from_start = 0
+        lap_time = 60
+        prev_throttle_start_timestamp = 0
         fullthrottle_enabled = True
-        start_at = ["00", "50"]
+        start_at = [00, 50]
 
         new_state = self.tribot.update_state(current_state, timestamp, fullthrottle_enabled, start_at,
-                                             previous_periods_from_start, current_periods_from_start)
+                                             lap_time, prev_throttle_start_timestamp)
 
         self.assertEqual("go", new_state)
 
-        # fullthrottle enabled - earlier - timestamp is good
-        timestamp = 1549480450.999999
+        # fullthrottle enabled - next start earlier than lap time - timestamp is good
+        timestamp = datetime.datetime(2019, 1, 1, 13, 1, 50).timestamp()
         current_state = "wait"
-        previous_periods_from_start = 0
-        current_periods_from_start = 0
+        lap_time = 60
+        prev_throttle_start_timestamp = datetime.datetime(2019, 1, 1, 13, 1, 50).timestamp() - 10
         fullthrottle_enabled = True
-        start_at = ["00", "50"]
+        start_at = [00, 50]
 
         new_state = self.tribot.update_state(current_state, timestamp, fullthrottle_enabled, start_at,
-                                             previous_periods_from_start, current_periods_from_start)
+                                             lap_time, prev_throttle_start_timestamp)
 
-        self.assertEqual("go", new_state)
+        self.assertEqual("wait", new_state)
 
         # fullthrottle enabled - from go to wait - no transition
-        timestamp = 1549480450.999999
+        timestamp = datetime.datetime(2019, 1, 1, 13, 1, 1).timestamp()
         current_state = "go"
-        previous_periods_from_start = 1
-        current_periods_from_start = 1
+        lap_time = 60
+        prev_throttle_start_timestamp = datetime.datetime(2019, 1, 1, 13, 1, 1).timestamp() - 50
         fullthrottle_enabled = True
-        start_at = ["00", "50"]
+        start_at = [00, 50]
 
         new_state = self.tribot.update_state(current_state, timestamp, fullthrottle_enabled, start_at,
-                                             previous_periods_from_start, current_periods_from_start)
+                                             lap_time, prev_throttle_start_timestamp)
 
         self.assertEqual("go", new_state)
 
         # fullthrottle enabled - from go to wait transition OK
         timestamp = 1549480450.999999
         current_state = "go"
-        previous_periods_from_start = 0
-        current_periods_from_start = 1
+        lap_time = 60
+        prev_throttle_start_timestamp = timestamp - 61
         fullthrottle_enabled = True
-        start_at = ["00", "50"]
+        start_at = [0, 50]
 
         new_state = self.tribot.update_state(current_state, timestamp, fullthrottle_enabled, start_at,
-                                             previous_periods_from_start, current_periods_from_start)
+                                             lap_time, prev_throttle_start_timestamp)
 
         self.assertEqual("wait", new_state)
+
+    def test_seconds_from_timestamp(self):
+        timestamp = 1549480450.999999
+        self.assertEqual(True, self.tribot.check_time_to_launch([10], timestamp))
+        self.assertEqual(False, self.tribot.check_time_to_launch([0, 5], timestamp))
 
 
 if __name__ == '__main__':

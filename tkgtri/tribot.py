@@ -72,6 +72,8 @@ class TriBot(Bot):
         self.fullthrottle = dict()  # fullthrottle mode settings. dict of {"enabled":True, "start_at":10}
         self.state = "go"  # or could be "wait" in fullthrottle mode
 
+        self.start_ft_timestamp = 0.0
+
         self.timer = ...  # type: timer.Timer
 
         self.lap_time = float()
@@ -300,7 +302,19 @@ class TriBot(Bot):
             self.balance = self.test_balance
             return self.test_balance
         else:
-            self.balance = self.exchange.fetch_free_balance()[self.start_currency[0]] if not self.offline else 0.0
+            if self.offline:
+                self.exchange.set_offline_balance(
+                    {'free': {
+                        'BTC': 1,
+                        'USD': 123.00,
+                        "ETH": 10},
+                        "BTC": {"free": 1},
+                        "USDT": {"free": 123},
+                        "ETH" :{"free":10}
+                    }
+                )
+
+            self.balance = self.exchange.fetch_free_balance()[self.start_currency[0]]
             return self.balance
 
     #
@@ -907,24 +921,33 @@ class TriBot(Bot):
 
             writer.writerow(deal)
 
+    @staticmethod
+    def check_time_to_launch(start_at, timestamp):
+
+        seconds_from_timestamp = datetime.fromtimestamp(timestamp).second
+        if seconds_from_timestamp in start_at:
+            return True
+
+        return False
+
     def update_state(self, current_state: str, timestamp: float, fullthrottle_enabled: bool, start_at: list,
-                     previous_periods_from_start: int, current_periods_from_start: int):
+                     lap_time: float, prev_throttle_start_timestamp:float):
 
         self.state = current_state
 
         if fullthrottle_enabled:
             # self.state = "wait"
 
-            timestamp_int_str = "{:.0f}".format(timestamp // 1)  # str int part of timestamp
-            len_of_start_at = len(start_at[0])
+            # timestamp_int_str = "{:.0f}".format(timestamp // 1)  # str int part of timestamp
+            # len_of_start_at = len(start_at[0])
 
-            if current_state == "wait" and len_of_start_at <= len(timestamp_int_str) \
-                    and timestamp_int_str[-len_of_start_at:] in start_at and \
-                    (current_periods_from_start > previous_periods_from_start or current_periods_from_start == 0):
+            if current_state == "wait" and self.check_time_to_launch(start_at, timestamp) and \
+                    (timestamp - prev_throttle_start_timestamp > lap_time or prev_throttle_start_timestamp == 0):
+
                 self.state = "go"
                 # return self.state
 
-            if current_state == "go" and current_periods_from_start > previous_periods_from_start:
+            if current_state == "go" and timestamp - prev_throttle_start_timestamp > lap_time:
                 self.state = "wait"
                 # return self.state
 

@@ -30,8 +30,8 @@
 
   "max_past_triangles" : 100,
   "good_consecutive_results_threshold":2,
-  "lap_time" : 1,
-  "max_requests_per_lap": 100,
+  "lap_time" : 30,
+  "max_requests_per_lap": 1000,
   "sleep_on_tickers_error": 0.1,
 
   "influxdb":
@@ -66,7 +66,7 @@
 
   "fullthrottle": {
     "enabled": true,
-    "start_at": ["00","60"]
+    "start_at": [0,60]
   },
 
   "offline_markets_file": "test_data/markets.json",

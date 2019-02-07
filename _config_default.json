@@ -66,7 +66,7 @@
 
   "fullthrottle": {
     "enabled": false,
-    "start_at": ["00","50"]
+    "start_at": [0,50]
   },
 
   "offline_markets_file": "test_data/markets.json",
