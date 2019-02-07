@@ -913,6 +913,8 @@ class TriBot(Bot):
         self.state = current_state
 
         if fullthrottle_enabled:
+            # self.state = "wait"
+
             timestamp_int_str = "{:.0f}".format(timestamp // 1)  # str int part of timestamp
             len_of_start_at = len(start_at[0])
 
