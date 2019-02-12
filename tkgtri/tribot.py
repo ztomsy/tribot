@@ -15,6 +15,7 @@ from tkgcore import Bot
 from tkgcore import rest_server
 from tkgcore import DataStorage
 from tkgcore import ccxtExchangeWrapper
+from tkgcore import ActionOrder, FokOrder, ActionOrderManager
 import csv
 import os
 import glob
@@ -65,6 +66,8 @@ class TriBot(Bot):
         self.order_update_total_requests = 0
         self.order_update_requests_for_time_out = 0
         self.order_update_time_out = 0
+        self.last_update_time = datetime(1, 1, 1, 1, 1, 1)
+
         self.max_oder_books_fetch_attempts = 0
         self.max_order_update_attempts = 0
         self.request_sleep = 0.0  # sleep time between requests in seconds
@@ -147,6 +150,8 @@ class TriBot(Bot):
 
         self.time = timer.Timer
         self.last_proceed_report = dict()
+
+        self.order_manager = None  # type: ActionOrderManager
 
         # load config from json
 
@@ -281,6 +286,24 @@ class TriBot(Bot):
                 self.log(self.LOG_ERROR, "Could not delete  file {}".format(f))
                 self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
                 self.log(self.LOG_ERROR, "Exception body:", e.args)
+
+    def init_order_manager(self):
+        self.order_manager = ActionOrderManager(self.exchange, self.max_order_update_attempts,
+                                                self.max_order_update_attempts,
+                                                self.request_sleep)
+
+        self.order_manager.log = self.log
+        self.order_manager.LOG_INFO = self.LOG_INFO
+        self.order_manager.LOG_ERROR = self.LOG_ERROR
+        self.order_manager.LOG_DEBUG = self.LOG_DEBUG
+        self.order_manager.LOG_CRITICAL = self.LOG_CRITICAL
+
+        if self.not_request_trades:
+            self.order_manager.request_trades = False
+
+        # setting for offline mode
+        if self.offline:
+            self.exchange.trades_in_offline_order_update = False
 
     def load_markets(self):
         self.markets = self.exchange.load_markets()
@@ -430,15 +453,6 @@ class TriBot(Bot):
 
         return tri_list_good
 
-    def log_order_create(self, order_manager: OrderManagerFok):
-        self.log(self.LOG_INFO, "Tick {}: Order {} created. Filled dest curr:{} / {} ".format(
-            order_manager.order.update_requests_count,
-            order_manager.order.id,
-            order_manager.order.filled_dest_amount,
-            order_manager.order.amount_dest))
-
-        #  self.log(self.LOG_INFO, "Cancel threshold: {}".format(order_manager.cancel_threshold))
-
     def start_amount_to_bid(self, working_triangle: dict, order_books: dict, force_best_tri=False,
                             force_start_amount: float = 0.0, skip_order_books=False):
 
@@ -530,33 +544,41 @@ class TriBot(Bot):
                                                                  self.min_amounts[self.start_currency[0]]))
         return expected_result, ob_result, start_amount
 
-    # here is the sleep between updates is implemented! needed to be fixed
-    def log_order_update(self, order_manager: OrderManagerFok):
-        self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled amount:{} / {} ".format(
-            order_manager.order.id,
+    def log_order_create(self, order_manager: OrderManagerFok):
+        self.log(self.LOG_INFO, "Tick {}: Order {} created. Filled dest curr:{} / {} ".format(
             order_manager.order.update_requests_count,
-            order_manager.updates_to_kill,
+            order_manager.order.id,
+            order_manager.order.filled_dest_amount,
+            order_manager.order.amount_dest))
+
+
+    # here is the sleep between updates is implemented! needed to be fixed
+    def log_order_update(self, order: TradeOrder):
+        self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled amount:{} / {} ".format(
+            order.id,
+            order.update_requests_count,
+            self.order_update_total_requests,
             self.order_update_requests_for_time_out,
-            order_manager.order.status,
-            order_manager.order.filled,
-            order_manager.order.amount))
+            order.status,
+            order.filled,
+            order.amount))
 
         now_order = datetime.now()
 
-        if order_manager.order.status == "open" and \
-                order_manager.order.update_requests_count >= self.order_update_requests_for_time_out:
+        if order.status == "open" and \
+                order.update_requests_count >= self.order_update_requests_for_time_out:
 
-            if order_manager.order.update_requests_count >= order_manager.updates_to_kill:
+            if order.update_requests_count >= self.order_update_total_requests:
                 self.log(self.LOG_INFO, "...last update will no sleep")
 
             else:
                 self.log(self.LOG_INFO, "...reached the number of order updates for timeout")
 
-                if (now_order - order_manager.last_update_time).total_seconds() < self.order_update_time_out:
+                if (now_order - self.last_update_time).total_seconds() < self.order_update_time_out:
                     self.log(self.LOG_INFO, "...sleeping while order update for {}".format(self.order_update_time_out))
                     time.sleep(self.order_update_time_out)
 
-                order_manager.last_update_time = datetime.now()
+                self.last_update_time = datetime.now()
 
     def log_on_order_update_error(self, order_manager, exception):
         self.log(self.LOG_ERROR, "Error updating  order_id: {}".format(order_manager.order.id))
@@ -574,47 +596,55 @@ class TriBot(Bot):
             _order_manager, _exception)
 
     def do_trade(self, symbol, start_currency, dest_currency, amount, side, price):
+        """
+        proceed with the trade and return TradeOrder
 
-        order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
+        :param symbol: str
+        :param start_currency: str
+        :param dest_currency: str
+        :param amount: float
+        :param side: str
+        :param price: float
+        :return: TradeOrder
+        """
 
-        if self.offline:
-            o = self.exchange.create_order_offline_data(order, 10)
-            self.exchange._offline_order = copy.copy(o)
-            self.exchange._offline_trades = copy.copy(o["trades"])
-            self.exchange._offline_order_update_index = 0
-            self.exchange._offline_order_cancelled = False
+        # order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
+
+        order = FokOrder.create_from_start_amount(symbol, start_currency, amount, dest_currency, price,
+                                                  max_order_updates=self.order_update_total_requests)
+
+        # if self.offline:
+        #     o = self.exchange.create_order_offline_data(order, 10)
+        #     self.exchange._offline_order = copy.copy(o)
+        #     self.exchange._offline_trades = copy.copy(o["trades"])
+        #     self.exchange._offline_order_update_index = 0
+        #     self.exchange._offline_order_cancelled = False
 
         # cancel_threshold = self.min_order_amount(symbol, price)
 
-        order_manager = OrderManagerFok(order, None, updates_to_kill=self.order_update_total_requests,
-                                        max_cancel_attempts=self.order_update_total_requests,
-                                        max_order_update_attempts=self.max_order_update_attempts,
-                                        request_sleep=self.request_sleep)
-        order_manager.log = self.log
-        order_manager.LOG_INFO = self.LOG_INFO
-        order_manager.LOG_ERROR = self.LOG_ERROR
-        order_manager.LOG_DEBUG = self.LOG_DEBUG
-        order_manager.LOG_CRITICAL = self.LOG_CRITICAL
+        # order_manager = OrderManagerFok(order, None, updates_to_kill=self.order_update_total_requests,
+        #                                 max_cancel_attempts=self.order_update_total_requests,
+        #                                 max_order_update_attempts=self.max_order_update_attempts,
+        #                                 request_sleep=self.request_sleep)
+
+        self.order_manager.add_order(order)
+
+        while len(self.order_manager.get_open_orders()) > 0:
+            self.log_order_update(self.order_manager.get_open_orders()[0].get_active_order())
+            self.order_manager.proceed_orders()
 
         try:
-            order_manager.fill_order(self.exchange)
-        except OrderManagerErrorUnFilled:
-            try:
-                self.log(self.LOG_INFO, "Cancelling order...")
-                order_manager.cancel_order(self.exchange)
+            trade_order = self.order_manager.get_closed_orders()[0].orders_history[0]
+        except Exception as exception:
+            self.log(self.LOG_ERROR, "Error extracting trade order!")
+            self.log(self.LOG_ERROR, "Exception: {}".format(type(exception).__name__))
 
-            except OrderManagerCancelAttemptsExceeded:
-                self.log(self.LOG_ERROR, "Could not cancel order")
-                self.errors += 1
+            for ll in exception.args:
+                self.log(self.LOG_ERROR, type(exception).__name__ + ll)
 
-        except Exception as e:
-            self.log(self.LOG_ERROR, "Order error")
-            self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            self.log(self.LOG_ERROR, "Exception body:", e.args)
-            self.log(self.LOG_ERROR, order.info)
+            trade_order = None
 
-            self.errors += 1
-        return order
+        return trade_order
 
     def get_trade_results(self, order: TradeOrder):
 
