@@ -15,7 +15,7 @@ from tkgcore import Bot
 from tkgcore import rest_server
 from tkgcore import DataStorage
 from tkgcore import ccxtExchangeWrapper
-from tkgcore import ActionOrder, FokOrder, ActionOrderManager
+from tkgcore import ActionOrder, FokOrder, ActionOrderManager, FokThresholdTakerPriceOrder
 import csv
 import os
 import glob
@@ -31,7 +31,8 @@ class TriBot(Bot):
                          "order_update_requests_for_time_out", "order_update_time_out",
                          "max_oder_books_fetch_attempts", "max_order_update_attempts", "request_sleep", "lap_time",
                          "max_requests_per_lap", "sleep_on_tickers_error", "force_start_amount", "force_best_tri",
-                         "override_depth_amount", "skip_order_books", "recover_factor", "not_request_trades"]
+                         "override_depth_amount", "skip_order_books", "recover_factor", "not_request_trades",
+                         "cancel_price_threshold","fullthrottle"]
 
     def __init__(self, default_config: str, log_filename=None):
 
@@ -57,6 +58,8 @@ class TriBot(Bot):
         self.api_key = dict()
         self.max_past_triangles = int()
         self.good_consecutive_results_threshold = int()
+
+        self.cancel_price_threshold = 0.0 # relative to taker's price threshold to cancel the order
 
         self.recover_factor = 0.0  # multiplier applied to target recovery amount
 
@@ -609,9 +612,19 @@ class TriBot(Bot):
         """
 
         # order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
+        if self.cancel_price_threshold == 0.0:
+            self.log(self.LOG_INFO, "Proceeding order without  threshold")
 
-        order = FokOrder.create_from_start_amount(symbol, start_currency, amount, dest_currency, price,
-                                                  max_order_updates=self.order_update_total_requests)
+            order = FokOrder.create_from_start_amount(symbol, start_currency, amount, dest_currency, price,
+                                                      max_order_updates=self.order_update_total_requests)
+        else:
+            self.log(self.LOG_INFO, "Proceeding order with taker price threshold from ticker{}".format(
+                self.cancel_price_threshold))
+
+            order = FokThresholdTakerPriceOrder.create_from_start_amount(
+                symbol, start_currency, amount, dest_currency, price,
+                max_order_updates=self.order_update_total_requests, taker_price_threshold=self.cancel_price_threshold,
+                threshold_check_after_updates=self.order_update_requests_for_time_out)
 
         # if self.offline:
         #     o = self.exchange.create_order_offline_data(order, 10)
@@ -635,6 +648,14 @@ class TriBot(Bot):
 
         try:
             trade_order = self.order_manager.get_closed_orders()[0].orders_history[0]
+
+            if self.order_manager.get_closed_orders()[0].tags is not None and\
+                    len(self.order_manager.get_closed_orders()[0].tags) > 0:
+
+                    trade_order.tags = " ".join(self.order_manager.get_closed_orders()[0].tags)
+            else:
+                trade_order.tags = ""
+
         except Exception as exception:
             self.log(self.LOG_ERROR, "Error extracting trade order!")
             self.log(self.LOG_ERROR, "Exception: {}".format(type(exception).__name__))
@@ -731,7 +752,7 @@ class TriBot(Bot):
             "order1-internal_id", "order2-internal_id", "order3-internal_id",
             "cur1", "cur2", "cur3", "leg1-order", 'leg2-order', 'leg3-order', 'symbol1', 'symbol2', 'symbol3',
             "time_fetch", "time_proceed", "time_from_start", "errors", "time_after_deals", "balance", "timestamp",
-            "timestamp_finish"])
+            "timestamp_finish", "leg1-tags", "leg2-tags", "leg3-tags"])
 
         for a in self.CONFIG_PARAMETERS:
             report_fields.append("_config_" + a)
@@ -748,6 +769,9 @@ class TriBot(Bot):
         for f in self.CONFIG_PARAMETERS:
             if hasattr(self, f):
                 report["_config_{}".format(f)] = getattr(self, f)
+
+        report["_config_fullthrottle"] = self.fullthrottle["enabled"]
+
         return report
 
     def get_deal_report(self, working_triangle: dict, recovery_data, order1: TradeOrder, order2: TradeOrder = None,
@@ -784,6 +808,11 @@ class TriBot(Bot):
         wt["leg1-order-status"] = order1.status if order1 is not None else None
         wt["leg2-order-status"] = order2.status if order2 is not None else None
         wt["leg3-order-status"] = order3.status if order3 is not None else None
+
+        wt["leg1-tags"] = order1.tags if order1 is not None else None
+        wt["leg2-tags"] = order2.tags if order2 is not None else None
+        wt["leg3-tags"] = order3.tags if order3 is not None else None
+
 
         wt["order1-internal_id"] = order1.internal_id if order1 is not None else None
         wt["order2-internal_id"] = order2.internal_id if order2 is not None else None

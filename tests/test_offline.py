@@ -169,6 +169,33 @@ class TriOfflineTestSuite(unittest.TestCase):
         self.assertEqual(float(deal.data_row["leg2-price"]), float(deal.data_row["leg2-ob-price"]))
         self.assertEqual(float(deal.data_row["leg3-price"]), float(deal.data_row["leg3-ob-price"]))
 
+    def test_order_cancel_threshold(self):
+        cli = "--config _config_default_ft.json --balance 1 --skip_order_books --force_start_bid 0.1  offline --test -t test_data/tickers_threshold.csv "
+        deal = self._run_bot_offine(cli)
+
+        self.assertEqual(0.1, float(deal.data_row["start-qty"]))
+        self.assertEqual("True", deal.data_row["_config_fullthrottle"])
+        self.assertEqual(-0.01, float(deal.data_row["_config_cancel_price_threshold"]))
+
+        self.assertEqual(0.6, float(deal.data_row["leg1-filled"]))
+        self.assertEqual(8, float(deal.data_row["leg1-order-updates"]))
+        self.assertEqual("#below_threshold", deal.data_row["leg1-tags"])
+
+        self.assertEqual(0.05095963498419389, float(deal.data_row["finish-qty"]))
+
+
+
+
+
+
+
+
+        # check if prices are from tickers
+        self.assertEqual(float(deal.data_row["leg1-price"]), float(deal.data_row["leg1-ob-price"]))
+        self.assertEqual(float(deal.data_row["leg2-price"]), float(deal.data_row["leg2-ob-price"]))
+        self.assertEqual(float(deal.data_row["leg3-price"]), float(deal.data_row["leg3-ob-price"]))
+
+
 
     """
     Test cases: 

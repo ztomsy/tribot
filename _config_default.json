@@ -69,6 +69,8 @@
     "start_at": [0,50]
   },
 
+  "cancel_price_threshold": 0.0,
+
   "offline_markets_file": "test_data/markets.json",
   "offline_tickers_file": "test_data/tickers.csv",
   "offline_order_books_file": false
