@@ -626,6 +626,9 @@ class TriBot(Bot):
                 max_order_updates=self.order_update_total_requests, taker_price_threshold=self.cancel_price_threshold,
                 threshold_check_after_updates=self.order_update_requests_for_time_out)
 
+        trade_order = copy.deepcopy(order.get_active_order())
+        trade_order.tags = ""
+
         # if self.offline:
         #     o = self.exchange.create_order_offline_data(order, 10)
         #     self.exchange._offline_order = copy.copy(o)
@@ -647,6 +650,7 @@ class TriBot(Bot):
             self.order_manager.proceed_orders()
 
         try:
+
             trade_order = self.order_manager.get_closed_orders()[0].orders_history[0]
 
             if self.order_manager.get_closed_orders()[0].tags is not None and\
@@ -663,7 +667,7 @@ class TriBot(Bot):
             for ll in exception.args:
                 self.log(self.LOG_ERROR, type(exception).__name__ + ll)
 
-            trade_order = None
+            # trade_order = None
 
         return trade_order
 
