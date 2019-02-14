@@ -624,7 +624,7 @@ class TriBot(Bot):
             order = FokThresholdTakerPriceOrder.create_from_start_amount(
                 symbol, start_currency, amount, dest_currency, price,
                 max_order_updates=self.order_update_total_requests, taker_price_threshold=self.cancel_price_threshold,
-                threshold_check_after_updates=self.order_update_requests_for_time_out)
+                threshold_check_after_updates=self.order_update_requests_for_time_out-2)
 
         trade_order = copy.deepcopy(order.get_active_order())
         trade_order.tags = ""
