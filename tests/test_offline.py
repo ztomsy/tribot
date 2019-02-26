@@ -177,11 +177,11 @@ class TriOfflineTestSuite(unittest.TestCase):
         self.assertEqual("True", deal.data_row["_config_fullthrottle"])
         self.assertEqual(-0.01, float(deal.data_row["_config_cancel_price_threshold"]))
 
-        self.assertEqual(0.6, float(deal.data_row["leg1-filled"]))
-        self.assertEqual(8, float(deal.data_row["leg1-order-updates"]))
+        self.assertAlmostEquals(0.4, float(deal.data_row["leg1-filled"]), 4)
+        self.assertEqual(6, float(deal.data_row["leg1-order-updates"]))
         self.assertEqual("#below_threshold", deal.data_row["leg1-tags"])
 
-        self.assertEqual(0.05095963498419389, float(deal.data_row["finish-qty"]))
+        self.assertEqual(0.03397308998946259, float(deal.data_row["finish-qty"]))
 
 
 
