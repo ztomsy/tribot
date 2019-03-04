@@ -7,6 +7,9 @@ from .tri_cli import *
 from . import tri_arb as ta
 import copy
 from tkgcore.reporter import TkgReporter, MongoReporter
+from tkgcore.reporter_sqla import SqlaReporter
+from tkgcore.models.deal import DealReport
+
 import bisect
 import datetime
 from tkgcore.trade_orders import *
@@ -21,6 +24,7 @@ import os
 import glob
 import uuid
 import collections
+import pytz
 
 
 class TriBot(Bot):
@@ -133,6 +137,9 @@ class TriBot(Bot):
         self.mongo = dict()  # mongo configuration
         self.mongo_reporter = None  # type: MongoReporter
 
+        self.sqla = dict()  # sqla configuration
+        self.sqla_reporter = None  # type: SqlaReporter
+
         self.exchange = ...  # type: ccxtExchangeWrapper
 
         self.basic_triangles = list()
@@ -235,13 +242,20 @@ class TriBot(Bot):
         self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
                               self.influxdb["measurement"])
 
-        if self.mongo is not None:
+        if self.mongo is not None and self.mongo["enabled"]:
             self.mongo_reporter = MongoReporter(self.server_id, self.exchange_id)
             self.mongo_reporter.init_db(self.mongo["host"], None, self.mongo["db"],
                                         self.mongo["tables"]["tri_results"])
         else:
-            self.log(self.LOG_ERROR, "No Mongo DB configured.. exiting")
-            sys.exit()
+            self.log(self.LOG_ERROR, "Mongo DB not configured..")
+            # sys.exit()
+
+        if self.sqla is not None and self.sqla["enabled"]:
+            self.log(self.LOG_INFO, "SQLA Reporter Enabled")
+            self.log(self.LOG_INFO, "SQLA connection string {}".format(self.sqla["connection_string"]))
+
+            self.sqla_reporter = SqlaReporter(self.server_id, self.exchange_id)
+            self.sqla_reporter.init_db(self.sqla["connection_string"])
 
     def init_timer(self):
         self.timer = timer.Timer()
@@ -879,6 +893,28 @@ class TriBot(Bot):
 
         return report
 
+    def sqla_report_from_report_dict(self, report: dict):
+
+        report_sqla = DealReport(
+            timestamp=datetime.fromtimestamp(report["timestamp_finish"], tz=pytz.timezone('UTC')),
+            timestamp_start=datetime.fromtimestamp(report["timestamp"], tz=pytz.timezone('UTC')),
+            exchange=report["exchange-id"],
+            instance=report["server-id"],
+            server=report["server-id"],
+            deal_type="triarb",
+            deal_uuid=report["deal-uuid"],
+            status=report["status"],
+            currency=report["cur1"],
+            start_amount=report["start-filled"],
+            result_amount=report["finish-qty"],
+            gross_profit=report["result-fact-diff"],
+            net_profit=0.0,
+            config=self.get_config_report(),
+            deal_data=report
+        )
+
+        return report_sqla
+
     def get_orders_report(self, order1: TradeOrder, order2: TradeOrder = None,
                         order3: TradeOrder = None):
 
@@ -916,9 +952,21 @@ class TriBot(Bot):
             self.mongo_reporter.push_report(report, self.mongo["tables"]["tri_results"])
             self.mongo_reporter.push_report(orders_report, self.mongo["tables"]["trade_orders"])
 
-
         except Exception as e:
             self.log(self.LOG_ERROR, "Error sending report")
+            self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            self.log(self.LOG_ERROR, "Exception body:", e.args)
+
+        try:
+            self.log(self.LOG_INFO, "Sending report to sqla....")
+            deal_report = self.sqla_report_from_report_dict(report)
+            self.sqla_reporter.session.add(deal_report)
+            self.sqla_reporter.session.commit()
+
+            self.log(self.LOG_INFO, ".... done")
+
+        except Exception as e:
+            self.log(self.LOG_ERROR, "SQLA: Error sending report")
             self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             self.log(self.LOG_ERROR, "Exception body:", e.args)
 

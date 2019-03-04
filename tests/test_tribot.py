@@ -69,8 +69,6 @@ class BasicTestSuite(unittest.TestCase):
 
         self.tribot.log(self.tribot.LOG_ERROR, "ERRORS", list(("error line 1", "error line 2", "error line 3")))
 
-
-
     def test_logging(self):
 
         default_config = "_config_default.json"
