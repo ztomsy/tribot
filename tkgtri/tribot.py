@@ -256,6 +256,7 @@ class TriBot(Bot):
 
             self.sqla_reporter = SqlaReporter(self.server_id, self.exchange_id)
             self.sqla_reporter.init_db(self.sqla["connection_string"])
+            self.sqla_reporter.create_tables()
 
     def init_timer(self):
         self.timer = timer.Timer()
@@ -939,15 +940,15 @@ class TriBot(Bot):
 
         if order1 is not None:
             report.append(TradeOrderReport.from_trade_order(order1, timestamp_now, deal_uuid=deal_uuid,
-                                                            tags="#leg1", order_data=order1.report()))
+                                                            tags="#leg1"))
 
         if order2 is not None:
             report.append(TradeOrderReport.from_trade_order(order2, timestamp_now, deal_uuid=deal_uuid,
-                                                            tags="#leg2", order_data=order2.report()))
+                                                            tags="#leg2"))
 
         if order3 is not None:
             report.append(TradeOrderReport.from_trade_order(order3, timestamp_now, deal_uuid=deal_uuid,
-                                                            tags="#leg3", order_data=order2.report()))
+                                                            tags="#leg3"))
 
         return report
 
