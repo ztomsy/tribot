@@ -150,12 +150,14 @@ while True:
 
         tribot.timer.notch("time_after_deals")
 
-        report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price1, price2,
-                                        price3)
-        orders_report = tribot.get_orders_report(order1, order2, order3)
-
         # we are not reporting and reloading balance if OB STOP
         if "status" in working_triangle and working_triangle["status"] != "OB STOP":
+
+            report = tribot.get_deal_report(working_triangle, recovery_data, order1, order2, order3, price1, price2,
+                                            price3)
+            orders_report = tribot.get_orders_dict_report(order1, order2, order3)
+            orders_sqla_report = tribot.sqla_orders_report(working_triangle["deal-uuid"], order1,
+                                                           order2, order3)
 
             tribot.log(tribot.LOG_INFO, "====================================")
             tribot.log(tribot.LOG_INFO, "============ DEAL REPORT ===========")
@@ -165,7 +167,7 @@ while True:
             tribot.save_single_deal_csv(report)
 
             try:
-                tribot.send_remote_report(report, orders_report)
+                tribot.send_remote_report(report, orders_report, sqla_orders_report=orders_sqla_report)
                 tribot.timer.notch("time_to_send_report")
             except Exception as e:
                 tribot.log(tribot.LOG_ERROR, "Error sending report")

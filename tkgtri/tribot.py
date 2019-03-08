@@ -9,7 +9,7 @@ import copy
 from tkgcore.reporter import TkgReporter, MongoReporter
 from tkgcore.reporter_sqla import SqlaReporter
 from tkgcore.models.deal import DealReport
-
+from tkgcore.models.trade_order import TradeOrderReport
 import bisect
 import datetime
 from tkgcore.trade_orders import *
@@ -915,8 +915,8 @@ class TriBot(Bot):
 
         return report_sqla
 
-    def get_orders_report(self, order1: TradeOrder, order2: TradeOrder = None,
-                        order3: TradeOrder = None):
+    def get_orders_dict_report(self, order1: TradeOrder, order2: TradeOrder = None,
+                               order3: TradeOrder = None):
 
         report = list()
 
@@ -931,11 +931,31 @@ class TriBot(Bot):
 
         return report
 
+    def sqla_orders_report(self, deal_uuid, order1: TradeOrder, order2: TradeOrder = None,
+                               order3: TradeOrder = None):
+
+        timestamp_now = datetime.now(tz=pytz.timezone("UTC"))
+        report = list()
+
+        if order1 is not None:
+            report.append(TradeOrderReport.from_trade_order(order1, timestamp_now, deal_uuid=deal_uuid,
+                                                            tags="#leg1", order_data=order1.report()))
+
+        if order2 is not None:
+            report.append(TradeOrderReport.from_trade_order(order2, timestamp_now, deal_uuid=deal_uuid,
+                                                            tags="#leg2", order_data=order2.report()))
+
+        if order3 is not None:
+            report.append(TradeOrderReport.from_trade_order(order3, timestamp_now, deal_uuid=deal_uuid,
+                                                            tags="#leg3", order_data=order2.report()))
+
+        return report
+
     def log_report(self, report):
         for r in self.get_report_fields():
             self.log(self.LOG_INFO, "{} = {}".format(r, report[r] if r in report else "None"))
 
-    def send_remote_report(self, report, orders_report=None):
+    def send_remote_report(self, report, orders_dict_report=None, sqla_orders_report:list = None):
 
         try:
             self.log(self.LOG_INFO, "Sending report to influx....")
@@ -950,7 +970,7 @@ class TriBot(Bot):
         try:
             self.log(self.LOG_INFO, "Sending report to mongo....")
             self.mongo_reporter.push_report(report, self.mongo["tables"]["tri_results"])
-            self.mongo_reporter.push_report(orders_report, self.mongo["tables"]["trade_orders"])
+            self.mongo_reporter.push_report(orders_dict_report, self.mongo["tables"]["trade_orders"])
 
         except Exception as e:
             self.log(self.LOG_ERROR, "Error sending report")
@@ -961,6 +981,10 @@ class TriBot(Bot):
             self.log(self.LOG_INFO, "Sending report to sqla....")
             deal_report = self.sqla_report_from_report_dict(report)
             self.sqla_reporter.session.add(deal_report)
+
+            for o in sqla_orders_report:
+                self.sqla_reporter.session.add(o)
+
             self.sqla_reporter.session.commit()
 
             self.log(self.LOG_INFO, ".... done")
