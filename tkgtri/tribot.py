@@ -256,7 +256,11 @@ class TriBot(Bot):
 
             self.sqla_reporter = SqlaReporter(self.server_id, self.exchange_id)
             self.sqla_reporter.init_db(self.sqla["connection_string"])
-            self.sqla_reporter.create_tables()
+            created_tables = self.sqla_reporter.create_tables()
+            if len(created_tables) > 0:
+                self.log(self.LOG_INFO, "... created tables {}".format(created_tables))
+
+
 
     def init_timer(self):
         self.timer = timer.Timer()
@@ -642,7 +646,6 @@ class TriBot(Bot):
                 threshold_check_after_updates=self.order_update_requests_for_time_out-2)
 
         trade_order = copy.deepcopy(order.get_active_order())
-        trade_order.tags = ""
 
         # if self.offline:
         #     o = self.exchange.create_order_offline_data(order, 10)
@@ -940,15 +943,15 @@ class TriBot(Bot):
 
         if order1 is not None:
             report.append(TradeOrderReport.from_trade_order(order1, timestamp_now, deal_uuid=deal_uuid,
-                                                            tags="#leg1"))
+                                                            supplementary={"leg": 1}))
 
         if order2 is not None:
             report.append(TradeOrderReport.from_trade_order(order2, timestamp_now, deal_uuid=deal_uuid,
-                                                            tags="#leg2"))
+                                                            supplementary={"leg": 2}))
 
         if order3 is not None:
             report.append(TradeOrderReport.from_trade_order(order3, timestamp_now, deal_uuid=deal_uuid,
-                                                            tags="#leg3"))
+                                                            supplementary={"leg": 3}))
 
         return report
 
@@ -956,7 +959,7 @@ class TriBot(Bot):
         for r in self.get_report_fields():
             self.log(self.LOG_INFO, "{} = {}".format(r, report[r] if r in report else "None"))
 
-    def send_remote_report(self, report, orders_dict_report=None, sqla_orders_report:list = None):
+    def send_remote_report(self, report, orders_dict_report=None, sqla_orders_report: list = None):
 
         try:
             self.log(self.LOG_INFO, "Sending report to influx....")
