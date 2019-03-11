@@ -983,6 +983,11 @@ class TriBot(Bot):
 
         try:
             self.log(self.LOG_INFO, "Sending report to sqla....")
+
+            if self.sqla_reporter.session is None:
+                self.sqla_reporter.new_session()
+                self.log(self.LOG_INFO, ".. new SQL Session created ")
+
             deal_report = self.sqla_report_from_report_dict(report)
             self.sqla_reporter.session.add(deal_report)
 
@@ -997,6 +1002,8 @@ class TriBot(Bot):
             self.log(self.LOG_ERROR, "SQLA: Error sending report")
             self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
             self.log(self.LOG_ERROR, "Exception body:", e.args)
+
+            self.sqla_reporter.session.rollback()
 
     def reload_balance(self, result_fact_diff: float = 0.0):
 
