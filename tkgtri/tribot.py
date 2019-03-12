@@ -25,6 +25,7 @@ import glob
 import uuid
 import collections
 import pytz
+import traceback
 
 
 class TriBot(Bot):
@@ -132,10 +133,25 @@ class TriBot(Bot):
         self.deals_file_id = int()
 
         self.influxdb = dict()
-        self.reporter = ...  # type: TkgReporter
+        self.reporter = None  # type: TkgReporter
 
-        self.mongo = dict()  # mongo configuration
-        self.mongo_reporter = None  # type: MongoReporter
+        # ;((((
+        # SQL Alchemy could not work together with Mongo!!!
+
+        # self.mongo = dict()  # mongo configuration
+        # self.mongo_reporter = None  # type: MongoReporter
+        # prev config on mongo
+        # "mongo": {
+        #     "note": "Should be disabled",
+        #     "enabled": false,
+        #     "#host": "mongodb://app_user:password@localhost:27017/?authSource=tkg_dev",
+        #     "host": "mongodb://<LOGIN>:<PASSWORD>@tkg-reporting-shard-00-00-izwsm.mongodb.net:27017,tkg-reporting-shard-00-01-izwsm.mongodb.net:27017,tkg-reporting-shard-00-02-izwsm.mongodb.net:27017/test?ssl=true&replicaSet=TKG-Reporting-shard-0&authSource=admin&retryWrites=true",
+        #     "db": "tkg_dev",
+        #     "tables": {
+        #         "trade_orders": "trade_orders",
+        #         "tri_results": "tri_results"
+        #     }
+        # },
 
         self.sqla = dict()  # sqla configuration
         self.sqla_reporter = None  # type: SqlaReporter
@@ -238,17 +254,18 @@ class TriBot(Bot):
         self.report_dir = directory
 
     def init_remote_reports(self):
-        self.reporter = TkgReporter(self.server_id, self.exchange_id)
-        self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
-                              self.influxdb["measurement"])
+        if self.influxdb["enabled"]:
+            self.reporter = TkgReporter(self.server_id, self.exchange_id)
+            self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
+                                  self.influxdb["measurement"])
 
-        if self.mongo is not None and self.mongo["enabled"]:
-            self.mongo_reporter = MongoReporter(self.server_id, self.exchange_id)
-            self.mongo_reporter.init_db(self.mongo["host"], None, self.mongo["db"],
-                                        self.mongo["tables"]["tri_results"])
-        else:
-            self.log(self.LOG_ERROR, "Mongo DB not configured..")
-            # sys.exit()
+        # if self.mongo is not None and self.mongo["enabled"]:
+        #     self.mongo_reporter = MongoReporter(self.server_id, self.exchange_id)
+        #     self.mongo_reporter.init_db(self.mongo["host"], None, self.mongo["db"],
+        #                                 self.mongo["tables"]["tri_results"])
+        # else:
+        #     self.log(self.LOG_ERROR, "Mongo DB not configured..")
+        #     # sys.exit()
 
         if self.sqla is not None and self.sqla["enabled"]:
             self.log(self.LOG_INFO, "SQLA Reporter Enabled")
@@ -961,7 +978,7 @@ class TriBot(Bot):
 
     def send_remote_report(self, report, orders_dict_report=None, sqla_orders_report: list = None):
 
-        if self.influxdb["enabled"]:
+        if self.influxdb is not None and "enabled" in self.influxdb and self.influxdb["enabled"]:
             try:
                 self.log(self.LOG_INFO, "Sending report to influx....")
                 for r in report:
@@ -972,18 +989,18 @@ class TriBot(Bot):
                 self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
                 self.log(self.LOG_ERROR, "Exception body:", e.args)
 
-        if self.mongo["enabled"]:
-            try:
-                self.log(self.LOG_INFO, "Sending report to mongo....")
-                self.mongo_reporter.push_report(report, self.mongo["tables"]["tri_results"])
-                self.mongo_reporter.push_report(orders_dict_report, self.mongo["tables"]["trade_orders"])
+        # if self.mongo["enabled"]:
+        #     try:
+        #         self.log(self.LOG_INFO, "Sending report to mongo....")
+        #         self.mongo_reporter.push_report(report, self.mongo["tables"]["tri_results"])
+        #         self.mongo_reporter.push_report(orders_dict_report, self.mongo["tables"]["trade_orders"])
+        #
+        #     except Exception as e:
+        #         self.log(self.LOG_ERROR, "Error sending report")
+        #         self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+        #         self.log(self.LOG_ERROR, "Exception body:", e.args)
 
-            except Exception as e:
-                self.log(self.LOG_ERROR, "Error sending report")
-                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-                self.log(self.LOG_ERROR, "Exception body:", e.args)
-
-        if self.sqla["enabled"]:
+        if self.sqla is not None and "enabled" in self.sqla and self.sqla["enabled"]:
             try:
                 self.log(self.LOG_INFO, "Sending report to sqla....")
 
@@ -1005,6 +1022,11 @@ class TriBot(Bot):
                 self.log(self.LOG_ERROR, "SQLA: Error sending report")
                 self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
                 self.log(self.LOG_ERROR, "Exception body:", e.args)
+
+                print("Exception in user code:")
+                print("-" * 60)
+                traceback.print_exc(file=sys.stdout)
+                print("-" * 60)
 
                 self.sqla_reporter.session.rollback()
 

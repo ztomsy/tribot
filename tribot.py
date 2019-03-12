@@ -271,11 +271,11 @@ while True:
     try:
         tribot.proceed_triangles()
         tribot.tri_list_good = tribot.get_good_triangles()  # tri_list became sorted after this
-
-        tribot.reporter.set_indicator("good_triangles", len(tribot.tri_list_good))
-        tribot.reporter.set_indicator("total_triangles", len(tribot.tri_list))
-        tribot.reporter.set_indicator("best_triangle", tribot.tri_list[0]["triangle"])
-        tribot.reporter.set_indicator("best_result", tribot.tri_list[0]["result"])
+        if tribot.reporter is not None:
+            tribot.reporter.set_indicator("good_triangles", len(tribot.tri_list_good))
+            tribot.reporter.set_indicator("total_triangles", len(tribot.tri_list))
+            tribot.reporter.set_indicator("best_triangle", tribot.tri_list[0]["triangle"])
+            tribot.reporter.set_indicator("best_result", tribot.tri_list[0]["result"])
 
         tribot.timer.notch("time_proceed")
 
