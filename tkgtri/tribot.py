@@ -662,6 +662,7 @@ class TriBot(Bot):
                 threshold_check_after_updates=self.order_update_requests_for_time_out-2)
 
         trade_order = copy.deepcopy(order.get_active_order())
+        trade_order.tags = ""
 
         # if self.offline:
         #     o = self.exchange.create_order_offline_data(order, 10)
