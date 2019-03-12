@@ -253,30 +253,29 @@ class TriBot(Bot):
         # self.report_prev_tickers_filename = self.report_prev_tickers_filename % (directory, self.deals_file_id)
         self.report_dir = directory
 
-    def init_remote_reports(self):
-        if self.influxdb["enabled"]:
-            self.reporter = TkgReporter(self.server_id, self.exchange_id)
-            self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
-                                  self.influxdb["measurement"])
-
-        # if self.mongo is not None and self.mongo["enabled"]:
-        #     self.mongo_reporter = MongoReporter(self.server_id, self.exchange_id)
-        #     self.mongo_reporter.init_db(self.mongo["host"], None, self.mongo["db"],
-        #                                 self.mongo["tables"]["tri_results"])
-        # else:
-        #     self.log(self.LOG_ERROR, "Mongo DB not configured..")
-        #     # sys.exit()
-
-        if self.sqla is not None and self.sqla["enabled"]:
-            self.log(self.LOG_INFO, "SQLA Reporter Enabled")
-            self.log(self.LOG_INFO, "SQLA connection string {}".format(self.sqla["connection_string"]))
-
-            self.sqla_reporter = SqlaReporter(self.server_id, self.exchange_id)
-            self.sqla_reporter.init_db(self.sqla["connection_string"])
-            created_tables = self.sqla_reporter.create_tables()
-            if len(created_tables) > 0:
-                self.log(self.LOG_INFO, "... created tables {}".format(created_tables))
-
+    # def init_remote_reports(self):
+    #     if self.influxdb is not None and "enabled" in self.influxdb and self.influxdb["enabled"]:
+    #         self.reporter = TkgReporter(self.server_id, self.exchange_id)
+    #         self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
+    #                               self.influxdb["measurement"])
+    #
+    #     # if self.mongo is not None and self.mongo["enabled"]:
+    #     #     self.mongo_reporter = MongoReporter(self.server_id, self.exchange_id)
+    #     #     self.mongo_reporter.init_db(self.mongo["host"], None, self.mongo["db"],
+    #     #                                 self.mongo["tables"]["tri_results"])
+    #     # else:
+    #     #     self.log(self.LOG_ERROR, "Mongo DB not configured..")
+    #     #     # sys.exit()
+    #
+    #     if self.sqla is not None and self.sqla["enabled"]:
+    #         self.log(self.LOG_INFO, "SQLA Reporter Enabled")
+    #         self.log(self.LOG_INFO, "SQLA connection string {}".format(self.sqla["connection_string"]))
+    #
+    #         self.sqla_reporter = SqlaReporter(self.server_id, self.exchange_id)
+    #         self.sqla_reporter.init_db(self.sqla["connection_string"])
+    #         created_tables = self.sqla_reporter.create_tables()
+    #         if len(created_tables) > 0:
+    #             self.log(self.LOG_INFO, "... created tables {}".format(created_tables))
 
 
     def init_timer(self):
