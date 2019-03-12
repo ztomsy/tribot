@@ -943,15 +943,15 @@ class TriBot(Bot):
 
         if order1 is not None:
             report.append(TradeOrderReport.from_trade_order(order1, timestamp_now, deal_uuid=deal_uuid,
-                                                            supplementary={"leg": 1}))
+                                                            supplementary={"leg": 1, "deal_state": "main"}))
 
         if order2 is not None:
             report.append(TradeOrderReport.from_trade_order(order2, timestamp_now, deal_uuid=deal_uuid,
-                                                            supplementary={"leg": 2}))
+                                                            supplementary={"leg": 2, "deal_state": "main"}))
 
         if order3 is not None:
             report.append(TradeOrderReport.from_trade_order(order3, timestamp_now, deal_uuid=deal_uuid,
-                                                            supplementary={"leg": 3}))
+                                                            supplementary={"leg": 3, "deal_state": "main"}))
 
         return report
 
@@ -961,49 +961,52 @@ class TriBot(Bot):
 
     def send_remote_report(self, report, orders_dict_report=None, sqla_orders_report: list = None):
 
-        try:
-            self.log(self.LOG_INFO, "Sending report to influx....")
-            for r in report:
-                self.reporter.set_indicator(r, report[r])
-            self.reporter.push_to_influx()
-        except Exception as e:
-            self.log(self.LOG_ERROR, "Error sending report")
-            self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            self.log(self.LOG_ERROR, "Exception body:", e.args)
+        if self.influxdb["enabled"]:
+            try:
+                self.log(self.LOG_INFO, "Sending report to influx....")
+                for r in report:
+                    self.reporter.set_indicator(r, report[r])
+                self.reporter.push_to_influx()
+            except Exception as e:
+                self.log(self.LOG_ERROR, "Error sending report")
+                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+                self.log(self.LOG_ERROR, "Exception body:", e.args)
 
-        try:
-            self.log(self.LOG_INFO, "Sending report to mongo....")
-            self.mongo_reporter.push_report(report, self.mongo["tables"]["tri_results"])
-            self.mongo_reporter.push_report(orders_dict_report, self.mongo["tables"]["trade_orders"])
+        if self.mongo["enabled"]:
+            try:
+                self.log(self.LOG_INFO, "Sending report to mongo....")
+                self.mongo_reporter.push_report(report, self.mongo["tables"]["tri_results"])
+                self.mongo_reporter.push_report(orders_dict_report, self.mongo["tables"]["trade_orders"])
 
-        except Exception as e:
-            self.log(self.LOG_ERROR, "Error sending report")
-            self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            self.log(self.LOG_ERROR, "Exception body:", e.args)
+            except Exception as e:
+                self.log(self.LOG_ERROR, "Error sending report")
+                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+                self.log(self.LOG_ERROR, "Exception body:", e.args)
 
-        try:
-            self.log(self.LOG_INFO, "Sending report to sqla....")
+        if self.sqla["enabled"]:
+            try:
+                self.log(self.LOG_INFO, "Sending report to sqla....")
 
-            if self.sqla_reporter.session is None:
-                self.sqla_reporter.new_session()
-                self.log(self.LOG_INFO, ".. new SQL Session created ")
+                if self.sqla_reporter.session is None:
+                    self.sqla_reporter.new_session()
+                    self.log(self.LOG_INFO, ".. new SQL Session created ")
 
-            deal_report = self.sqla_report_from_report_dict(report)
-            self.sqla_reporter.session.add(deal_report)
+                deal_report = self.sqla_report_from_report_dict(report)
+                self.sqla_reporter.session.add(deal_report)
 
-            for o in sqla_orders_report:
-                self.sqla_reporter.session.add(o)
+                for o in sqla_orders_report:
+                    self.sqla_reporter.session.add(o)
 
-            self.sqla_reporter.session.commit()
+                self.sqla_reporter.session.commit()
 
-            self.log(self.LOG_INFO, ".... done")
+                self.log(self.LOG_INFO, ".... done")
 
-        except Exception as e:
-            self.log(self.LOG_ERROR, "SQLA: Error sending report")
-            self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-            self.log(self.LOG_ERROR, "Exception body:", e.args)
+            except Exception as e:
+                self.log(self.LOG_ERROR, "SQLA: Error sending report")
+                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+                self.log(self.LOG_ERROR, "Exception body:", e.args)
 
-            self.sqla_reporter.session.rollback()
+                self.sqla_reporter.session.rollback()
 
     def reload_balance(self, result_fact_diff: float = 0.0):
 

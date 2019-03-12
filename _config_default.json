@@ -35,7 +35,9 @@
   "sleep_on_tickers_error": 0.1,
 
   "influxdb":
-          {"host": "666.666.666.6666",
+          {
+            "enabled": false,
+            "host": "666.666.666.6666",
             "port": 8086,
             "db": "tkg_dev",
             "measurement": "tri_status"},
@@ -53,12 +55,12 @@
 
   "sqla":
   {
-    "enabled": true,
+    "enabled": false,
     "connection_string": "postgres://ztom_main:ztom@localserver:5432/ztom_dev"
   },
 
   "recovery_server": {
-          "host": "http://999.999.999.999",
+          "host": "http://localhost",
           "port": 8080
   },
   "not_request_trades": false,
