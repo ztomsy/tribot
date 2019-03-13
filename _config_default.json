@@ -44,7 +44,7 @@
 
   "sqla":
   {
-    "enabled": true,
+    "enabled": false,
     "connection_string": "postgres://ztom_main:ztom@localserver:5432/ztom_dev"
   },
 
