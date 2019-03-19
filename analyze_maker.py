@@ -1,0 +1,135 @@
+import tkgcore
+import tkgtri
+import sys
+
+
+def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict, commission=0, commission_maker = 0):
+    tri_list = list()
+
+    for t in triangles:
+        tri_name = "-".join(t)
+
+        if start_currencies is not None and t[0] in start_currencies:
+            tri_dict = dict()
+            result = 1.0
+
+            for i, s_c in enumerate(t):
+
+                leg = i + 1
+
+                source_cur = t[i]
+                dest_cur = t[i + 1] if i < len(t) - 1 else t[0]
+
+                symbol = ""
+                order_type = ""
+                price_type = ""
+
+                if source_cur + "/" + dest_cur in tickers:
+                    symbol = source_cur + "/" + dest_cur
+                    order_type = "sell"
+                    price_type = "bid" if leg != 1 else "ask"
+
+                elif dest_cur + "/" + source_cur in tickers:
+                    symbol = dest_cur + "/" + source_cur
+                    order_type = "buy"
+                    price_type = "ask" if leg != 1 else "bid"
+
+                if symbol in tickers and price_type in tickers[symbol] and tickers[symbol][price_type] is not None \
+                        and tickers[symbol][price_type] > 0:
+
+                    price = tickers[symbol][price_type]
+
+                    if result != 0:
+                        result = result / price if order_type == "buy" else result * price
+                        result = result * (1-commission) if leg != 1 else result * (1-commission_maker)
+
+                else:
+                    price = 0
+                    result = 0
+
+                tri_dict["triangle"] = tri_name
+                tri_dict["cur" + str(leg)] = t[i]
+                tri_dict["symbol" + str(leg)] = symbol
+                tri_dict["leg{}-order".format(str(leg))] = order_type
+                tri_dict["leg{}-price".format(str(leg))] = price
+
+            if result != 0:
+                tri_dict["leg-orders"] = tri_dict["leg1-order"] + "-" + tri_dict["leg2-order"] + "-" + \
+                                         tri_dict["leg3-order"]
+
+            tri_dict["result"] = result
+
+            tri_list.append(tri_dict)
+
+    return tri_list
+
+
+tribot = tkgtri.tribot.TriBot("_config_def_maker.json")
+tribot.commission_maker = None
+
+tribot.set_from_cli(sys.argv[1:])  # cli parameters  override config
+tribot.load_config_from_file(tribot.config_filename)  # config taken from cli or default
+
+try:
+    tribot.init_exchange()
+    # init offline mode
+    if tribot.offline:
+
+        tribot.init_offline_mode()  # set offline files from the cli or config
+
+        tribot.log(tribot.LOG_INFO, "Offline Mode")
+        tribot.log(tribot.LOG_INFO, "..markets file: {}".format(tribot.offline_markets_file))
+        tribot.log(tribot.LOG_INFO, "..tickers file: {}".format(tribot.offline_tickers_file))
+        if tribot.offline_order_books_file:
+            tribot.log(tribot.LOG_INFO, "..order books file: {}".format(tribot.offline_order_books_file))
+        else:
+            tribot.log(tribot.LOG_INFO, "..order books will be created from tickers")
+
+        if tribot.offline_run_test:
+            tribot.init_test_run()
+
+    else:
+        tribot.exchange.init_async_exchange()
+
+    tribot.load_markets()
+
+except Exception as e:
+    tribot.log(tribot.LOG_ERROR, "Error while exchange initialization {}".format(tribot.exchange_id))
+    tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+    tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+    sys.exit(0)
+
+if len(tribot.markets) < 1:
+    tribot.log(tribot.LOG_ERROR, "Zero markets {}".format(tribot.exchange_id))
+    sys.exit(0)
+
+
+
+while tribot.fetch_number < 1000:
+    tickers = tribot.fetch_tickers()
+    tribot.set_triangles()
+
+    tribot.proceed_triangles()
+    good_taker_triangles = tribot.get_good_triangles()
+    results_taker = sorted(tribot.tri_list, key=lambda k: k['result'], reverse=True)
+
+    results_maker = fill_triangles_maker(tribot.all_triangles, tribot.start_currency, tickers, tribot.commission,
+                                         tribot.commission_maker)
+    results_maker = sorted(results_maker, key=lambda k: k['result'], reverse=True)
+
+    good_maker_triangles = tribot.get_good_triangles(results_maker)
+
+    print("Good TAKER triangles: {}. Best TAKER triangle {}".format(len(good_taker_triangles), results_taker[0]["result"]))
+
+    print("Good MAKER triangles: {}. Best MAKER triangle {} result {}" .format(len(good_maker_triangles),
+                                                                               results_maker[0]["symbol1"],
+                                                                               results_maker[0]["result"]))
+
+    print("TOP 5 MAKER triangles: ")
+    for i in range(0, 6):
+        print(good_maker_triangles[i]["triangle"], " ", good_maker_triangles[i]["result"])
+
+
+
+sys.exit()
+

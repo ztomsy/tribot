@@ -1,0 +1,78 @@
+{
+  "server_id": "PROD1",
+  "script_id": "triarb",
+  "exchange_id":"binance",
+
+  "start_currency":["BTC"],
+  "ignore_currency":["BCHSV"],
+  "share_balance_to_bid":0.8,
+  "max_recovery_attempts": 20,
+  "min_amounts":
+    {"BTC": 0.002, "ETH": 0.02, "BNB": 1, "USDT": 20},
+
+  "commission" : 0.00075,
+  "commission_maker" : 0.0006,
+
+  "threshold" : 1.0005,
+  "threshold_order_book" : 1.005,
+  "recover_factor":1.004,
+
+  "balance_bid_thresholds" : {
+    "ETH":
+        [{"max_bid": 5,"result_threshold": 1.0005, "orderbook_result_threshold": 1.0005},
+         {"max_bid": 10, "result_threshold": 1.01, "orderbook_result_threshold": 1.01}],
+
+    "BTC":
+        [{"max_bid": 0.5,"result_threshold": 1.0005, "orderbook_result_threshold": 1.0005},
+         {"max_bid": 1, "result_threshold": 1.01, "orderbook_result_threshold": 1.01}]
+    },
+
+  "api_key": {"apiKey": "testApiKey",
+           "secret": "testApiSecret"},
+
+  "max_past_triangles" : 100,
+  "good_consecutive_results_threshold":2,
+  "lap_time" : 60,
+  "max_requests_per_lap": 1500,
+  "sleep_on_tickers_error": 0.1,
+
+  "influxdb":
+          {
+            "enabled": false,
+            "host": "666.666.666.6666",
+            "port": 8086,
+            "db": "tkg_dev",
+            "measurement": "tri_status"},
+
+  "sqla":
+  {
+    "enabled": false,
+    "connection_string": "postgres://ztom_main:ztom@localserver:5432/ztom_dev"
+  },
+
+  "recovery_server": {
+          "host": "http://localhost",
+          "port": 8080
+  },
+  "not_request_trades": false,
+  "order_update_total_requests": 25,
+  "order_update_requests_for_time_out": 5,
+  "order_update_time_out": 0.001,
+  "max_trades_updates": 20,
+  "max_oder_books_fetch_attempts": 10,
+  "max_order_update_attempts":10,
+  "request_sleep": 0.001,
+
+  "fullthrottle": {
+    "enabled": false,
+    "start_at": [0,50]
+  },
+
+  "cancel_price_threshold": 0.0,
+
+  "offline_markets_file": "test_data/markets.json",
+  "offline_tickers_file": "test_data/tickers.csv",
+  "offline_order_books_file": false
+
+}
+

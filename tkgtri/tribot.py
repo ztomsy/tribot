@@ -356,6 +356,7 @@ class TriBot(Bot):
     def proceed_triangles(self):
 
         self.tri_list = ta.fill_triangles(self.all_triangles, self.start_currency, self.tickers, self.commission)
+        return self.tri_list
 
     def load_balance(self):
 
@@ -454,6 +455,7 @@ class TriBot(Bot):
     def fetch_tickers(self):
         self.fetch_number += 1
         self.tickers = self.exchange.fetch_tickers()
+        return self.tickers
 
     def check_good_triangles(self, triangle: dict):
 
@@ -472,22 +474,32 @@ class TriBot(Bot):
                     return True
         return False
 
-    def get_good_triangles(self):
+    def get_good_triangles(self, triangles_with_results=None):
         """
         :return: sorted by result list of good triangles
         """
         # tri_list = list(filter(lambda x: x['result'] > 0, self.tri_list))
-        self.tri_list = sorted(self.tri_list, key=lambda k: k['result'], reverse=True)
+        tri_list = list()
 
-        threshold = self.threshold
+        if triangles_with_results is not None:
+            tri_list = triangles_with_results
+        else:
+            tri_list = self.tri_list
+
+        tri_list = sorted(tri_list, key=lambda k: k['result'], reverse=True)
+
+        # threshold = threshold if threshold is not None else self.threshold
 
         tri_list_good = list(
             filter(self.check_good_triangles,
-                   self.tri_list))
+                   tri_list))
 
         # self.tri_list_good = tri_list_good
         self.last_proceed_report = dict()
-        self.last_proceed_report["best_result"] = self.tri_list[0]
+        self.last_proceed_report["best_result"] = tri_list[0]
+
+        if triangles_with_results is not None:
+            self.tri_list = tri_list_good
 
         return tri_list_good
 
