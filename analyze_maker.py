@@ -104,6 +104,21 @@ if len(tribot.markets) < 1:
     tribot.log(tribot.LOG_ERROR, "Zero markets {}".format(tribot.exchange_id))
     sys.exit(0)
 
+# fetching the balance for first start currency or taking test balance from the cli/config
+try:
+    tribot.log(tribot.LOG_INFO, "Fetching balance...")
+    tribot.load_balance()
+    tribot.log(tribot.LOG_INFO, "Init Balance: {}".format(tribot.balance))
+
+except Exception as e:
+    tribot.log(tribot.LOG_ERROR, "Error while fetching balance {}".format(tribot.exchange_id))
+    tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+    tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+    tribot.log(tribot.LOG_ERROR, "Exiting")
+    sys.exit("666")
+
+
+
 
 start_index = 0
 start_amount = 0.01
