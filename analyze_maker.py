@@ -1,4 +1,5 @@
 import tkgcore
+from tkgcore import core
 import tkgtri
 import sys
 
@@ -43,9 +44,12 @@ def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict,
                         result = result / price if order_type == "buy" else result * price
                         result = result * (1-commission) if leg != 1 else result * (1-commission_maker)
 
+                    ticker_qty = tickers[symbol][price_type+'Volume']
+
                 else:
                     price = 0
                     result = 0
+                    ticker_qty = 0
 
                 tri_dict["triangle"] = tri_name
                 tri_dict["cur" + str(leg)] = t[i]
@@ -53,6 +57,30 @@ def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict,
                 tri_dict["leg{}-order".format(str(leg))] = order_type
                 tri_dict["leg{}-price".format(str(leg))] = price
                 tri_dict["leg{}-price-type".format(str(leg))] = price_type
+
+                tri_dict["leg{}-ticker-qty".format(str(leg))] = ticker_qty
+
+                # getting amount of ticker qty in start cur
+                currency_of_amount_in_ticker = symbol.split("/")[0]
+
+                if currency_of_amount_in_ticker and currency_of_amount_in_ticker != t[0]:
+
+                    if leg == 2:
+                        symbol_to_convert = core.get_symbol(currency_of_amount_in_ticker, t[0], tickers)
+                    else:
+                        symbol_to_convert = symbol
+                    try:
+                        tri_dict["leg{}-cur1-qty".format(str(leg))] = \
+                            core.convert_currency(currency_of_amount_in_ticker,
+                                                  tickers[symbol][price_type+'Volume'],
+                                                  t[0],
+                                                  symbol=symbol_to_convert,
+                                                  price=price)
+                    except:
+                        tri_dict["leg{}-cur1-qty".format(str(leg))] = 999999999
+
+                else:
+                    tri_dict["leg{}-cur1-qty".format(str(leg))] = ticker_qty
 
             if result != 0:
                 tri_dict["leg-orders"] = tri_dict["leg1-order"] + "-" + tri_dict["leg2-order"] + "-" + \
@@ -117,9 +145,6 @@ except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Exiting")
     sys.exit("666")
 
-
-
-
 start_index = 0
 start_amount = 0.01
 om = tkgcore.ActionOrderManager(tribot.exchange)
@@ -134,9 +159,10 @@ while tribot.fetch_number < 1000:
 
     results_maker = fill_triangles_maker(tribot.all_triangles, tribot.start_currency, tickers, tribot.commission,
                                          tribot.commission_maker)
-    results_maker = sorted(results_maker, key=lambda k: k['result'], reverse=True)
-
+    # results_maker = sorted(results_maker, key=lambda k: k['result'], reverse=True)
     good_maker_triangles = tribot.get_good_triangles(results_maker)
+    good_maker_triangles = sorted(good_maker_triangles, key=lambda k: k['leg1-cur1-qty'], reverse=False)
+
 
     print("Good TAKER triangles: {}. Best TAKER triangle {}".format(len(good_taker_triangles), results_taker[0]["result"]))
 
@@ -146,14 +172,18 @@ while tribot.fetch_number < 1000:
 
     print("TOP 5 MAKER triangles: ")
     if len(good_maker_triangles) > 0:
-        top_to_display = 6 if len(good_maker_triangles) > 5 else len(good_maker_triangles)
+        top_to_display = 100 if len(good_maker_triangles) > 100 else len(good_maker_triangles)
 
         print("TOP {} MAKER triangles: ".format(top_to_display))
 
         for i in range(0, top_to_display):
-            print(good_maker_triangles[i]["triangle"], " ", good_maker_triangles[i]["result"])
+            print(good_maker_triangles[i]["triangle"], " ", good_maker_triangles[i]["result"], " ", good_maker_triangles[i]["leg1-cur1-qty"])
 
     if len(good_maker_triangles) < start_index + 1 :
+        continue
+
+    if good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount > 70:
+        print("Leg1 qty / start_amount is too much {}".format(good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount))
         continue
 
     order1 = tkgcore.FokOrder\
@@ -162,7 +192,7 @@ while tribot.fetch_number < 1000:
                                   amount_start=start_amount,
                                   dest_currency=good_maker_triangles[start_index]["cur2"],
                                   price=good_maker_triangles[start_index]["leg1-price"],
-                                  max_order_updates=tribot.order_update_total_requests)
+                                  max_order_updates=2000)
 
     om.add_order(order1)
 
