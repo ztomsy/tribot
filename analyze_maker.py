@@ -52,6 +52,7 @@ def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict,
                 tri_dict["symbol" + str(leg)] = symbol
                 tri_dict["leg{}-order".format(str(leg))] = order_type
                 tri_dict["leg{}-price".format(str(leg))] = price
+                tri_dict["leg{}-price-type".format(str(leg))] = price_type
 
             if result != 0:
                 tri_dict["leg-orders"] = tri_dict["leg1-order"] + "-" + tri_dict["leg2-order"] + "-" + \
@@ -104,6 +105,9 @@ if len(tribot.markets) < 1:
     sys.exit(0)
 
 
+start_index = 0
+start_amount = 0.01
+om = tkgcore.ActionOrderManager(tribot.exchange)
 
 while tribot.fetch_number < 1000:
     tickers = tribot.fetch_tickers()
@@ -126,10 +130,65 @@ while tribot.fetch_number < 1000:
                                                                                results_maker[0]["result"]))
 
     print("TOP 5 MAKER triangles: ")
-    for i in range(0, 6):
-        print(good_maker_triangles[i]["triangle"], " ", good_maker_triangles[i]["result"])
+    if len(good_maker_triangles) > 0:
+        top_to_display = 6 if len(good_maker_triangles) > 5 else len(good_maker_triangles)
+
+        print("TOP {} MAKER triangles: ".format(top_to_display))
+
+        for i in range(0, top_to_display):
+            print(good_maker_triangles[i]["triangle"], " ", good_maker_triangles[i]["result"])
+
+    if len(good_maker_triangles) < start_index + 1 :
+        continue
+
+    order1 = tkgcore.FokOrder\
+        .create_from_start_amount(symbol=good_maker_triangles[start_index]["symbol1"],
+                                  start_currency=good_maker_triangles[start_index]["cur1"],
+                                  amount_start=start_amount,
+                                  dest_currency=good_maker_triangles[start_index]["cur2"],
+                                  price=good_maker_triangles[start_index]["leg1-price"],
+                                  max_order_updates=tribot.order_update_total_requests)
+
+    om.add_order(order1)
+
+    while len(om.get_open_orders()) > 0:
+        om.proceed_orders()
+
+    if order1.filled_start_amount < 0.003:
+        continue
+
+    order2 = tkgcore.FokOrder.\
+        create_from_start_amount(symbol=good_maker_triangles[start_index]["symbol2"],
+                               start_currency=good_maker_triangles[start_index]["cur2"],
+                               amount_start=order1.filled_dest_amount,
+                               dest_currency=good_maker_triangles[start_index]["cur3"],
+                               price=good_maker_triangles[start_index]["leg2-price"],
+                               max_order_updates=tribot.order_update_total_requests)
+
+    om.add_order(order2)
+
+    while len(om.get_open_orders()) > 0:
+        om.proceed_orders()
 
 
+    if order2.filled_dest_amount < 0 :
+        continue
+
+    order3 = tkgcore.FokOrder. \
+        create_from_start_amount(symbol=good_maker_triangles[start_index]["symbol3"],
+                                 start_currency=good_maker_triangles[start_index]["cur3"],
+                                 amount_start=order2.filled_dest_amount,
+                                 dest_currency=good_maker_triangles[start_index]["cur1"],
+                                 price=good_maker_triangles[start_index]["leg3-price"],
+                                 max_order_updates=tribot.order_update_total_requests)
+
+    om.add_order(order3)
+
+    while len(om.get_open_orders()) > 0:
+        om.proceed_orders()
+
+    print("Result: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
+    sys.exit()
 
 sys.exit()
 
