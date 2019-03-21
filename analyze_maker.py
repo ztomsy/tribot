@@ -107,6 +107,7 @@ try:
         tribot.offline_tickers_file = "test_data/tickers_maker.csv"
 
         tribot.init_offline_mode()  # set offline files from the cli or config
+        tribot.exchange.offline_use_last_tickers = True
 
         tribot.log(tribot.LOG_INFO, "Offline Mode")
         tribot.log(tribot.LOG_INFO, "..markets file: {}".format(tribot.offline_markets_file))
@@ -150,12 +151,13 @@ except Exception as e:
 start_index = 0
 start_amount = 0.01
 om = tkgcore.ActionOrderManager(tribot.exchange)
+om.request_trades = False
 
-while tribot.fetch_number < 1000:
-
-    sleep_time = tribot.exchange.requests_throttle.sleep_time()
-    print("Sleeping for {}s".format(sleep_time))
-    time.sleep(sleep_time)
+while True:
+    if om.pending_actions_number() == 0:
+        sleep_time = tribot.exchange.requests_throttle.sleep_time()
+        print("Sleeping for {}s".format(sleep_time))
+        time.sleep(sleep_time)
 
     tickers = tribot.fetch_tickers()
     tribot.set_triangles()
@@ -206,6 +208,7 @@ while tribot.fetch_number < 1000:
     om.add_order(order1)
 
     while len(om.get_open_orders()) > 0:
+
         tickers = tribot.fetch_tickers()
 
         current_result = fill_triangles_maker(current_triangle, [current_triangle[0][0]], tickers, tribot.commission,
@@ -218,9 +221,10 @@ while tribot.fetch_number < 1000:
 
         om.proceed_orders()
 
-        sleep_time = tribot.exchange.requests_throttle.sleep_time()
-        print("Sleeping for {}s".format(sleep_time))
-        time.sleep(sleep_time)
+        if om.pending_actions_number() == 0 and om.get_closed_orders() is None:
+            sleep_time = tribot.exchange.requests_throttle.sleep_time()
+            print("Sleeping for {}s".format(sleep_time))
+            time.sleep(sleep_time)
 
     if order1.filled_start_amount <= 0.003:
         continue
@@ -238,9 +242,11 @@ while tribot.fetch_number < 1000:
     while len(om.get_open_orders()) > 0:
         om.proceed_orders()
 
-        sleep_time = tribot.exchange.requests_throttle.sleep_time()
-        print("Sleeping for {}s".format(sleep_time))
-        time.sleep(sleep_time)
+        if om.pending_actions_number() == 0 and om.get_closed_orders() is None:
+
+            sleep_time = tribot.exchange.requests_throttle.sleep_time()
+            print("Sleeping for {}s".format(sleep_time))
+            time.sleep(sleep_time)
 
     if core.convert_currency(order2.dest_currency, order2.filled_dest_amount,
                              "BTC", core.get_symbol("BTC", order2.dest_currency, tickers),
@@ -254,16 +260,17 @@ while tribot.fetch_number < 1000:
                                  amount_start=order2.filled_dest_amount,
                                  dest_currency=good_maker_triangles[start_index]["cur1"],
                                  price=good_maker_triangles[start_index]["leg3-price"],
-                                 max_order_updates=tribot.order_update_total_requests)
+                                 max_order_updates=5000)
 
     om.add_order(order3)
 
     while len(om.get_open_orders()) > 0:
         om.proceed_orders()
 
-        sleep_time = tribot.exchange.requests_throttle.sleep_time()
-        print("Sleeping for {}s".format(sleep_time))
-        time.sleep(sleep_time)
+        if om.pending_actions_number() == 0:
+            sleep_time = tribot.exchange.requests_throttle.sleep_time()
+            print("Sleeping for {}s".format(sleep_time))
+            time.sleep(sleep_time)
 
 
     print("Result: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
