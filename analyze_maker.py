@@ -2,6 +2,7 @@ import tkgcore
 from tkgcore import core
 import tkgtri
 import sys
+import time
 
 
 def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict, commission=0, commission_maker = 0):
@@ -103,6 +104,7 @@ try:
     tribot.init_exchange()
     # init offline mode
     if tribot.offline:
+        tribot.offline_tickers_file = "test_data/tickers_maker.csv"
 
         tribot.init_offline_mode()  # set offline files from the cli or config
 
@@ -150,6 +152,11 @@ start_amount = 0.01
 om = tkgcore.ActionOrderManager(tribot.exchange)
 
 while tribot.fetch_number < 1000:
+
+    sleep_time = tribot.exchange.requests_throttle.sleep_time()
+    print("Sleeping for {}s".format(sleep_time))
+    time.sleep(sleep_time)
+
     tickers = tribot.fetch_tickers()
     tribot.set_triangles()
 
@@ -162,7 +169,6 @@ while tribot.fetch_number < 1000:
     # results_maker = sorted(results_maker, key=lambda k: k['result'], reverse=True)
     good_maker_triangles = tribot.get_good_triangles(results_maker)
     good_maker_triangles = sorted(good_maker_triangles, key=lambda k: k['leg1-cur1-qty'], reverse=False)
-
 
     print("Good TAKER triangles: {}. Best TAKER triangle {}".format(len(good_taker_triangles), results_taker[0]["result"]))
 
@@ -179,12 +185,15 @@ while tribot.fetch_number < 1000:
         for i in range(0, top_to_display):
             print(good_maker_triangles[i]["triangle"], " ", good_maker_triangles[i]["result"], " ", good_maker_triangles[i]["leg1-cur1-qty"])
 
-    if len(good_maker_triangles) < start_index + 1 :
+    if len(good_maker_triangles) < start_index + 1:
         continue
 
     if good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount > 70:
         print("Leg1 qty / start_amount is too much {}".format(good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount))
         continue
+
+    current_triangle = [[good_maker_triangles[start_index]["cur1"], good_maker_triangles[start_index]["cur2"],
+                        good_maker_triangles[start_index]["cur3"]]]
 
     order1 = tkgcore.FokOrder\
         .create_from_start_amount(symbol=good_maker_triangles[start_index]["symbol1"],
@@ -197,26 +206,46 @@ while tribot.fetch_number < 1000:
     om.add_order(order1)
 
     while len(om.get_open_orders()) > 0:
+        tickers = tribot.fetch_tickers()
+
+        current_result = fill_triangles_maker(current_triangle, [current_triangle[0][0]], tickers, tribot.commission,
+                                              tribot.commission_maker)
+        if current_result[0]["result"] < tribot.threshold:
+            tribot.log(tribot.LOG_INFO,
+                       "Result is below threshold {}. Forcing cancellation of the order.".format(current_result[0]["result"]))
+
+            order1.force_close()
+
         om.proceed_orders()
 
-    if order1.filled_start_amount < 0.003:
+        sleep_time = tribot.exchange.requests_throttle.sleep_time()
+        print("Sleeping for {}s".format(sleep_time))
+        time.sleep(sleep_time)
+
+    if order1.filled_start_amount <= 0.003:
         continue
 
     order2 = tkgcore.FokOrder.\
         create_from_start_amount(symbol=good_maker_triangles[start_index]["symbol2"],
-                               start_currency=good_maker_triangles[start_index]["cur2"],
-                               amount_start=order1.filled_dest_amount,
-                               dest_currency=good_maker_triangles[start_index]["cur3"],
-                               price=good_maker_triangles[start_index]["leg2-price"],
-                               max_order_updates=tribot.order_update_total_requests)
+                                 start_currency=good_maker_triangles[start_index]["cur2"],
+                                 amount_start=order1.filled_dest_amount,
+                                 dest_currency=good_maker_triangles[start_index]["cur3"],
+                                 price=good_maker_triangles[start_index]["leg2-price"],
+                                 max_order_updates=tribot.order_update_total_requests)
 
     om.add_order(order2)
 
     while len(om.get_open_orders()) > 0:
         om.proceed_orders()
 
+        sleep_time = tribot.exchange.requests_throttle.sleep_time()
+        print("Sleeping for {}s".format(sleep_time))
+        time.sleep(sleep_time)
 
-    if order2.filled_dest_amount < 0 :
+    if core.convert_currency(order2.dest_currency, order2.filled_dest_amount,
+                             "BTC", core.get_symbol("BTC", order2.dest_currency, tickers),
+                             ticker=tickers[core.get_symbol("BTC", order2.dest_currency, tickers)]) < 0.003:
+
         continue
 
     order3 = tkgcore.FokOrder. \
@@ -231,6 +260,11 @@ while tribot.fetch_number < 1000:
 
     while len(om.get_open_orders()) > 0:
         om.proceed_orders()
+
+        sleep_time = tribot.exchange.requests_throttle.sleep_time()
+        print("Sleeping for {}s".format(sleep_time))
+        time.sleep(sleep_time)
+
 
     print("Result: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
     sys.exit()
