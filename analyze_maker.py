@@ -197,7 +197,11 @@ while True:
     current_triangle = [[good_maker_triangles[start_index]["cur1"], good_maker_triangles[start_index]["cur2"],
                         good_maker_triangles[start_index]["cur3"]]]
 
-    order1 = tkgcore.FokOrder\
+
+    if tribot.debug:
+        continue
+
+    order1 = tkgcore.ActionOrder\
         .create_from_start_amount(symbol=good_maker_triangles[start_index]["symbol1"],
                                   start_currency=good_maker_triangles[start_index]["cur1"],
                                   amount_start=start_amount,
@@ -210,9 +214,21 @@ while True:
     while len(om.get_open_orders()) > 0:
 
         tickers = tribot.fetch_tickers()
+        tickers_original = tickers
+        # substitute ticker prices with order1 price
+        tickers[order1.symbol]["ask"] = order1.get_active_order().price
+        tickers[order1.symbol]["bid"] = order1.get_active_order().price
 
         current_result = fill_triangles_maker(current_triangle, [current_triangle[0][0]], tickers, tribot.commission,
+
                                               tribot.commission_maker)
+        print()
+        print("Current result: {result}. Order's price {order_price} Ticker's price {ticker}  ".format(
+            result=current_result[0]["result"], order_price = order1.price, ticker = tickers_original[order1.symbol][
+                current_result[0]["leg1-price-type"]
+            ]))
+        print()
+
         if current_result[0]["result"] < tribot.threshold:
             tribot.log(tribot.LOG_INFO,
                        "Result is below threshold {}. Forcing cancellation of the order.".format(current_result[0]["result"]))
@@ -229,17 +245,20 @@ while True:
     if order1.filled_start_amount <= 0.003:
         continue
 
-    order2 = tkgcore.FokOrder.\
+    order2 = tkgcore.FokThresholdTakerPriceOrder.\
         create_from_start_amount(symbol=good_maker_triangles[start_index]["symbol2"],
                                  start_currency=good_maker_triangles[start_index]["cur2"],
                                  amount_start=order1.filled_dest_amount,
                                  dest_currency=good_maker_triangles[start_index]["cur3"],
                                  price=good_maker_triangles[start_index]["leg2-price"],
-                                 max_order_updates=tribot.order_update_total_requests)
+                                 max_order_updates=10000000000,
+                                 taker_price_threshold=-0.01,
+                                 threshold_check_after_updates=1000)
 
     om.add_order(order2)
 
     while len(om.get_open_orders()) > 0:
+
         om.proceed_orders()
 
         if om.pending_actions_number() == 0 and om.get_closed_orders() is None:
@@ -252,15 +271,17 @@ while True:
                              "BTC", core.get_symbol("BTC", order2.dest_currency, tickers),
                              ticker=tickers[core.get_symbol("BTC", order2.dest_currency, tickers)]) < 0.003:
 
-        continue
+        sys.exit()
 
-    order3 = tkgcore.FokOrder. \
+    order3 = tkgcore.FokThresholdTakerPriceOrder. \
         create_from_start_amount(symbol=good_maker_triangles[start_index]["symbol3"],
                                  start_currency=good_maker_triangles[start_index]["cur3"],
                                  amount_start=order2.filled_dest_amount,
                                  dest_currency=good_maker_triangles[start_index]["cur1"],
                                  price=good_maker_triangles[start_index]["leg3-price"],
-                                 max_order_updates=5000)
+                                 max_order_updates=100000,
+                                 taker_price_threshold=-0.01,
+                                 threshold_check_after_updates=5000)
 
     om.add_order(order3)
 
