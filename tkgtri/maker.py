@@ -54,6 +54,22 @@ class SingleTriArbMaker(object):
     # @classmethod
     # def create_from_deal_dict(cls, deal_dict:dict):
 
+        self.LOG_DEBUG = "DEBUG"
+        self.LOG_INFO = "INFO"
+        self.LOG_ERROR = "ERROR"
+        self.LOG_CRITICAL = "CRITICAL"
+
+    def log(self, level, msg, msg_list=None):
+        if msg_list is None:
+            print(level, msg)
+        else:
+            print(level, msg)
+            for line in msg_list:
+                print(level, "... " + str(line))
+
+
+
+
     def update_state(self, tickers: dict = None):
 
         if self.state == "new" and self.order1 is None:
@@ -88,8 +104,8 @@ class SingleTriArbMaker(object):
             print()
 
             if current_result[0]["result"] < self.threshold:
-                tribot.log(tribot.LOG_INFO,
-                           "Result is below threshold {}. Forcing cancellation of the order.".format(
+                self.log(self.LOG_INFO,
+                         "Result is below threshold {}. Forcing cancellation of the order.".format(
                                current_result[0]["result"]))
 
                 self.order1.force_close()
