@@ -104,6 +104,96 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commi
     return tri_list
 
 
+def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict, commission=0, commission_maker = 0):
+    tri_list = list()
+
+    for t in triangles:
+        tri_name = "-".join(t)
+
+        if start_currencies is not None and t[0] in start_currencies:
+            tri_dict = dict()
+            result = 1.0
+
+            for i, s_c in enumerate(t):
+
+                leg = i + 1
+
+                source_cur = t[i]
+                dest_cur = t[i + 1] if i < len(t) - 1 else t[0]
+
+                symbol = ""
+                order_type = ""
+                price_type = ""
+
+                if source_cur + "/" + dest_cur in tickers:
+                    symbol = source_cur + "/" + dest_cur
+                    order_type = "sell"
+                    price_type = "bid" if leg != 1 else "ask"
+
+                elif dest_cur + "/" + source_cur in tickers:
+                    symbol = dest_cur + "/" + source_cur
+                    order_type = "buy"
+                    price_type = "ask" if leg != 1 else "bid"
+
+                if symbol in tickers and price_type in tickers[symbol] and tickers[symbol][price_type] is not None \
+                        and tickers[symbol][price_type] > 0:
+
+                    price = tickers[symbol][price_type]
+
+                    if result != 0:
+                        result = result / price if order_type == "buy" else result * price
+                        result = result * (1-commission) if leg != 1 else result * (1-commission_maker)
+
+                    ticker_qty = tickers[symbol][price_type+'Volume']
+
+                else:
+                    price = 0
+                    result = 0
+                    ticker_qty = 0
+
+                tri_dict["triangle"] = tri_name
+                tri_dict["cur" + str(leg)] = t[i]
+                tri_dict["symbol" + str(leg)] = symbol
+                tri_dict["leg{}-order".format(str(leg))] = order_type
+                tri_dict["leg{}-price".format(str(leg))] = price
+                tri_dict["leg{}-price-type".format(str(leg))] = price_type
+
+                tri_dict["leg{}-ticker-qty".format(str(leg))] = ticker_qty
+
+                # getting amount of ticker qty in start cur
+                currency_of_amount_in_ticker = symbol.split("/")[0]
+
+                if currency_of_amount_in_ticker and currency_of_amount_in_ticker != t[0]:
+
+                    if leg == 2:
+                        symbol_to_convert = core.get_symbol(currency_of_amount_in_ticker, t[0], tickers)
+                    else:
+                        symbol_to_convert = symbol
+                    try:
+                        tri_dict["leg{}-cur1-qty".format(str(leg))] = \
+                            core.convert_currency(currency_of_amount_in_ticker,
+                                                  tickers[symbol][price_type+'Volume'],
+                                                  t[0],
+                                                  symbol=symbol_to_convert,
+                                                  price=price)
+                    except:
+                        tri_dict["leg{}-cur1-qty".format(str(leg))] = 999999999
+
+                else:
+                    tri_dict["leg{}-cur1-qty".format(str(leg))] = ticker_qty
+
+            if result != 0:
+                tri_dict["leg-orders"] = tri_dict["leg1-order"] + "-" + tri_dict["leg2-order"] + "-" + \
+                                         tri_dict["leg3-order"]
+
+            tri_dict["result"] = result
+
+            tri_list.append(tri_dict)
+
+    return tri_list
+
+
+
 def order_book_results(exchange, deal_row, order_books, start_bid):
     """
     get result of tri_arb from 3 order books. In case that some of Order Book will not have enought depth for
