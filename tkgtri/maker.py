@@ -10,13 +10,16 @@ import time
 
 class SingleTriArbMaker(object):
     """
-    class to manage orders within the triangular arbitrage
+    class to proceed with orders within the triangular arbitrage
     """
 
     def __init__(self, currency1: str, currency2: str, currency3: str,
                  price1: float, price2: float, price3: float, start_amount: float, min_amount_currency1: float,
                  symbol1: str, symbol2: str, symbol3: str, commission: float, commission_maker: float,
-                 threshold: float):
+                 threshold: float,
+                 max_order1_updates: int = 2000,
+                 max_order2_updates: int = 2000,
+                 max_order3_updates: int = 2000):
 
         self.currency1 = currency1
         self.currency2 = currency2
@@ -29,7 +32,7 @@ class SingleTriArbMaker(object):
         self.start_amount = start_amount
 
         self.state = "new"
-        """ states: new, order1, order2_create, order2, order3_create, order3, finished"""
+        """ states: new, order1_create , order1, order2_create, order2, order3_create, order3, finished"""
 
         self.min_amount_currency1 = min_amount_currency1
 
@@ -41,9 +44,9 @@ class SingleTriArbMaker(object):
         self.order2 = None  # type: FokThresholdTakerPriceOrder
         self.order3 = None  # type: FokThresholdTakerPriceOrder
 
-        self.max_order1_updates = 2000
-        self.max_order2_updates = 100000
-        self.max_order3_updates = 5000
+        self.max_order1_updates = max_order1_updates
+        self.max_order2_updates = max_order2_updates
+        self.max_order3_updates = max_order3_updates
 
         self.current_triangle = [[self.currency1, self.currency2, self.currency3]]
         self.commission = commission
@@ -59,7 +62,8 @@ class SingleTriArbMaker(object):
         self.LOG_ERROR = "ERROR"
         self.LOG_CRITICAL = "CRITICAL"
 
-    def log(self, level, msg, msg_list=None):
+    @staticmethod
+    def log(level, msg, msg_list=None):
         if msg_list is None:
             print(level, msg)
         else:
@@ -67,8 +71,14 @@ class SingleTriArbMaker(object):
             for line in msg_list:
                 print(level, "... " + str(line))
 
+    def use_logger_from(self, src_object):
+        self.LOG_DEBUG = src_object.LOG_DEBUG
+        self.LOG_INFO = src_object.LOG_INFO
+        self.LOG_ERROR = src_object.LOG_ERROR
+        self.LOG_CRITICAL = src_object.LOG_CRITICAL
 
-
+        setattr(self, "log", src_object.log )
+        # self.log = src_object.log
 
     def update_state(self, tickers: dict = None):
 
@@ -80,14 +90,15 @@ class SingleTriArbMaker(object):
                                                                dest_currency=self.currency2,
                                                                price=self.price1,
                                                                max_order_updates=self.max_order1_updates)
+            self.state = "order1_create"
 
             return True
 
-        if self.state == "new" and self.order1.status == "open":
+        if self.state == "order1_create" and self.order1.status == "open":
             self.state = "order1"
             # let's proceed directly to the new state
 
-        if self.state == "order1":
+        if self.state == "order1" and self.order1.status == "open":
             tickers_original = tickers
             # substitute ticker prices with order1 price
             tickers[self.order1.symbol]["ask"] = self.order1.get_active_order().price
@@ -98,7 +109,8 @@ class SingleTriArbMaker(object):
                                                   self.commission_maker)
             print()
             print("Current result: {result}. Order's price {order_price} Ticker's price {ticker}  ".format(
-                result=current_result[0]["result"], order_price=self.order1.price, ticker=tickers_original[self.order1.symbol][
+                result=current_result[0]["result"], order_price=self.order1.price,
+                ticker=tickers_original[self.order1.symbol][
                     current_result[0]["leg1-price-type"]
                 ]))
             print()
@@ -112,7 +124,7 @@ class SingleTriArbMaker(object):
 
             return True
 
-        if self.state == "order1" and self.order1.state == "closed" and self.order2 is None:
+        if self.state == "order1" and self.order1.status == "closed" and self.order2 is None:
 
             self.order2 = FokThresholdTakerPriceOrder.create_from_start_amount(
                 symbol=self.symbol2,
@@ -146,10 +158,10 @@ class SingleTriArbMaker(object):
 
             return True
 
-        if self.state == "order3_create" and self.order3.state == "open":
+        if self.state == "order3_create" and self.order3.status == "open":
             self.state = "order3"
             # let's proceed directly to the new state
 
-        if self.state == "order3" and self.order3.state == "close":
+        if self.state == "order3" and self.order3.status == "closed":
             self.state = "finished"
             return True
