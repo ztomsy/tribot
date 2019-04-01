@@ -256,6 +256,7 @@ while True:
     if order3 is not None:
         print("Result: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
         print()
+
     if order1 is not None:
         print("Order1. Filled {}. Report: {}".format(order1.filled, order1.report()))
         print()
@@ -267,7 +268,10 @@ while True:
         print("Order3. Filled {}. Report: {}".format(order3.filled, order3.report()))
         print()
 
-    sys.exit()
+    if order1.filled == 0.0:
+        continue
+    else:
+        sys.exit()
 
 sys.exit()
 
