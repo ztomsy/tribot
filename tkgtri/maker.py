@@ -102,7 +102,7 @@ class SingleTriArbMaker(object):
             # let's proceed directly to the new state
 
         if self.state == "order1" and self.order1.status == "open":
-            tickers_original = tickers
+            tickers_original = tickers.copy()
             # substitute ticker prices with order1 price
             tickers[self.order1.symbol]["ask"] = self.order1.get_active_order().price
             tickers[self.order1.symbol]["bid"] = self.order1.get_active_order().price
