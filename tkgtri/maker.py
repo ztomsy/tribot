@@ -6,6 +6,7 @@ import tkgtri
 from tkgtri import *
 import sys
 import time
+import copy
 
 
 class SingleTriArbMaker(object):
@@ -83,7 +84,8 @@ class SingleTriArbMaker(object):
         setattr(self, "log", src_object.log )
         # self.log = src_object.log
 
-    def update_state(self, tickers: dict = None):
+    def update_state(self, tickers_from_exchange: dict = None):
+        tickers = copy.deepcopy(tickers_from_exchange)
 
         if self.state == "new" and self.order1 is None:
 
@@ -102,7 +104,7 @@ class SingleTriArbMaker(object):
             # let's proceed directly to the new state
 
         if self.state == "order1" and self.order1.status == "open":
-            tickers_original = tickers.copy()
+            # tickers_original = copy.deepcopy(tickers)
             # substitute ticker prices with order1 price
             tickers[self.order1.symbol]["ask"] = self.order1.get_active_order().price
             tickers[self.order1.symbol]["bid"] = self.order1.get_active_order().price
@@ -113,7 +115,7 @@ class SingleTriArbMaker(object):
             print()
             print("Current result: {result}. Order's price {order_price} Ticker's price {ticker}  ".format(
                 result=current_result[0]["result"], order_price=self.order1.price,
-                ticker=tickers_original[self.order1.symbol][
+                ticker=tickers_from_exchange[self.order1.symbol][
                     current_result[0]["leg1-price-type"]
                 ]))
             print()
