@@ -83,7 +83,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
                                   max_order3_updates=2000        
         """
 
-        self.assertEqual('90a06b8f25ef95d728c2a8f2f89142f0', hash)
+        self.assertEqual('fc8e8e363b736584d51462d100d9d0ad', hash)
         self.assertListEqual([["BTC", "TRX", "ETH"]], maker.current_triangle)
 
     def test_states_transition(self):

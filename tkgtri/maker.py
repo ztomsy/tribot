@@ -19,7 +19,8 @@ class SingleTriArbMaker(object):
                  threshold: float,
                  max_order1_updates: int = 2000,
                  max_order2_updates: int = 2000,
-                 max_order3_updates: int = 2000):
+                 max_order3_updates: int = 2000,
+                 cancel_price_threshold: float = -0.01):
 
         self.currency1 = currency1
         self.currency2 = currency2
@@ -53,6 +54,8 @@ class SingleTriArbMaker(object):
         self.commission_maker = commission_maker
 
         self.threshold = threshold
+
+        self.cancel_taker_price_threshold = cancel_price_threshold
 
     # @classmethod
     # def create_from_deal_dict(cls, deal_dict:dict):
@@ -124,6 +127,10 @@ class SingleTriArbMaker(object):
 
             return True
 
+        if self.state == "order1" and self.order1.status == "closed" and self.order1.filled == 0:
+            self.state = "finished"
+            return True
+
         if self.state == "order1" and self.order1.status == "closed" and self.order2 is None:
 
             self.order2 = FokThresholdTakerPriceOrder.create_from_start_amount(
@@ -133,8 +140,8 @@ class SingleTriArbMaker(object):
                 dest_currency=self.currency3,
                 price=self.price2,
                 max_order_updates=self.max_order2_updates,
-                taker_price_threshold=-0.01,
-                threshold_check_after_updates=1000)
+                taker_price_threshold=self.cancel_taker_price_threshold,
+                threshold_check_after_updates=self.max_order2_updates)
 
             self.state = "order2_create"
             return True
@@ -142,6 +149,10 @@ class SingleTriArbMaker(object):
         if self.state == "order2_create" and self.order2.status == "open":
             self.state = "order2"
             # let's proceed directly to the new state
+
+        if self.state == "order2" and self.order2.status == "closed" and self.order2.filled == 0:
+            self.state = "finished"
+            return True
 
         if self.state == "order2" and self.order2.status == "closed" and self.order3 is None:
             self.state = "order3_create"
@@ -153,8 +164,8 @@ class SingleTriArbMaker(object):
                 dest_currency=self.currency1,
                 price=self.price3,
                 max_order_updates=self.max_order3_updates,
-                taker_price_threshold=-0.01,
-                threshold_check_after_updates=5000)
+                taker_price_threshold=self.cancel_taker_price_threshold,
+                threshold_check_after_updates=self.max_order3_updates)
 
             return True
 
