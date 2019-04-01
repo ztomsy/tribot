@@ -226,6 +226,8 @@ while True:
 
     trimaker.update_state(tickers)
     order1 = trimaker.order1
+    order2 = None
+    order3 = None
 
     om.add_order(order1)
 
