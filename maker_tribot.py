@@ -1,4 +1,5 @@
 import tkgcore
+from tkgcore import ActionOrder, FokOrder, FokThresholdTakerPriceOrder
 from tkgcore import core
 import tkgtri
 from tkgtri import SingleTriArbMaker
@@ -225,9 +226,9 @@ while True:
 
 
     trimaker.update_state(tickers)
-    order1 = trimaker.order1
-    order2 = None
-    order3 = None
+    order1 = trimaker.order1  # type: ActionOrder
+    order2 = None  # type: FokThresholdTakerPriceOrder
+    order3 = None  # type: FokThresholdTakerPriceOrder
 
     om.add_order(order1)
 
@@ -254,7 +255,19 @@ while True:
 
     if order3 is not None:
         print("Result: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
-        sys.exit()
+        print()
+    if order1 is not None:
+        print("Order1. Filled {}. Report: {}".format(order1.filled, order1.report()))
+        print()
+
+    if order2 is not None:
+        print("Order2. Filled {}. Report: {}".format(order2.filled, order2.report()))
+        print()
+    if order3 is not None:
+        print("Order3. Filled {}. Report: {}".format(order3.filled, order3.report()))
+        print()
+
+    sys.exit()
 
 sys.exit()
 
