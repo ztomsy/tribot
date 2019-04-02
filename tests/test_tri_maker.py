@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .context import tkgtri
-from tkgtri import SingleTriArbMaker
+from tkgtri import SingleTriArbMakerDeal
 import tkgcore
 from tkgcore import ccxtExchangeWrapper
 from tkgcore import ActionOrder, ActionOrderManager, FokThresholdTakerPriceOrder, FokThresholdTakerPriceOrder
@@ -32,23 +32,23 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
 
         good_triangle = self.good_triangle
 
-        maker = SingleTriArbMaker(currency1=good_triangle["cur1"],
-                                  currency2=good_triangle["cur2"],
-                                  currency3=good_triangle["cur3"],
-                                  price1=good_triangle["leg1-price"],
-                                  price2=good_triangle["leg2-price"],
-                                  price3=good_triangle["leg3-price"],
-                                  start_amount=0.01,
-                                  min_amount_currency1=0.003,
-                                  symbol1=good_triangle["symbol1"],
-                                  symbol2=good_triangle["symbol2"],
-                                  symbol3=good_triangle["symbol3"],
-                                  commission=0.00075,
-                                  commission_maker=0.0006,
-                                  threshold=1.001,
-                                  max_order1_updates=2000,
-                                  max_order2_updates=2000,
-                                  max_order3_updates=2000)
+        maker = SingleTriArbMakerDeal(currency1=good_triangle["cur1"],
+                                      currency2=good_triangle["cur2"],
+                                      currency3=good_triangle["cur3"],
+                                      price1=good_triangle["leg1-price"],
+                                      price2=good_triangle["leg2-price"],
+                                      price3=good_triangle["leg3-price"],
+                                      start_amount=0.01,
+                                      min_amount_currency1=0.003,
+                                      symbol1=good_triangle["symbol1"],
+                                      symbol2=good_triangle["symbol2"],
+                                      symbol3=good_triangle["symbol3"],
+                                      commission=0.00075,
+                                      commission_maker=0.0006,
+                                      threshold=1.001,
+                                      max_order1_updates=2000,
+                                      max_order2_updates=2000,
+                                      max_order3_updates=2000)
 
         hash = hash_of_object_values(maker)
 
@@ -98,23 +98,23 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
 
         good_triangle = self.good_triangle
 
-        maker = SingleTriArbMaker(currency1=good_triangle["cur1"],
-                                  currency2=good_triangle["cur2"],
-                                  currency3=good_triangle["cur3"],
-                                  price1=good_triangle["leg1-price"],
-                                  price2=good_triangle["leg2-price"],
-                                  price3=good_triangle["leg3-price"],
-                                  start_amount=0.01,
-                                  min_amount_currency1=0.003,
-                                  symbol1=good_triangle["symbol1"],
-                                  symbol2=good_triangle["symbol2"],
-                                  symbol3=good_triangle["symbol3"],
-                                  commission=0.00075,
-                                  commission_maker=0.0006,
-                                  threshold=1.001,
-                                  max_order1_updates=2000,
-                                  max_order2_updates=2000,
-                                  max_order3_updates=2000)
+        maker = SingleTriArbMakerDeal(currency1=good_triangle["cur1"],
+                                      currency2=good_triangle["cur2"],
+                                      currency3=good_triangle["cur3"],
+                                      price1=good_triangle["leg1-price"],
+                                      price2=good_triangle["leg2-price"],
+                                      price3=good_triangle["leg3-price"],
+                                      start_amount=0.01,
+                                      min_amount_currency1=0.003,
+                                      symbol1=good_triangle["symbol1"],
+                                      symbol2=good_triangle["symbol2"],
+                                      symbol3=good_triangle["symbol3"],
+                                      commission=0.00075,
+                                      commission_maker=0.0006,
+                                      threshold=1.001,
+                                      max_order1_updates=2000,
+                                      max_order2_updates=2000,
+                                      max_order3_updates=2000)
 
         self.assertEqual("new", maker.state)
 

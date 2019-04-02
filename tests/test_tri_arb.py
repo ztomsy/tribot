@@ -156,5 +156,78 @@ class TriArbTestSuite(unittest.TestCase):
         self.assertEqual(check_tri1["leg3-order"], "sell")
         self.assertEqual(check_tri1["leg3-price"], 0)
 
+    def test_best_recovery_amount_order2(self):
+        # self.tribot.load_config_from_file(self.default_config)
+
+        start_currency_filled = 1
+
+        # partial fill params
+        order2_amount = 4
+        order2_filled = 3
+
+        order2_recover_best_start_curr_amount = ta.order2_best_recovery_start_amount(start_currency_filled,
+                                                                                     order2_amount,
+                                                                                     order2_filled)
+
+        self.assertEqual(1/4, order2_recover_best_start_curr_amount)
+
+        # order 2 zero fill
+        order2_amount = 4
+        order2_filled = 0
+        order2_recover_best_start_curr_amount = ta.order2_best_recovery_start_amount(start_currency_filled,
+                                                                                     order2_amount,
+                                                                                     order2_filled)
+        self.assertEqual(1, order2_recover_best_start_curr_amount)
+
+        # order 2 complete fill - no recovery
+        order2_amount = 4
+        order2_filled = 4
+        order2_recover_best_start_curr_amount = ta.order2_best_recovery_start_amount(start_currency_filled,
+                                                                                     order2_amount,
+                                                                                     order2_filled)
+        self.assertEqual(order2_recover_best_start_curr_amount, 0)
+
+    def test_best_recovery_amount_order3(self):
+
+        start_currency_filled = 1
+
+        # filled half of order 2  (1/2 of start currency)
+        order2_amount = 4
+        order2_filled = 2
+
+        order2_recover_best_start_curr_amount = ta.order2_best_recovery_start_amount(start_currency_filled,
+                                                                                              order2_amount,
+                                                                                              order2_filled)
+
+        self.assertEqual(1/2, order2_recover_best_start_curr_amount)
+
+        # order 3 partial fill
+        order3_amount = 1/2
+        order3_filled = 1/4
+
+        order3_recover_best_start_curr_amount = ta.order3_best_recovery_start_amount(
+            start_currency_filled, order2_amount, order2_filled, order3_amount, order3_filled)
+
+        self.assertEqual((1/2 - 1/4), order3_recover_best_start_curr_amount)
+
+        # order 3 fill
+        order3_amount = 1/2
+        order3_filled = 1/2
+
+        order3_recover_best_start_curr_amount = ta.order3_best_recovery_start_amount(
+            start_currency_filled, order2_amount, order2_filled, order3_amount, order3_filled)
+
+        self.assertEqual(0, order3_recover_best_start_curr_amount)
+
+        # order 3 zero fill
+        order3_amount = 1 / 2
+        order3_filled = 0
+
+        order3_recover_best_start_curr_amount = ta.order3_best_recovery_start_amount(
+            start_currency_filled, order2_amount, order2_filled, order3_amount, order3_filled)
+
+        self.assertEqual(1/2 , order3_recover_best_start_curr_amount)
+
+
 if __name__ == '__main__':
     unittest.main()

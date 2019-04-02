@@ -2,7 +2,7 @@ import tkgcore
 from tkgcore import ActionOrder, FokOrder, FokThresholdTakerPriceOrder
 from tkgcore import core
 import tkgtri
-from tkgtri import SingleTriArbMaker
+from tkgtri import SingleTriArbMakerDeal
 import sys
 import time
 
@@ -205,28 +205,27 @@ while True:
 
     good_triangle = good_maker_triangles[start_index]
 
-    trimaker = SingleTriArbMaker(currency1=good_triangle["cur1"],
-                                 currency2=good_triangle["cur2"],
-                                 currency3=good_triangle["cur3"],
-                                 price1=good_triangle["leg1-price"],
-                                 price2=good_triangle["leg2-price"],
-                                 price3=good_triangle["leg3-price"],
-                                 start_amount=start_amount,
-                                 min_amount_currency1=0.003,
-                                 symbol1=good_triangle["symbol1"],
-                                 symbol2=good_triangle["symbol2"],
-                                 symbol3=good_triangle["symbol3"],
-                                 commission=tribot.commission,
-                                 commission_maker=tribot.commission_maker,
-                                 threshold=tribot.threshold,
-                                 max_order1_updates=2000,
-                                 max_order2_updates=10000,
-                                 max_order3_updates=2000,
-                                 cancel_price_threshold=tribot.cancel_price_threshold)
+    single_trimaker_deal = SingleTriArbMakerDeal(currency1=good_triangle["cur1"],
+                                                 currency2=good_triangle["cur2"],
+                                                 currency3=good_triangle["cur3"],
+                                                 price1=good_triangle["leg1-price"],
+                                                 price2=good_triangle["leg2-price"],
+                                                 price3=good_triangle["leg3-price"],
+                                                 start_amount=start_amount,
+                                                 min_amount_currency1=0.003,
+                                                 symbol1=good_triangle["symbol1"],
+                                                 symbol2=good_triangle["symbol2"],
+                                                 symbol3=good_triangle["symbol3"],
+                                                 commission=tribot.commission,
+                                                 commission_maker=tribot.commission_maker,
+                                                 threshold=tribot.threshold,
+                                                 max_order1_updates=2000,
+                                                 max_order2_updates=10000,
+                                                 max_order3_updates=2000,
+                                                 cancel_price_threshold=tribot.cancel_price_threshold)
 
-
-    trimaker.update_state(tickers)
-    order1 = trimaker.order1  # type: ActionOrder
+    single_trimaker_deal.update_state(tickers)
+    order1 = single_trimaker_deal.order1  # type: ActionOrder
     order2 = None  # type: FokThresholdTakerPriceOrder
     order3 = None  # type: FokThresholdTakerPriceOrder
 
@@ -238,15 +237,40 @@ while True:
         om.data_for_orders["tickers"] = tickers
 
         om.proceed_orders()
-        trimaker.update_state(tickers)
+        single_trimaker_deal.update_state(tickers)
 
-        if trimaker.state == "order2_create":
-            order2 = trimaker.order2
+        if single_trimaker_deal.state == "order2_create":
+            order2 = single_trimaker_deal.order2
             om.add_order(order2)
 
-        if trimaker.state == "order3_create":
-            order3 = trimaker.order3
+        if single_trimaker_deal.state == "order3_create":
+            order3 = single_trimaker_deal.order3
             om.add_order(order3)
+
+            # check if we need to recover from order 2
+            if order2.filled < order2.amount*0.9999:
+
+                order_rec_data = tribot.create_recovery_data(single_trimaker_deal.deal_uuid,
+                                                             single_trimaker_deal.currency2,
+                                                             single_trimaker_deal.currency1,
+                                                             single_trimaker_deal.leg2_recovery_amount,
+                                                             single_trimaker_deal.leg2_recovery_target, 2)
+
+                tribot.print_recovery_data(order_rec_data)
+                tribot.send_recovery_request(order_rec_data)
+
+        if single_trimaker_deal.state == "finished" and order3 is not None and order3.status == "closed":
+
+            if order3.filled < order3.amount*0.9999:
+
+                order_rec_data = tribot.create_recovery_data(single_trimaker_deal.deal_uuid,
+                                                             single_trimaker_deal.currency3,
+                                                             single_trimaker_deal.currency1,
+                                                             single_trimaker_deal.leg3_recovery_amount,
+                                                             single_trimaker_deal.leg3_recovery_target, 3)
+
+                tribot.print_recovery_data(order_rec_data)
+                tribot.send_recovery_request(order_rec_data)
 
         if om.pending_actions_number() == 0 and om.get_closed_orders() is None:
             sleep_time = tribot.exchange.requests_throttle.sleep_time()

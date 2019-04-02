@@ -317,3 +317,21 @@ def get_maximum_start_amount(exchange, data_row, order_books, maximum_bid, inter
     return {"amount": max_start_amount, "result": max_result}
 
 
+def order2_best_recovery_start_amount( filled_start_currency_amount, order2_amount, order2_filled):
+    res = 0.0
+    if order2_amount > 0:
+        res = filled_start_currency_amount - (order2_filled / order2_amount) * filled_start_currency_amount
+        # res = res * self.recover_factor
+    return res
+
+
+def order3_best_recovery_start_amount(filled_start_currency_amount, order2_amount, order2_filled,
+                                      order3_amoumt,
+                                      order3_filled):
+    res = 0.0
+    if order2_amount > 0 and order3_amoumt > 0:
+        res = filled_start_currency_amount * (order2_filled / order2_amount) * (1 - (order3_filled / order3_amoumt))
+        # res = res * self.recover_factor
+    return res
+
+

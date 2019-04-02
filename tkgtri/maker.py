@@ -7,9 +7,10 @@ from tkgtri import *
 import sys
 import time
 import copy
+import uuid
 
 
-class SingleTriArbMaker(object):
+class SingleTriArbMakerDeal(object):
     """
     class to proceed with orders within the triangular arbitrage
     """
@@ -22,6 +23,8 @@ class SingleTriArbMaker(object):
                  max_order2_updates: int = 2000,
                  max_order3_updates: int = 2000,
                  cancel_price_threshold: float = -0.01):
+
+        self.deal_uuid = str(uuid.uuid4())
 
         self.currency1 = currency1
         self.currency2 = currency2
@@ -57,6 +60,12 @@ class SingleTriArbMaker(object):
         self.threshold = threshold
 
         self.cancel_taker_price_threshold = cancel_price_threshold
+
+        self.leg2_recovery_amount = 0.0
+        self.leg2_recovery_target = 0.0
+
+        self.leg3_recovery_amount = 0.0
+        self.leg3_recovery_target = 0.0
 
     # @classmethod
     # def create_from_deal_dict(cls, deal_dict:dict):
@@ -143,7 +152,7 @@ class SingleTriArbMaker(object):
                 price=self.price2,
                 max_order_updates=self.max_order2_updates,
                 taker_price_threshold=self.cancel_taker_price_threshold,
-                threshold_check_after_updates=self.max_order2_updates)
+                threshold_check_after_updates=50)
 
             self.state = "order2_create"
             return True
@@ -167,7 +176,14 @@ class SingleTriArbMaker(object):
                 price=self.price3,
                 max_order_updates=self.max_order3_updates,
                 taker_price_threshold=self.cancel_taker_price_threshold,
-                threshold_check_after_updates=self.max_order3_updates)
+                threshold_check_after_updates=50)
+
+        if self.order2.filled < self.order2.amount*0.9999:
+            self.leg2_recovery_target = order2_best_recovery_start_amount(self.order1.filled_start_amount,
+                                                                          self.order2.amount,
+                                                                          self.order2.filled)
+
+            self.leg2_recovery_amount = self.order2.amount_start - self.order2.filled_start_amount
 
             return True
 
@@ -177,4 +193,14 @@ class SingleTriArbMaker(object):
 
         if self.state == "order3" and self.order3.status == "closed":
             self.state = "finished"
+
+            if self.order3.filled < self.order3.amount * 0.9999:
+                self.leg3_recovery_target = order3_best_recovery_start_amount(self.order1.filled_start_amount,
+                                                                              self.order2.amount,
+                                                                              self.order2.filled,
+                                                                              self.order3.amount,
+                                                                              self.order3.filled)
+
+                self.leg3_recovery_amount = self.order3.amount_start - self.order3.filled_start_amount
+
             return True
