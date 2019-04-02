@@ -7,12 +7,12 @@ from tkgtri import *
 import sys
 import time
 import copy
-import uuid
+import uuid as uuid_lib
 
 
 class SingleTriArbMakerDeal(object):
     """
-    class to proceed with orders within the triangular arbitrage
+    class to proceed with orders within the triangular arbitrage with maker first order
     """
 
     def __init__(self, currency1: str, currency2: str, currency3: str,
@@ -22,9 +22,10 @@ class SingleTriArbMakerDeal(object):
                  max_order1_updates: int = 2000,
                  max_order2_updates: int = 2000,
                  max_order3_updates: int = 2000,
-                 cancel_price_threshold: float = -0.01):
+                 cancel_price_threshold: float = -0.01,
+                 uuid: str=None):
 
-        self.deal_uuid = str(uuid.uuid4())
+        self.uuid = str(uuid_lib.uuid4()) if uuid is None else uuid
 
         self.currency1 = currency1
         self.currency2 = currency2
@@ -35,9 +36,15 @@ class SingleTriArbMakerDeal(object):
         self.price3 = price3
 
         self.start_amount = start_amount
+        self.status = ""
+        """
+        final status of deal:
+        OK, InRecovery, Failed   
+        """
 
         self.state = "new"
-        """ states: new, order1_create , order1, order2_create, order2, order3_create, order3, finished"""
+        """ current state of deal: 
+            new, order1_create , order1, order2_create, order2, order3_create, order3, finished"""
 
         self.min_amount_currency1 = min_amount_currency1
 
@@ -66,6 +73,21 @@ class SingleTriArbMakerDeal(object):
 
         self.leg3_recovery_amount = 0.0
         self.leg3_recovery_target = 0.0
+
+        self.filled_start_amount = 0.0
+        """
+        filled amount of first maker leg
+        """
+
+        self.result_amount = 0.0
+        """
+        amount of filled currency1 after 3rd leg
+        """
+
+        self.gross_profit = 0.0
+        """
+        gross profit
+        """
 
     # @classmethod
     # def create_from_deal_dict(cls, deal_dict:dict):
@@ -96,6 +118,7 @@ class SingleTriArbMakerDeal(object):
     def update_state(self, tickers_from_exchange: dict = None):
         tickers = copy.deepcopy(tickers_from_exchange)
 
+        #order1_create
         if self.state == "new" and self.order1 is None:
 
             self.order1 = ActionOrder.create_from_start_amount(symbol=self.symbol1,
@@ -107,14 +130,17 @@ class SingleTriArbMakerDeal(object):
             self.state = "order1_create"
 
             return True
-
+        # order1 open
         if self.state == "order1_create" and self.order1.status == "open":
             self.state = "order1"
             # let's proceed directly to the new state
 
+        # order1 open
         if self.state == "order1" and self.order1.status == "open":
             # tickers_original = copy.deepcopy(tickers)
             # substitute ticker prices with order1 price
+            self.state = "order1"
+
             tickers[self.order1.symbol]["ask"] = self.order1.get_active_order().price
             tickers[self.order1.symbol]["bid"] = self.order1.get_active_order().price
 
@@ -138,10 +164,15 @@ class SingleTriArbMakerDeal(object):
 
             return True
 
+        # order1 not filled at all
         if self.state == "order1" and self.order1.status == "closed" and self.order1.filled == 0:
             self.state = "finished"
+
+            self.finish_deal()
+
             return True
 
+        # order2_create
         if self.state == "order1" and self.order1.status == "closed" and self.order2 is None:
 
             self.order2 = FokThresholdTakerPriceOrder.create_from_start_amount(
@@ -157,14 +188,25 @@ class SingleTriArbMakerDeal(object):
             self.state = "order2_create"
             return True
 
+        # order2 open
         if self.state == "order2_create" and self.order2.status == "open":
             self.state = "order2"
             # let's proceed directly to the new state
 
+        # order2 not filled
         if self.state == "order2" and self.order2.status == "closed" and self.order2.filled == 0:
             self.state = "finished"
+
+            self.leg2_recovery_target = order2_best_recovery_start_amount(self.order1.filled_start_amount,
+                                                                          self.order2.amount,
+                                                                          self.order2.filled)
+
+            self.leg2_recovery_amount = self.order2.amount_start - self.order2.filled_start_amount
+
+            self.finish_deal()
             return True
 
+        # order3 create
         if self.state == "order2" and self.order2.status == "closed" and self.order3 is None:
             self.state = "order3_create"
 
@@ -178,19 +220,20 @@ class SingleTriArbMakerDeal(object):
                 taker_price_threshold=self.cancel_taker_price_threshold,
                 threshold_check_after_updates=50)
 
-        if self.order2.filled < self.order2.amount*0.9999:
-            self.leg2_recovery_target = order2_best_recovery_start_amount(self.order1.filled_start_amount,
-                                                                          self.order2.amount,
-                                                                          self.order2.filled)
-
-            self.leg2_recovery_amount = self.order2.amount_start - self.order2.filled_start_amount
+            if self.order2.filled < self.order2.amount*0.9999:
+                self.leg2_recovery_target = order2_best_recovery_start_amount(self.order1.filled_start_amount,
+                                                                              self.order2.amount,
+                                                                              self.order2.filled)
+                self.leg2_recovery_amount = self.order2.amount_start - self.order2.filled_start_amount
 
             return True
 
+        # order3 open
         if self.state == "order3_create" and self.order3.status == "open":
             self.state = "order3"
             # let's proceed directly to the new state
 
+        # finished
         if self.state == "order3" and self.order3.status == "closed":
             self.state = "finished"
 
@@ -203,4 +246,27 @@ class SingleTriArbMakerDeal(object):
 
                 self.leg3_recovery_amount = self.order3.amount_start - self.order3.filled_start_amount
 
+            self.finish_deal()
+
             return True
+
+    def finish_deal(self):
+        """
+        calc all report parameters
+        """
+
+        self.filled_start_amount = self.order1.filled_start_amount
+        self.result_amount = self.order3.filled_dest_amount if self.order3 is not None else 0.0
+        self.gross_profit = self.result_amount - self.filled_start_amount
+
+        if self.order1.filled == 0:
+            self.status = "Failed"
+            return
+
+        if self.leg2_recovery_target > 0 or self.leg3_recovery_target > 0:
+            self.status = "InRecovery"
+            return
+
+        if self.order1.filled > 0 and self.leg2_recovery_target == 0 and self.leg3_recovery_target == 0:
+            self.status = "OK"
+            return
