@@ -104,6 +104,9 @@ tribot.commission_maker = 0.0
 tribot.set_from_cli(sys.argv[1:])  # cli parameters  override config
 tribot.load_config_from_file(tribot.config_filename)  # config taken from cli or default
 
+
+tribot.init_remote_reports()
+
 try:
     tribot.init_exchange()
     # init offline mode
@@ -111,7 +114,7 @@ try:
         tribot.offline_tickers_file = "test_data/tickers_maker.csv"
 
         tribot.init_offline_mode()  # set offline files from the cli or config
-        tribot.exchange.offline_use_last_tickers = False
+        tribot.exchange.offline_use_last_tickers = True
 
         tribot.log(tribot.LOG_INFO, "Offline Mode")
         tribot.log(tribot.LOG_INFO, "..markets file: {}".format(tribot.offline_markets_file))
@@ -200,7 +203,6 @@ while True:
 
     current_triangle = [[good_maker_triangles[start_index]["cur1"], good_maker_triangles[start_index]["cur2"],
                         good_maker_triangles[start_index]["cur3"]]]
-
 
     if tribot.debug:
         continue
@@ -323,31 +325,35 @@ while True:
                                                      single_trimaker_deal.order3.report()))
         print()
 
-    # report_sqla = DealReport(
-    #     timestamp=datetime.datetime.now(tz=pytz.timezone('UTC')),
-    #     timestamp_start=datetime.datetime.now(tz=pytz.timezone('UTC')),
-    #     exchange=tribot.exchange_id,
-    #     instance=tribot.server_id,
-    #     server=tribot.server_id,
-    #     deal_type="triarb_maker",
-    #     deal_uuid=single_trimaker_deal.uuid,
-    #     status=single_trimaker_deal.status,
-    #     currency=single_trimaker_deal.currency1,
-    #     start_amount=single_trimaker_deal.filled_start_amount,
-    #     result_amount=single_trimaker_deal.result_amount,
-    #     gross_profit=single_trimaker_deal.gross_profit,
-    #     net_profit=0.0,
-    #     config=tribot.get_config_report(),
-    #     deal_data={}
-    # )
+    report_sqla = DealReport(
+        timestamp=datetime.datetime.now(tz=pytz.timezone('UTC')),
+        timestamp_start=datetime.datetime.now(tz=pytz.timezone('UTC')),
+        exchange=tribot.exchange_id,
+        instance=tribot.server_id,
+        server=tribot.server_id,
+        deal_type="triarb_maker",
+        deal_uuid=single_trimaker_deal.uuid,
+        status=single_trimaker_deal.status,
+        currency=single_trimaker_deal.currency1,
+        start_amount=single_trimaker_deal.filled_start_amount,
+        result_amount=single_trimaker_deal.result_amount,
+        gross_profit=single_trimaker_deal.gross_profit,
+        net_profit=0.0,
+        config=tribot.get_config_report(),
+        deal_data={}
+    )
 
-    if order1.filled == 0.0:
-        continue
-    else:
+    try:
+        tribot.sqla_reporter.session.add(report_sqla)
+        tribot.sqla_reporter.session.commit()
+    except Exception as e:
+        tribot.log(tribot.LOG_ERROR, "Could not send SQLa report")
+        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+        tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+
+    if tribot.run_once and single_trimaker_deal.order1.filled > 0:
+        tribot.log(tribot.LOG_INFO, "Exiting because of run_once")
         sys.exit()
-
-
-
 
 
 sys.exit()
