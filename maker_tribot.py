@@ -111,7 +111,7 @@ try:
         tribot.offline_tickers_file = "test_data/tickers_maker.csv"
 
         tribot.init_offline_mode()  # set offline files from the cli or config
-        tribot.exchange.offline_use_last_tickers = True
+        tribot.exchange.offline_use_last_tickers = False
 
         tribot.log(tribot.LOG_INFO, "Offline Mode")
         tribot.log(tribot.LOG_INFO, "..markets file: {}".format(tribot.offline_markets_file))
@@ -235,9 +235,15 @@ while True:
 
     while len(om.get_open_orders()) > 0:
 
-        tickers = tribot.fetch_tickers()
-        om.data_for_orders["tickers"] = tickers
+        try:
+            tickers = tribot.fetch_tickers()
 
+        except Exception  as e:
+            tribot.log(tribot.LOG_ERROR, "Could not get tickers..." )
+            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            tribot.log(tribot.LOG_ERROR, e.args)
+
+        om.data_for_orders["tickers"] = tickers
         om.proceed_orders()
         single_trimaker_deal.update_state(tickers)
 
