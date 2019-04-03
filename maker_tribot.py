@@ -222,8 +222,8 @@ while True:
                                                  commission_maker=tribot.commission_maker,
                                                  threshold=tribot.threshold,
                                                  max_order1_updates=2000,
-                                                 max_order2_updates=5,
-                                                 max_order3_updates=5,
+                                                 max_order2_updates=10000,
+                                                 max_order3_updates=2000,
                                                  cancel_price_threshold=tribot.cancel_price_threshold)
 
     single_trimaker_deal.update_state(tickers)
@@ -294,23 +294,23 @@ while True:
         print("Order3. Filled {}. Report: {}".format(order3.filled, order3.report()))
         print()
 
-    report_sqla = DealReport(
-        timestamp=datetime.datetime.now(tz=pytz.timezone('UTC')),
-        timestamp_start=datetime.datetime.now(tz=pytz.timezone('UTC')),
-        exchange=tribot.exchange_id,
-        instance=tribot.server_id,
-        server=tribot.server_id,
-        deal_type="triarb_maker",
-        deal_uuid=single_trimaker_deal.uuid,
-        status=single_trimaker_deal.status,
-        currency=single_trimaker_deal.currency1,
-        start_amount=single_trimaker_deal.filled_start_amount,
-        result_amount=single_trimaker_deal.result_amount,
-        gross_profit=single_trimaker_deal.gross_profit,
-        net_profit=0.0,
-        config=tribot.get_config_report(),
-        deal_data={}
-    )
+    # report_sqla = DealReport(
+    #     timestamp=datetime.datetime.now(tz=pytz.timezone('UTC')),
+    #     timestamp_start=datetime.datetime.now(tz=pytz.timezone('UTC')),
+    #     exchange=tribot.exchange_id,
+    #     instance=tribot.server_id,
+    #     server=tribot.server_id,
+    #     deal_type="triarb_maker",
+    #     deal_uuid=single_trimaker_deal.uuid,
+    #     status=single_trimaker_deal.status,
+    #     currency=single_trimaker_deal.currency1,
+    #     start_amount=single_trimaker_deal.filled_start_amount,
+    #     result_amount=single_trimaker_deal.result_amount,
+    #     gross_profit=single_trimaker_deal.gross_profit,
+    #     net_profit=0.0,
+    #     config=tribot.get_config_report(),
+    #     deal_data={}
+    # )
 
     if order1.filled == 0.0:
         continue
