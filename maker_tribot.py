@@ -241,13 +241,15 @@ while True:
         om.proceed_orders()
         single_trimaker_deal.update_state(tickers)
 
+        # creating order2
         if single_trimaker_deal.state == "order2_create":
             order2 = single_trimaker_deal.order2
             om.add_order(order2)
 
-        # finished after order 2 which was not filled at all
+        # finished after order 2 which was not filled at all, so we will recover
         if single_trimaker_deal.state == "finished" and single_trimaker_deal.order2 is not None and \
-                single_trimaker_deal.order2.filled == 0 and single_trimaker_deal.leg2_recovery_amount >0:
+                single_trimaker_deal.order2.filled == 0 and single_trimaker_deal.leg2_recovery_amount > 0 and \
+                single_trimaker_deal.order3 is None:
 
             order_rec_data = tribot.create_recovery_data(single_trimaker_deal.uuid,
                                                          single_trimaker_deal.currency2,
@@ -258,6 +260,7 @@ while True:
             tribot.print_recovery_data(order_rec_data)
             tribot.send_recovery_request(order_rec_data)
 
+        # adding order3 and check if we need to recovery from 2nd order
         if single_trimaker_deal.state == "order3_create":
             order3 = single_trimaker_deal.order3
             om.add_order(order3)
@@ -274,6 +277,7 @@ while True:
                 tribot.print_recovery_data(order_rec_data)
                 tribot.send_recovery_request(order_rec_data)
 
+        # finish after order 3
         if single_trimaker_deal.state == "finished" and single_trimaker_deal.order3 is not None \
                 and single_trimaker_deal.order3.status == "closed":
 
@@ -288,6 +292,7 @@ while True:
                 tribot.print_recovery_data(order_rec_data)
                 tribot.send_recovery_request(order_rec_data)
 
+        # skip sleeping if we have some pending actions with orders
         if om.pending_actions_number() == 0 and om.get_closed_orders() is None:
             sleep_time = tribot.exchange.requests_throttle.sleep_time()
             print("Sleeping for {}s".format(sleep_time))
