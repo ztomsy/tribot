@@ -245,12 +245,25 @@ while True:
             order2 = single_trimaker_deal.order2
             om.add_order(order2)
 
+        # finished after order 2 which was not filled at all
+        if single_trimaker_deal.state == "finished" and single_trimaker_deal.order2 is not None and \
+                single_trimaker_deal.order2.filled == 0 and single_trimaker_deal.leg2_recovery_amount >0:
+
+            order_rec_data = tribot.create_recovery_data(single_trimaker_deal.uuid,
+                                                         single_trimaker_deal.currency2,
+                                                         single_trimaker_deal.currency1,
+                                                         single_trimaker_deal.leg2_recovery_amount,
+                                                         single_trimaker_deal.leg2_recovery_target, 2)
+
+            tribot.print_recovery_data(order_rec_data)
+            tribot.send_recovery_request(order_rec_data)
+
         if single_trimaker_deal.state == "order3_create":
             order3 = single_trimaker_deal.order3
             om.add_order(order3)
 
             # check if we need to recover from order 2
-            if order2.filled < order2.amount*0.9999:
+            if single_trimaker_deal.order2.filled < single_trimaker_deal.order2.amount*0.9999:
 
                 order_rec_data = tribot.create_recovery_data(single_trimaker_deal.uuid,
                                                              single_trimaker_deal.currency2,
@@ -261,9 +274,10 @@ while True:
                 tribot.print_recovery_data(order_rec_data)
                 tribot.send_recovery_request(order_rec_data)
 
-        if single_trimaker_deal.state == "finished" and order3 is not None and order3.status == "closed":
+        if single_trimaker_deal.state == "finished" and single_trimaker_deal.order3 is not None \
+                and single_trimaker_deal.order3.status == "closed":
 
-            if order3.filled < order3.amount*0.9999:
+            if single_trimaker_deal.order3.filled < single_trimaker_deal.order3.amount*0.9999:
 
                 order_rec_data = tribot.create_recovery_data(single_trimaker_deal.uuid,
                                                              single_trimaker_deal.currency3,
@@ -280,18 +294,22 @@ while True:
             time.sleep(sleep_time)
 
     if order3 is not None:
-        print("Result: {}".format(order3.filled_dest_amount - order1.filled_start_amount))
+        print("Result: {}".format(single_trimaker_deal.order3.filled_dest_amount -
+                                  single_trimaker_deal.order1.filled_start_amount))
         print()
 
     if order1 is not None:
-        print("Order1. Filled {}. Report: {}".format(order1.filled, order1.report()))
+        print("Order1. Filled {}. Report: {}".format(single_trimaker_deal.order1.filled,
+                                                     single_trimaker_deal.order1.report()))
         print()
 
     if order2 is not None:
-        print("Order2. Filled {}. Report: {}".format(order2.filled, order2.report()))
+        print("Order2. Filled {}. Report: {}".format(single_trimaker_deal.order2.filled,
+                                                     single_trimaker_deal.order2.report()))
         print()
     if order3 is not None:
-        print("Order3. Filled {}. Report: {}".format(order3.filled, order3.report()))
+        print("Order3. Filled {}. Report: {}".format(single_trimaker_deal.order3.filled,
+                                                     single_trimaker_deal.order3.report()))
         print()
 
     # report_sqla = DealReport(
