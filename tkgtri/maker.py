@@ -8,6 +8,7 @@ import sys
 import time
 import copy
 import uuid as uuid_lib
+from typing import List
 
 
 class SingleTriArbMakerDeal(object):
@@ -270,3 +271,39 @@ class SingleTriArbMakerDeal(object):
         if self.order1.filled > 0 and self.leg2_recovery_target == 0 and self.leg3_recovery_target == 0:
             self.status = "OK"
             return
+
+
+class TriArbMakerCollection(object):
+    """
+    class to manage triarb deals collection raises exceptions on:
+    - max_deals exceeded
+    - adding deal with the existing uuid
+    - when removing deal with unmatched uuid
+    """
+
+    def __init__(self, max_deals: int = 1):
+        self.max_deals = max_deals
+        self.deals = list()  # type: List[SingleTriArbMakerDeal]
+        self.deal_added: int = 0
+
+    def add_deal(self, deal: SingleTriArbMakerDeal):
+
+        if deal.uuid == "":
+            raise (Exception("Empty uuid"))
+
+        if len(self.deals) == self.max_deals:
+            raise (Exception("Max deals number {} exceeded".format(self.max_deals)))
+
+        if next((index for (index, d) in enumerate(self.deals) if d.uuid == deal.uuid), None) is None:
+            self.deals.append(deal)
+            return True
+        else:
+            raise(Exception("Deal with uuid {} is already exists".format(deal.uuid)))
+
+    def remove_deal(self, uuid: str):
+        deal_index = next((index for (index, d) in enumerate(self.deals) if d.uuid == uuid), None)
+        if deal_index is not None:
+            self.deals.pop(deal_index)
+            return True
+
+        raise (Exception("Deal with uuid {} not found".format(uuid)))

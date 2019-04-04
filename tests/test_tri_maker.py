@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .context import tkgtri
-from tkgtri import SingleTriArbMakerDeal
+from tkgtri import SingleTriArbMakerDeal, TriArbMakerCollection
 import tkgcore
 from tkgcore import ccxtExchangeWrapper
 from tkgcore import ActionOrder, ActionOrderManager, FokThresholdTakerPriceOrder, FokThresholdTakerPriceOrder
@@ -8,6 +8,7 @@ from tkgcore import ActionOrder, ActionOrderManager, FokThresholdTakerPriceOrder
 import unittest
 import hashlib
 import json
+import copy
 
 
 def hash_of_object_values(data):
@@ -430,6 +431,74 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
 
         self.assertAlmostEqual((0.01/4) * good_triangle["result"], maker.result_amount, 4)
         self.assertAlmostEqual((0.01 / 4) * good_triangle["result"] - 0.01, maker.gross_profit, 4)
+
+    class SingleTriArbMakerTestSuite(unittest.TestCase):
+
+        def test_collection_add_remove(self):
+
+            triarb1 = SingleTriArbMakerDeal("CUR1", "CUR2", "CUR3",
+                                           1, 2, 3, 0.1, 0.001, "CUR1CUR2", "CUR2/CUR3", "CUR3/CUR1", 0.0007,
+                                           0.0007, 1.0005, uuid="test1")
+
+            triarb2 = SingleTriArbMakerDeal("CUR1", "CUR2", "CUR3",
+                                            1, 2, 3, 0.1, 0.001, "CUR1CUR2", "CUR2/CUR3", "CUR3/CUR1", 0.0007,
+                                            0.0007, 1.0005, uuid="test2")
+
+            tri_collection = TriArbMakerCollection(max_deals=3)
+
+            self.assertEqual(True, tri_collection.add_deal(triarb1))
+            self.assertEqual(True, tri_collection.add_deal(triarb2))
+
+            self.assertListEqual([triarb1, triarb2], tri_collection.deals)
+
+            # removing OK
+            self.assertEqual(True, tri_collection.remove_deal("test1"))
+            self.assertListEqual([triarb2], tri_collection.deals)
+
+            # removing not OK
+            with self.assertRaises(Exception) as e:
+                tri_collection.remove_deal("test666")
+                self.assertEqual(e.args[0], "Deal with uuid {} not found".format("test666"))
+
+            # adding not OK
+            with self.assertRaises(Exception) as e:
+                tri_collection.add_deal(triarb2)
+                self.assertEqual(e.args[0], "Deal with uuid {} is already exists".format("test2"))
+
+            self.assertListEqual([triarb2], tri_collection.deals)
+
+            tri_collection.add_deal(triarb1)
+
+            triarb3 = copy.deepcopy(triarb1)
+            triarb3.uuid = "test3"
+
+            tri_collection.add_deal(triarb3)
+
+            self.assertListEqual([triarb2, triarb1, triarb3], tri_collection.deals)
+
+            tri_collection.remove_deal("test1")
+
+            self.assertListEqual([triarb2, triarb3], tri_collection.deals)
+
+            # exceed max_deals
+            tri_collection.add_deal(triarb1)
+
+            triarb4 = copy.deepcopy(triarb1)
+            triarb4.uuid = "test4"
+
+            with self.assertRaises(Exception) as e:
+                tri_collection.add_deal(triarb4)
+                self.assertEqual(e.args[0], "Max deals number {} exceeded".format(3))
+
+                self.assertListEqual([triarb2, triarb3, triarb1], tri_collection.deals)
+
+            # empty uuid
+            tri_collection.remove_deal("test1")
+            triarb1.uuid = ""
+
+            with self.assertRaises(Exception) as e:
+                tri_collection.add_deal(triarb1)
+                self.assertEqual(e.args[0], "Empty uuid")
 
 
 if __name__ == '__main__':
