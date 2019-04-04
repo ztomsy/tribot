@@ -162,7 +162,7 @@ om.request_trades = False
 
 tribot.set_triangles()
 
-triarb_collection = TriArbMakerCollection(2)
+triarb_collection = TriArbMakerCollection(1)
 
 while True:
 
@@ -223,7 +223,7 @@ while True:
 
     good_triangle = good_maker_triangles[start_index]
 
-    if len(triarb_collection.deals >= triarb_collection.max_deals):
+    if len(triarb_collection.deals) >= triarb_collection.max_deals:
         tribot.log(tribot.LOG_INFO, "Will not add deal: too many active  {}".format(len(triarb_collection.deals)))
         continue
     
@@ -247,10 +247,11 @@ while True:
                                                      cancel_price_threshold=tribot.cancel_price_threshold)
     try:
         triarb_collection.add_deal(new_single_trimaker_deal)
+       # update state of created deal
         new_single_trimaker_deal.update_state(tickers)
+
+        # now we have order1 created
         om.add_order(new_single_trimaker_deal.order1)
-        
-        deals_added += 1 
 
     except Exception as e:
         tribot.log(tribot.LOG_ERROR, "Could not add deal to collection...")
@@ -260,11 +261,13 @@ while True:
     # remove finished deals
     for deal in triarb_collection.deals:
         if deal.state == "finished":
-            triarb_collection.remove_deal(deal.uuid)    
+            triarb_collection.remove_deal(deal.uuid)
+
+    # proceess orders via order manager
+    om.data_for_orders["tickers"] = tickers
+    om.proceed_orders()
 
     for single_trimaker_deal in triarb_collection.deals:
-        om.data_for_orders["tickers"] = tickers
-        om.proceed_orders()
 
         single_trimaker_deal.update_state(tickers)
 
