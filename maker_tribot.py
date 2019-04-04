@@ -166,7 +166,15 @@ while True:
         print("Sleeping for {}s".format(sleep_time))
         time.sleep(sleep_time)
 
-    tickers = tribot.fetch_tickers()
+    try:
+        tickers = tribot.fetch_tickers()
+    except Exception  as e:
+        tribot.log(tribot.LOG_ERROR, "Could not get tickers...")
+        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+        tribot.log(tribot.LOG_ERROR, e.args)
+
+        continue
+
     tribot.set_triangles()
 
     tribot.proceed_triangles()
@@ -324,32 +332,34 @@ while True:
         print("Order3. Filled {}. Report: {}".format(single_trimaker_deal.order3.filled,
                                                      single_trimaker_deal.order3.report()))
         print()
+    if tribot.sqla["enabled"]:
 
-    report_sqla = DealReport(
-        timestamp=datetime.datetime.now(tz=pytz.timezone('UTC')),
-        timestamp_start=datetime.datetime.now(tz=pytz.timezone('UTC')),
-        exchange=tribot.exchange_id,
-        instance=tribot.server_id,
-        server=tribot.server_id,
-        deal_type="triarb_maker",
-        deal_uuid=single_trimaker_deal.uuid,
-        status=single_trimaker_deal.status,
-        currency=single_trimaker_deal.currency1,
-        start_amount=single_trimaker_deal.filled_start_amount,
-        result_amount=single_trimaker_deal.result_amount,
-        gross_profit=single_trimaker_deal.gross_profit,
-        net_profit=0.0,
-        config=tribot.get_config_report(),
-        deal_data={}
-    )
+        try:
 
-    try:
-        tribot.sqla_reporter.session.add(report_sqla)
-        tribot.sqla_reporter.session.commit()
-    except Exception as e:
-        tribot.log(tribot.LOG_ERROR, "Could not send SQLa report")
-        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-        tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+            report_sqla = DealReport(
+                timestamp=datetime.datetime.now(tz=pytz.timezone('UTC')),
+                timestamp_start=datetime.datetime.now(tz=pytz.timezone('UTC')),
+                exchange=tribot.exchange_id,
+                instance=tribot.server_id,
+                server=tribot.server_id,
+                deal_type="triarb_maker",
+                deal_uuid=single_trimaker_deal.uuid,
+                status=single_trimaker_deal.status,
+                currency=single_trimaker_deal.currency1,
+                start_amount=single_trimaker_deal.filled_start_amount,
+                result_amount=single_trimaker_deal.result_amount,
+                gross_profit=single_trimaker_deal.gross_profit,
+                net_profit=0.0,
+                config=tribot.get_config_report(),
+                deal_data={}
+            )
+
+            tribot.sqla_reporter.session.add(report_sqla)
+            tribot.sqla_reporter.session.commit()
+        except Exception as e:
+            tribot.log(tribot.LOG_ERROR, "Could not send SQLa report")
+            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
 
     if tribot.run_once and single_trimaker_deal.order1.filled > 0:
         tribot.log(tribot.LOG_INFO, "Exiting because of run_once")
