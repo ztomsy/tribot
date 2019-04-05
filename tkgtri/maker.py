@@ -1,11 +1,6 @@
-import tkgcore
-from tkgcore import core
 from tkgcore import ActionOrder, ActionOrderManager
 from tkgcore import FokThresholdTakerPriceOrder, FokOrder
-import tkgtri
 from tkgtri import *
-import sys
-import time
 import copy
 import uuid as uuid_lib
 from typing import List
@@ -23,8 +18,10 @@ class SingleTriArbMakerDeal(object):
                  max_order1_updates: int = 2000,
                  max_order2_updates: int = 2000,
                  max_order3_updates: int = 2000,
+                 recover_factor_order2: float = 1.0,
+                 recover_factor_order3: float = 1.0,
                  cancel_price_threshold: float = -0.01,
-                 uuid: str=None):
+                 uuid: str = None):
 
         self.uuid = str(uuid_lib.uuid4()) if uuid is None else uuid
 
@@ -69,6 +66,9 @@ class SingleTriArbMakerDeal(object):
 
         self.cancel_taker_price_threshold = cancel_price_threshold
 
+        self.recover_factor_order2 = recover_factor_order2
+        self.recover_factor_order3 = recover_factor_order3
+
         self.leg2_recovery_amount = 0.0
         self.leg2_recovery_target = 0.0
 
@@ -89,6 +89,8 @@ class SingleTriArbMakerDeal(object):
         """
         gross profit
         """
+
+
 
     # @classmethod
     # def create_from_deal_dict(cls, deal_dict:dict):
@@ -200,7 +202,8 @@ class SingleTriArbMakerDeal(object):
 
             self.leg2_recovery_target = order2_best_recovery_start_amount(self.order1.filled_start_amount,
                                                                           self.order2.amount,
-                                                                          self.order2.filled)
+                                                                          self.order2.filled,
+                                                                          self.recover_factor_order2)
 
             self.leg2_recovery_amount = self.order2.amount_start - self.order2.filled_start_amount
 
@@ -224,7 +227,8 @@ class SingleTriArbMakerDeal(object):
             if self.order2.filled < self.order2.amount*0.9999:
                 self.leg2_recovery_target = order2_best_recovery_start_amount(self.order1.filled_start_amount,
                                                                               self.order2.amount,
-                                                                              self.order2.filled)
+                                                                              self.order2.filled,
+                                                                              self.recover_factor_order2)
                 self.leg2_recovery_amount = self.order2.amount_start - self.order2.filled_start_amount
 
             return True
@@ -243,7 +247,8 @@ class SingleTriArbMakerDeal(object):
                                                                               self.order2.amount,
                                                                               self.order2.filled,
                                                                               self.order3.amount,
-                                                                              self.order3.filled)
+                                                                              self.order3.filled,
+                                                                              self.recover_factor_order3)
 
                 self.leg3_recovery_amount = self.order3.amount_start - self.order3.filled_start_amount
 
@@ -284,7 +289,10 @@ class TriArbMakerCollection(object):
     def __init__(self, max_deals: int = 1):
         self.max_deals = max_deals
         self.deals = list()  # type: List[SingleTriArbMakerDeal]
-        self.deal_added: int = 0
+        self.total_deals_added: int = 0
+        """
+        total numbers of deals added since start
+        """
 
     def add_deal(self, deal: SingleTriArbMakerDeal):
 
@@ -296,6 +304,7 @@ class TriArbMakerCollection(object):
 
         if next((index for (index, d) in enumerate(self.deals) if d.uuid == deal.uuid), None) is None:
             self.deals.append(deal)
+            self.total_deals_added += 1
             return True
         else:
             raise(Exception("Deal with uuid {} is already exists".format(deal.uuid)))

@@ -50,6 +50,8 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
                                       max_order1_updates=2000,
                                       max_order2_updates=2000,
                                       max_order3_updates=2000,
+                                      recover_factor_order2=1.2,
+                                      recover_factor_order3=1.3,
                                       uuid="test")
 
 
@@ -62,6 +64,9 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
         self.assertEqual(0.0006, maker.commission_maker)
 
         self.assertEqual(1.001, maker.threshold)
+
+        self.assertEqual(1.2, maker.recover_factor_order2)
+        self.assertEqual(1.3, maker.recover_factor_order3)
 
         self.assertEqual(0.0, maker.leg2_recovery_target)
         self.assertEqual(0.0, maker.leg2_recovery_amount)
@@ -110,7 +115,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
                                   max_order2_updates=2000,
                                   max_order3_updates=2000        
         """
-        self.assertEqual('c9affde94535d353f937ed138083bf0c', hash)
+        self.assertEqual('c558bda8b120c90697d60771752a01c7', hash)
 
     def test_run_ok(self):
 
@@ -301,6 +306,8 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
                                       max_order1_updates=2000,
                                       max_order2_updates=2000,
                                       max_order3_updates=2000,
+                                      recover_factor_order2=1.2,
+                                      recover_factor_order3=1.3,
                                       uuid="test"
                                       )
 
@@ -322,7 +329,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
         self.assertEqual("InRecovery", maker.status)
 
         self.assertEqual(1054.8523206751054, maker.leg2_recovery_amount)
-        self.assertEqual(0.01, maker.leg2_recovery_target)
+        self.assertEqual(0.01*1.2, maker.leg2_recovery_target)  # 1.2 is a recover factor
 
         self.assertEqual(0, maker.leg3_recovery_amount)
         self.assertEqual(0, maker.leg3_recovery_target)
@@ -363,6 +370,8 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
                                       max_order1_updates=2000,
                                       max_order2_updates=2000,
                                       max_order3_updates=2000,
+                                      recover_factor_order2=1.2,
+                                      recover_factor_order3=1.3,
                                       uuid="test"
                                       )
 
@@ -401,7 +410,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
         self.assertAlmostEqual(0.5 * maker.order2.amount, maker.leg2_recovery_amount, 6)
 
         self.assertAlmostEqual(1/2, maker.order2.filled / maker.order2.amount, 6)
-        self.assertAlmostEqual(0.005, maker.leg2_recovery_target, 6)
+        self.assertAlmostEqual(0.005*1.2, maker.leg2_recovery_target, 6)
 
         # proceed to leg3
 
@@ -421,7 +430,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
         self.assertEqual(maker.leg3_recovery_amount,  maker.order3.amount_start - maker.order3.filled_start_amount)
 
         self.assertAlmostEqual(1 / 2, maker.order3.filled / maker.order3.amount, 6)
-        self.assertAlmostEqual(0.0025, maker.leg3_recovery_target, 6)
+        self.assertAlmostEqual(0.0025*1.3, maker.leg3_recovery_target, 6)
         self.assertAlmostEqual(0.5 * maker.order3.amount, maker.leg3_recovery_amount, 6)
 
         self.assertEqual("finished", maker.state)
@@ -450,6 +459,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
             self.assertEqual(True, tri_collection.add_deal(triarb2))
 
             self.assertListEqual([triarb1, triarb2], tri_collection.deals)
+            self.assertEqual(2, tri_collection.total_deals_added)
 
             # removing OK
             self.assertEqual(True, tri_collection.remove_deal("test1"))
@@ -466,8 +476,10 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
                 self.assertEqual(e.args[0], "Deal with uuid {} is already exists".format("test2"))
 
             self.assertListEqual([triarb2], tri_collection.deals)
+            self.assertEqual(2, tri_collection.total_deals_added)
 
             tri_collection.add_deal(triarb1)
+            self.assertEqual(3, tri_collection.total_deals_added)
 
             triarb3 = copy.deepcopy(triarb1)
             triarb3.uuid = "test3"
@@ -475,6 +487,8 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
             tri_collection.add_deal(triarb3)
 
             self.assertListEqual([triarb2, triarb1, triarb3], tri_collection.deals)
+            self.assertEqual(4, tri_collection.total_deals_added)
+
 
             tri_collection.remove_deal("test1")
 
@@ -482,6 +496,8 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
 
             # exceed max_deals
             tri_collection.add_deal(triarb1)
+
+            self.assertEqual(5, tri_collection.total_deals_added)
 
             triarb4 = copy.deepcopy(triarb1)
             triarb4.uuid = "test4"
@@ -491,6 +507,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
                 self.assertEqual(e.args[0], "Max deals number {} exceeded".format(3))
 
                 self.assertListEqual([triarb2, triarb3, triarb1], tri_collection.deals)
+                self.assertEqual(5, tri_collection.total_deals_added)
 
             # empty uuid
             tri_collection.remove_deal("test1")
@@ -499,7 +516,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
             with self.assertRaises(Exception) as e:
                 tri_collection.add_deal(triarb1)
                 self.assertEqual(e.args[0], "Empty uuid")
-
+                self.assertEqual(5, tri_collection.total_deals_added)
 
 if __name__ == '__main__':
     unittest.main()

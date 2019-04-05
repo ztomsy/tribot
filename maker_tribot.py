@@ -162,7 +162,7 @@ om.request_trades = False
 
 tribot.set_triangles()
 
-triarb_collection = TriArbMakerCollection(1)
+triarb_collection = TriArbMakerCollection(max_deals=2)
 
 while True:
 
@@ -170,6 +170,8 @@ while True:
         sleep_time = tribot.exchange.requests_throttle.sleep_time()
         print("Sleeping for {}s".format(sleep_time))
         time.sleep(sleep_time)
+    else:
+        print("!!! NO SLEEP. ACTIONS ARE PENDING !!!")
 
     try:
         tickers = tribot.fetch_tickers()
@@ -180,99 +182,20 @@ while True:
 
         continue
 
-    tribot.proceed_triangles()
-    good_taker_triangles = tribot.get_good_triangles()
-    results_taker = sorted(tribot.tri_list, key=lambda k: k['result'], reverse=True)
-
-    results_maker = fill_triangles_maker(tribot.all_triangles, tribot.start_currency, tickers, tribot.commission,
-                                         tribot.commission_maker)
-    # results_maker = sorted(results_maker, key=lambda k: k['result'], reverse=True)
-    good_maker_triangles = tribot.get_good_triangles(results_maker)
-    good_maker_triangles = sorted(good_maker_triangles, key=lambda k: k['leg1-cur1-qty'], reverse=False)
-
-    print("Good TAKER triangles: {}. Best TAKER triangle {}".format(len(good_taker_triangles),
-                                                                    results_taker[0]["result"]))
-
-    print("Good MAKER triangles: {}. Best MAKER triangle {} result {}".format(len(good_maker_triangles),
-                                                                              results_maker[0]["symbol1"],
-                                                                              results_maker[0]["result"]))
-
-    print("TOP 5 MAKER triangles: ")
-    if len(good_maker_triangles) > 0:
-        top_to_display = 100 if len(good_maker_triangles) > 100 else len(good_maker_triangles)
-
-        print("TOP {} MAKER triangles: ".format(top_to_display))
-
-        for i in range(0, top_to_display):
-            print(good_maker_triangles[i]["triangle"], " ", good_maker_triangles[i]["result"], " ",
-                  good_maker_triangles[i]["leg1-cur1-qty"])
-
-    if len(good_maker_triangles) < start_index + 1:
-        continue
-
-    if good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount > 70:
-        print("Leg1 qty / start_amount is too much {}".format(
-            good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount))
-        continue
-
-    current_triangle = [[good_maker_triangles[start_index]["cur1"], good_maker_triangles[start_index]["cur2"],
-                         good_maker_triangles[start_index]["cur3"]]]
-
-    if tribot.debug:
-        continue
-
-    good_triangle = good_maker_triangles[start_index]
-
-    if len(triarb_collection.deals) >= triarb_collection.max_deals:
-        tribot.log(tribot.LOG_INFO, "Will not add deal: too many active  {}".format(len(triarb_collection.deals)))
-        continue
-    
-    new_single_trimaker_deal = SingleTriArbMakerDeal(currency1=good_triangle["cur1"],
-                                                     currency2=good_triangle["cur2"],
-                                                     currency3=good_triangle["cur3"],
-                                                     price1=good_triangle["leg1-price"],
-                                                     price2=good_triangle["leg2-price"],
-                                                     price3=good_triangle["leg3-price"],
-                                                     start_amount=start_amount,
-                                                     min_amount_currency1=0.003,
-                                                     symbol1=good_triangle["symbol1"],
-                                                     symbol2=good_triangle["symbol2"],
-                                                     symbol3=good_triangle["symbol3"],
-                                                     commission=tribot.commission,
-                                                     commission_maker=tribot.commission_maker,
-                                                     threshold=tribot.threshold,
-                                                     max_order1_updates=2000,
-                                                     max_order2_updates=10000,
-                                                     max_order3_updates=2000,
-                                                     cancel_price_threshold=tribot.cancel_price_threshold)
-    try:
-        triarb_collection.add_deal(new_single_trimaker_deal)
-       # update state of created deal
-        new_single_trimaker_deal.update_state(tickers)
-
-        # now we have order1 created
-        om.add_order(new_single_trimaker_deal.order1)
-
-    except Exception as e:
-        tribot.log(tribot.LOG_ERROR, "Could not add deal to collection...")
-        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-        tribot.log(tribot.LOG_ERROR, e.args)
-    
     # remove finished deals
-    for deal in triarb_collection.deals:
-        if deal.state == "finished":
-            triarb_collection.remove_deal(deal.uuid)
+    # for deal in triarb_collection.deals:
+    #     if deal.state == "finished":
+    #         triarb_collection.remove_deal(deal.uuid)
 
-    # proceess orders via order manager
+    # process orders via order manager
     om.data_for_orders["tickers"] = tickers
     om.proceed_orders()
 
+    # proceed with the current deals
     for single_trimaker_deal in triarb_collection.deals:
-
         single_trimaker_deal.update_state(tickers)
 
-        # if single_trimaker_deal.state == "new" and single_trimaker_deal.order1 is not None:
-        #     om.add_order(single_trimaker_deal.order1)
+        # order1 has been created when the deal was created (see below)
 
         # creating order2
         if single_trimaker_deal.state == "order2_create":
@@ -322,12 +245,6 @@ while True:
                 tribot.print_recovery_data(order_rec_data)
                 tribot.send_recovery_request(order_rec_data)
 
-        # skip sleeping if we have some pending actions with orders
-        # if om.pending_actions_number() == 0 and om.get_closed_orders() is None:
-        #     sleep_time = tribot.exchange.requests_throttle.sleep_time()
-        #     print("Sleeping for {}s".format(sleep_time))
-        #     time.sleep(sleep_time)
-
         if single_trimaker_deal.state == "finished":
             if single_trimaker_deal.order3 is not None:
                 print("Result: {}".format(single_trimaker_deal.order3.filled_dest_amount -
@@ -349,8 +266,10 @@ while True:
                                                              single_trimaker_deal.order3.report()))
                 print()
 
-            if tribot.sqla["enabled"]:
+            if not tribot.sqla["enabled"]:
+                triarb_collection.remove_deal(single_trimaker_deal.uuid)
 
+            else:
                 try:
 
                     report_sqla = DealReport(
@@ -373,9 +292,111 @@ while True:
 
                     tribot.sqla_reporter.session.add(report_sqla)
                     tribot.sqla_reporter.session.commit()
+
+                    triarb_collection.remove_deal(single_trimaker_deal.uuid)
+
                 except Exception as e:
                     tribot.log(tribot.LOG_ERROR, "Could not send SQLa report")
                     tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
                     tribot.log(tribot.LOG_ERROR, "Exception body:", e.args)
+
+    # check if we going to exit
+    if tribot.run_once and len(triarb_collection.deals) == 0 and len(om.get_open_orders()) == 0 \
+            and triarb_collection.total_deals_added >= triarb_collection.max_deals:
+        tribot.log(tribot.LOG_INFO, "Exiting because of runonce")
+        sys.exit()
+
+    if tribot.run_once and triarb_collection.total_deals_added >= triarb_collection.max_deals:
+        continue
+
+    # process new triangles if there is no pending actions
+    if om.pending_actions_number() == 0:
+        # sleep_time = tribot.exchange.requests_throttle.sleep_time()
+        print("Procceeding to triangles...")
+        # time.sleep(sleep_time)
+    else:
+        print("!!! NO Triangles. ACTIONS ARE PENDING !!!")
+        continue
+
+    tribot.proceed_triangles()
+    good_taker_triangles = tribot.get_good_triangles()
+    results_taker = sorted(tribot.tri_list, key=lambda k: k['result'], reverse=True)
+
+    results_maker = fill_triangles_maker(tribot.all_triangles, tribot.start_currency, tickers, tribot.commission,
+                                         tribot.commission_maker)
+    # results_maker = sorted(results_maker, key=lambda k: k['result'], reverse=True)
+    good_maker_triangles = tribot.get_good_triangles(results_maker)
+    good_maker_triangles = sorted(good_maker_triangles, key=lambda k: k['leg1-cur1-qty'], reverse=False)
+
+    print("Good TAKER triangles: {}. Best TAKER triangle {}".format(len(good_taker_triangles),
+                                                                    results_taker[0]["result"]))
+
+    print("Good MAKER triangles: {}. Best MAKER triangle {} result {}".format(len(good_maker_triangles),
+                                                                              results_maker[0]["symbol1"],
+                                                                              results_maker[0]["result"]))
+
+    print("TOP 5 MAKER triangles: ")
+    if len(good_maker_triangles) > 0:
+        top_to_display = 100 if len(good_maker_triangles) > 100 else len(good_maker_triangles)
+
+        print("TOP {} MAKER triangles: ".format(top_to_display))
+
+        for i in range(0, top_to_display):
+            print(good_maker_triangles[i]["triangle"], " ", good_maker_triangles[i]["result"], " ",
+                  good_maker_triangles[i]["leg1-cur1-qty"])
+
+    if len(good_maker_triangles) < start_index + 1:
+        continue
+
+    if good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount > 70:
+        print("Leg1 qty / start_amount is too much {}".format(
+            good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount))
+        continue
+
+    current_triangle = [[good_maker_triangles[start_index]["cur1"], good_maker_triangles[start_index]["cur2"],
+                         good_maker_triangles[start_index]["cur3"]]]
+
+    if tribot.debug:
+        continue
+
+    good_triangle = good_maker_triangles[start_index]
+
+    if len(triarb_collection.deals) >= triarb_collection.max_deals:
+        tribot.log(tribot.LOG_INFO, "Will not add deal: too many active  {}".format(len(triarb_collection.deals)))
+        continue
+
+    new_single_trimaker_deal = SingleTriArbMakerDeal(currency1=good_triangle["cur1"],
+                                                     currency2=good_triangle["cur2"],
+                                                     currency3=good_triangle["cur3"],
+                                                     price1=good_triangle["leg1-price"],
+                                                     price2=good_triangle["leg2-price"],
+                                                     price3=good_triangle["leg3-price"],
+                                                     start_amount=start_amount,
+                                                     min_amount_currency1=0.003,
+                                                     symbol1=good_triangle["symbol1"],
+                                                     symbol2=good_triangle["symbol2"],
+                                                     symbol3=good_triangle["symbol3"],
+                                                     commission=tribot.commission,
+                                                     commission_maker=tribot.commission_maker,
+                                                     threshold=tribot.threshold,
+                                                     max_order1_updates=5,
+                                                     max_order2_updates=5,
+                                                     max_order3_updates=5,
+                                                     recover_factor_order2=tribot.recover_factor,
+                                                     recover_factor_order3=tribot.recover_factor,
+                                                     cancel_price_threshold=tribot.cancel_price_threshold)
+    try:
+        triarb_collection.add_deal(new_single_trimaker_deal)
+
+        # update state of created deal
+        new_single_trimaker_deal.update_state(tickers)
+
+        # now we have order1 created
+        om.add_order(new_single_trimaker_deal.order1)
+
+    except Exception as e:
+        tribot.log(tribot.LOG_ERROR, "Could not add deal to collection...")
+        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+        tribot.log(tribot.LOG_ERROR, e.args)
 
 sys.exit()
