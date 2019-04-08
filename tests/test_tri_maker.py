@@ -509,6 +509,14 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
                 self.assertListEqual([triarb2, triarb3, triarb1], tri_collection.deals)
                 self.assertEqual(5, tri_collection.total_deals_added)
 
+            # remove from list
+
+            tri_collection.add_bulk_remove(triarb1.uuid)
+            deals_removed = tri_collection.bulk_remove()
+
+            self.assertListEqual(["test1"], deals_removed)
+            self.assertListEqual([triarb2, triarb3], tri_collection.deals)
+
             # empty uuid
             tri_collection.remove_deal("test1")
             triarb1.uuid = ""
@@ -517,6 +525,30 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
                 tri_collection.add_deal(triarb1)
                 self.assertEqual(e.args[0], "Empty uuid")
                 self.assertEqual(5, tri_collection.total_deals_added)
+
+        def test_ok_to_add(self):
+
+            triarb1 = SingleTriArbMakerDeal("CUR1", "CUR2", "CUR3",
+                                           1, 2, 3, 0.1, 0.001, "CUR1/CUR2", "CUR2/CUR3", "CUR3/CUR1", 0.0007,
+                                           0.0007, 1.0005, uuid="test1")
+
+            triarb2 = SingleTriArbMakerDeal("CUR1", "CUR2", "CUR3",
+                                            1, 2, 3, 0.1, 0.001, "CUR1/CUR2", "CUR2/CUR3", "CUR3/CUR1", 0.0007,
+                                            0.0007, 1.0005, uuid="test2")
+
+            triarb3 = SingleTriArbMakerDeal("CUR3", "CUR1", "CUR2",
+                                            1, 2, 3, 0.1, 0.001, "CUR3/CUR1", "CUR1/CUR3", "CUR3/CUR2", 0.0007,
+                                            0.0007, 1.0005, uuid="test2")
+
+            tri_collection = TriArbMakerCollection(max_deals=3)
+
+            self.assertEqual("OK", tri_collection.ok_to_add(triarb1))
+            tri_collection.add_deal(triarb1)
+
+            self.assertEqual("New deal with existing cur1 and cur2", tri_collection.ok_to_add(triarb2))
+
+            self.assertEqual("OK", tri_collection.ok_to_add(triarb3))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -191,6 +191,10 @@ while True:
     om.data_for_orders["tickers"] = tickers
     om.proceed_orders()
 
+    # remove finished deals
+    deals_removed = triarb_collection.bulk_remove()
+    tribot.log(tribot.LOG_INFO, "Deals removed: {}".format(deals_removed))
+
     # proceed with the current deals
     for single_trimaker_deal in triarb_collection.deals:
         single_trimaker_deal.update_state(tickers)
@@ -267,7 +271,8 @@ while True:
                 print()
 
             if not tribot.sqla["enabled"]:
-                triarb_collection.remove_deal(single_trimaker_deal.uuid)
+                triarb_collection.add_bulk_remove(single_trimaker_deal.uuid)
+                tribot.log(tribot.LOG_INFO, "Removed deal {} from deals collection".format(single_trimaker_deal.uuid))
 
             else:
                 try:
@@ -293,7 +298,9 @@ while True:
                     tribot.sqla_reporter.session.add(report_sqla)
                     tribot.sqla_reporter.session.commit()
 
-                    triarb_collection.remove_deal(single_trimaker_deal.uuid)
+                    triarb_collection.add_bulk_remove(single_trimaker_deal.uuid)
+                    tribot.log(tribot.LOG_INFO,
+                               "Removed deal {} from deals collection".format(single_trimaker_deal.uuid))
 
                 except Exception as e:
                     tribot.log(tribot.LOG_ERROR, "Could not send SQLa report")
@@ -385,6 +392,12 @@ while True:
                                                      recover_factor_order2=tribot.recover_factor,
                                                      recover_factor_order3=tribot.recover_factor,
                                                      cancel_price_threshold=tribot.cancel_price_threshold)
+
+    ok_to_add = triarb_collection.ok_to_add(new_single_trimaker_deal)
+    if ok_to_add != "OK":
+        tribot.log(tribot.LOG_INFO, "Deal could not be added: {}".format(ok_to_add))
+        continue
+
     try:
         triarb_collection.add_deal(new_single_trimaker_deal)
 

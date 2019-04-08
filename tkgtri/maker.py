@@ -290,6 +290,7 @@ class TriArbMakerCollection(object):
         self.max_deals = max_deals
         self.deals = list()  # type: List[SingleTriArbMakerDeal]
         self.total_deals_added: int = 0
+        self._deals_to_remove = list()
         """
         total numbers of deals added since start
         """
@@ -315,4 +316,34 @@ class TriArbMakerCollection(object):
             self.deals.pop(deal_index)
             return True
 
+    def add_bulk_remove(self, uuid: str):
+        deal_index = next((index for (index, d) in enumerate(self.deals) if d.uuid == uuid), None)
+        if deal_index is not None:
+            self._deals_to_remove.append(deal_index)
+            return True
+
         raise (Exception("Deal with uuid {} not found".format(uuid)))
+
+    def bulk_remove(self):
+        deals_removed = list()
+        for di in self._deals_to_remove:
+            uuid = self.deals[di].uuid
+            self.deals.pop(di)
+            deals_removed.append(uuid)
+
+        self._deals_to_remove = list()
+        return deals_removed
+
+    def ok_to_add(self, new_deal: SingleTriArbMakerDeal):
+        """
+        will check if the deal is eligible to add the deal to deals' collection
+        :param new_deal: deal to be added
+        :return: str: OK is it's ok or reason if it's not ok
+        """
+        for deal in self.deals:
+
+            if deal.currency1 == new_deal.currency1 and deal.currency2 == new_deal.currency2:
+                return "New deal with existing cur1 and cur2"
+
+        return "OK"
+
