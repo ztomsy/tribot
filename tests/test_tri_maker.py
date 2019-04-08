@@ -489,7 +489,6 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
             self.assertListEqual([triarb2, triarb1, triarb3], tri_collection.deals)
             self.assertEqual(4, tri_collection.total_deals_added)
 
-
             tri_collection.remove_deal("test1")
 
             self.assertListEqual([triarb2, triarb3], tri_collection.deals)
@@ -512,10 +511,12 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
             # remove from list
 
             tri_collection.add_bulk_remove(triarb1.uuid)
+            tri_collection.add_bulk_remove(triarb2.uuid)
+
             deals_removed = tri_collection.bulk_remove()
 
-            self.assertListEqual(["test1"], deals_removed)
-            self.assertListEqual([triarb2, triarb3], tri_collection.deals)
+            self.assertListEqual(["test1", "test2"], deals_removed)
+            self.assertListEqual([triarb3], tri_collection.deals)
 
             # empty uuid
             tri_collection.remove_deal("test1")

@@ -317,20 +317,23 @@ class TriArbMakerCollection(object):
             return True
 
     def add_bulk_remove(self, uuid: str):
-        deal_index = next((index for (index, d) in enumerate(self.deals) if d.uuid == uuid), None)
-        if deal_index is not None:
-            self._deals_to_remove.append(deal_index)
+        deal = next((d for (index, d) in enumerate(self.deals) if d.uuid == uuid), None)
+
+        if deal is not None:
+            self._deals_to_remove.append(deal.uuid)
             return True
 
         raise (Exception("Deal with uuid {} not found".format(uuid)))
 
     def bulk_remove(self):
         deals_removed = list()
-        for di in self._deals_to_remove:
-            uuid = self.deals[di].uuid
-            self.deals.pop(di)
-            deals_removed.append(uuid)
 
+        self.deals = [deal for deal in self.deals if deal.uuid not in self._deals_to_remove]
+
+        # for di in self._deals_to_remove:
+        #     uuid = self.deals[di].uuid
+        #     self.deals.pop(di)
+        deals_removed = self._deals_to_remove
         self._deals_to_remove = list()
         return deals_removed
 
