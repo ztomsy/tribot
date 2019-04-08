@@ -105,6 +105,7 @@ tribot = tkgtri.tribot.TriBot("_config_def_maker.json")
 tribot.commission_maker = 0.0
 tribot.start_amount = 0
 tribot.max_deals = 0
+tribot.max_ticker_amount_to_add = 0.0
 
 tribot.set_from_cli(sys.argv[1:])  # cli parameters  override config
 tribot.load_config_from_file(tribot.config_filename)  # config taken from cli or default
@@ -365,7 +366,7 @@ while True:
 
     for good_triangle in good_maker_triangles:
 
-        if good_triangle["leg1-cur1-qty"] > 2:
+        if good_triangle["leg1-cur1-qty"] > tribot.max_ticker_amount_to_add:
             print("Leg1 qty / start_amount is too much {}".format(
                 good_triangle["leg1-cur1-qty"]))
             continue

@@ -7,6 +7,7 @@
 
   "start_amount": 0.01,
   "max_deals": 2,
+  "max_ticker_amount_to_add": 3,
 
   "share_balance_to_bid":0.8,
   "max_recovery_attempts": 20,
