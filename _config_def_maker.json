@@ -2,9 +2,12 @@
   "server_id": "PROD1",
   "script_id": "triarb",
   "exchange_id":"binance",
-
   "start_currency":["BTC"],
   "ignore_currency":["BCHSV"],
+
+  "start_amount": 0.01,
+  "max_deals": 2,
+
   "share_balance_to_bid":0.8,
   "max_recovery_attempts": 20,
   "min_amounts":

@@ -100,7 +100,11 @@ def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict,
 
 
 tribot = tkgtri.tribot.TriBot("_config_def_maker.json")
+
+# adding these fields in order to get them from config
 tribot.commission_maker = 0.0
+tribot.start_amount = 0
+tribot.max_deals = 0
 
 tribot.set_from_cli(sys.argv[1:])  # cli parameters  override config
 tribot.load_config_from_file(tribot.config_filename)  # config taken from cli or default
@@ -155,14 +159,15 @@ except Exception as e:
     tribot.log(tribot.LOG_ERROR, "Exiting")
     sys.exit("666")
 
-start_index = 0
-start_amount = 0.01
+# start_index = tribot.start_amount
+start_amount = tribot.start_amount
+
 om = tkgcore.ActionOrderManager(tribot.exchange)
 om.request_trades = False
 
 tribot.set_triangles()
 
-triarb_collection = TriArbMakerCollection(max_deals=2)
+triarb_collection = TriArbMakerCollection(max_deals=tribot.max_deals)
 
 while True:
 
@@ -352,64 +357,71 @@ while True:
             print(good_maker_triangles[i]["triangle"], " ", good_maker_triangles[i]["result"], " ",
                   good_maker_triangles[i]["leg1-cur1-qty"])
 
-    if len(good_maker_triangles) < start_index + 1:
-        continue
-
-    if good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount > 70:
-        print("Leg1 qty / start_amount is too much {}".format(
-            good_maker_triangles[start_index]["leg1-cur1-qty"] / start_amount))
-        continue
-
-    current_triangle = [[good_maker_triangles[start_index]["cur1"], good_maker_triangles[start_index]["cur2"],
-                         good_maker_triangles[start_index]["cur3"]]]
-
-    if tribot.debug:
-        continue
-
-    good_triangle = good_maker_triangles[start_index]
+    # if len(good_maker_triangles) < start_index + 1:
+    #     continue
 
     if len(triarb_collection.deals) >= triarb_collection.max_deals:
-        tribot.log(tribot.LOG_INFO, "Will not add deal: too many active  {}".format(len(triarb_collection.deals)))
         continue
 
-    new_single_trimaker_deal = SingleTriArbMakerDeal(currency1=good_triangle["cur1"],
-                                                     currency2=good_triangle["cur2"],
-                                                     currency3=good_triangle["cur3"],
-                                                     price1=good_triangle["leg1-price"],
-                                                     price2=good_triangle["leg2-price"],
-                                                     price3=good_triangle["leg3-price"],
-                                                     start_amount=start_amount,
-                                                     min_amount_currency1=0.003,
-                                                     symbol1=good_triangle["symbol1"],
-                                                     symbol2=good_triangle["symbol2"],
-                                                     symbol3=good_triangle["symbol3"],
-                                                     commission=tribot.commission,
-                                                     commission_maker=tribot.commission_maker,
-                                                     threshold=tribot.threshold,
-                                                     max_order1_updates=1000,
-                                                     max_order2_updates=30,
-                                                     max_order3_updates=30,
-                                                     recover_factor_order2=tribot.recover_factor,
-                                                     recover_factor_order3=tribot.recover_factor,
-                                                     cancel_price_threshold=tribot.cancel_price_threshold)
+    for good_triangle in good_maker_triangles:
 
-    ok_to_add = triarb_collection.ok_to_add(new_single_trimaker_deal)
-    if ok_to_add != "OK":
-        tribot.log(tribot.LOG_INFO, "Deal could not be added: {}".format(ok_to_add))
-        continue
+        if good_triangle["leg1-cur1-qty"] > 2:
+            print("Leg1 qty / start_amount is too much {}".format(
+                good_triangle["leg1-cur1-qty"]))
+            continue
 
-    try:
-        triarb_collection.add_deal(new_single_trimaker_deal)
+        current_triangle = [[good_triangle["cur1"], good_triangle["cur2"],
+                             good_triangle["cur3"]]]
 
-        # update state of created deal
-        new_single_trimaker_deal.update_state(tickers)
+        if tribot.debug:
+            continue
 
-        # now we have order1 created
-        om.add_order(new_single_trimaker_deal.order1)
+        # good_triangle = good_maker_triangles[start_index]
 
-    except Exception as e:
-        tribot.log(tribot.LOG_ERROR, "Could not add deal to collection...")
-        tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-        tribot.log(tribot.LOG_ERROR, e.args)
+        if len(triarb_collection.deals) >= triarb_collection.max_deals:
+            tribot.log(tribot.LOG_INFO, "Will not add deal: too many active  {}".format(len(triarb_collection.deals)))
+            continue
+
+        new_single_trimaker_deal = SingleTriArbMakerDeal(currency1=good_triangle["cur1"],
+                                                         currency2=good_triangle["cur2"],
+                                                         currency3=good_triangle["cur3"],
+                                                         price1=good_triangle["leg1-price"],
+                                                         price2=good_triangle["leg2-price"],
+                                                         price3=good_triangle["leg3-price"],
+                                                         start_amount=start_amount,
+                                                         min_amount_currency1=0.003,
+                                                         symbol1=good_triangle["symbol1"],
+                                                         symbol2=good_triangle["symbol2"],
+                                                         symbol3=good_triangle["symbol3"],
+                                                         commission=tribot.commission,
+                                                         commission_maker=tribot.commission_maker,
+                                                         threshold=tribot.threshold,
+                                                         max_order1_updates=1000,
+                                                         max_order2_updates=30,
+                                                         max_order3_updates=30,
+                                                         recover_factor_order2=tribot.recover_factor,
+                                                         recover_factor_order3=tribot.recover_factor,
+                                                         cancel_price_threshold=tribot.cancel_price_threshold)
+
+        ok_to_add = triarb_collection.ok_to_add(new_single_trimaker_deal)
+        if ok_to_add != "OK":
+            tribot.log(tribot.LOG_INFO, "Deal could not be added: {}".format(ok_to_add))
+            continue
+
+        try:
+            triarb_collection.add_deal(new_single_trimaker_deal)
+            tribot.log(tribot.LOG_INFO, "Triangle added: {} with uuid {}".format(new_single_trimaker_deal.current_triangle,
+                                                                              new_single_trimaker_deal.uuid))
+
+            # update state of created deal
+            new_single_trimaker_deal.update_state(tickers)
+
+            # now we have order1 created
+            om.add_order(new_single_trimaker_deal.order1)
+
+        except Exception as e:
+            tribot.log(tribot.LOG_ERROR, "Could not add deal to collection...")
+            tribot.log(tribot.LOG_ERROR, "Exception: {}".format(type(e).__name__))
+            tribot.log(tribot.LOG_ERROR, e.args)
 
 sys.exit()
