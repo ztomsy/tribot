@@ -99,7 +99,7 @@ def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict,
     return tri_list
 
 
-tribot = tkgtri.tribot.TriBot("_config_def_maker.json")
+tribot = tkgtri.tribot.TriBot("_config_def_maker.json", "_maker.log")
 
 # adding these fields in order to get them from config
 tribot.commission_maker = 0.0
@@ -112,8 +112,16 @@ tribot.load_config_from_file(tribot.config_filename)  # config taken from cli or
 
 tribot.init_remote_reports()
 
+if tribot.verbose:
+    tribot.logger.setLevel(tribot.LOG_DEBUG)
+
 try:
     tribot.init_exchange()
+
+    # init order manager
+    om = tkgcore.ActionOrderManager(tribot.exchange)
+    om.request_trades = not tribot.not_request_trades
+
     # init offline mode
     if tribot.offline:
         tribot.offline_tickers_file = "test_data/tickers_maker.csv"
@@ -131,6 +139,9 @@ try:
 
         if tribot.offline_run_test:
             tribot.init_test_run()
+
+        om.offline_order_updates = 30
+
 
     else:
         tribot.exchange.init_async_exchange()
@@ -163,8 +174,6 @@ except Exception as e:
 # start_index = tribot.start_amount
 start_amount = tribot.start_amount
 
-om = tkgcore.ActionOrderManager(tribot.exchange)
-om.request_trades = False
 
 tribot.set_triangles()
 
@@ -205,10 +214,32 @@ while True:
     for single_trimaker_deal in triarb_collection.deals:
         single_trimaker_deal.update_state(tickers)
 
-        # order1 has been created when the deal was created (see below)
+        #status report
+        tribot.log(tribot.LOG_INFO, "Deal uuid: {deal_uuid} {triangle} State: {state}".format(
+            deal_uuid=single_trimaker_deal.uuid,
+            triangle=single_trimaker_deal.current_triangle,
+            state=single_trimaker_deal.state))
 
+        if single_trimaker_deal.order1 is not None:
+            tribot.log(tribot.LOG_DEBUG,"Order1. Filled {}. Report: {}".format(single_trimaker_deal.order1.filled,
+                                                         single_trimaker_deal.order1.report()))
+
+        if single_trimaker_deal.order2 is not None:
+            tribot.log(tribot.LOG_DEBUG,"Order2. Filled {}. Report: {}".format(single_trimaker_deal.order2.filled,
+                                                         single_trimaker_deal.order2.report()))
+            print()
+
+        if single_trimaker_deal.order3 is not None:
+            tribot.log(tribot.LOG_DEBUG, "Order3. Filled {}. Report: {}".format(single_trimaker_deal.order3.filled,
+                                                         single_trimaker_deal.order3.report()))
+            print()
+
+        # order1 has been created when the deal was created (see below)
         # creating order2
         if single_trimaker_deal.state == "order2_create":
+
+            # om.offline_order_zero_fill_updates = 30
+
             order2 = single_trimaker_deal.order2
             om.add_order(order2)
 
@@ -416,6 +447,7 @@ while True:
 
             # update state of created deal
             new_single_trimaker_deal.update_state(tickers)
+            # om.offline_order_zero_fill_updates = 0
 
             # now we have order1 created
             om.add_order(new_single_trimaker_deal.order1)

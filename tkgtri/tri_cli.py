@@ -78,6 +78,12 @@ def get_cli_parameters(args):
                         default=False,
                         action="store_true")
 
+    parser.add_argument("--verbose",
+                        help="Set log level DEBUG",
+                        dest="verbose",
+                        default=False,
+                        action="store_true")
+
     subparsers = parser.add_subparsers(help="Offline mode")
     subparsers.required = False
     offline = subparsers.add_parser("offline", help="Set the working  mode. offline -h for help")

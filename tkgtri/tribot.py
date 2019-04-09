@@ -99,6 +99,7 @@ class TriBot(Bot):
         self.override_depth_amount = float()
         self.skip_order_books = False
 
+        self.verbose = False
         self.debug = bool()
         self.run_once = False
         self.noauth = False
