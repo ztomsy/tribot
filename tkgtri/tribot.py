@@ -212,7 +212,7 @@ class TriBot(Bot):
     def init_logging(self, file_log=None):
 
         log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
-        logger = logging.getLogger()
+        logger = logging.getLogger("tribot")
 
         if file_log is not None:
             file_handler = logging.FileHandler(file_log)
