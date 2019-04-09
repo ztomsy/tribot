@@ -192,7 +192,7 @@ class SingleTriArbMakerDeal(object):
             return True
 
         # order2 open
-        if self.state == "order2_create" and self.order2.status == "open":
+        if self.state == "order2_create" and (self.order2.status == "open" or self.order2.status == "closed"):
             self.state = "order2"
             # let's proceed directly to the new state
 
@@ -234,7 +234,7 @@ class SingleTriArbMakerDeal(object):
             return True
 
         # order3 open
-        if self.state == "order3_create" and self.order3.status == "open":
+        if self.state == "order3_create" and (self.order3.status == "open" or self.order3.status == "closed"):
             self.state = "order3"
             # let's proceed directly to the new state
 
