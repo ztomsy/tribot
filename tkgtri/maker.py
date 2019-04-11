@@ -124,13 +124,13 @@ class SingleTriArbMakerDeal(object):
         #order1_create
         if self.state == "new" and self.order1 is None:
 
-            self.order1 = FokThresholdTakerPriceOrder.create_from_start_amount(symbol=self.symbol1,
+            self.order1 = FokOrder.create_from_start_amount(symbol=self.symbol1,
                                                                start_currency=self.currency1,
                                                                amount_start=self.start_amount,
                                                                dest_currency=self.currency2,
                                                                price=self.price1,
                                                                max_order_updates=self.max_order1_updates,
-                                                               taker_price_threshold=0.01)
+                                                               )
             self.state = "order1_create"
 
             return True
