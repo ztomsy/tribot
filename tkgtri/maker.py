@@ -130,7 +130,7 @@ class SingleTriArbMakerDeal(object):
                                                                dest_currency=self.currency2,
                                                                price=self.price1,
                                                                max_order_updates=self.max_order1_updates,
-                                                               taker_price_threshold=-0.01)
+                                                               taker_price_threshold=0.01)
             self.state = "order1_create"
 
             return True
