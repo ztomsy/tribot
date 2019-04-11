@@ -140,7 +140,7 @@ try:
         if tribot.offline_run_test:
             tribot.init_test_run()
 
-        om.offline_order_updates = 30
+        om.offline_order_updates = 10
 
 
     else:
