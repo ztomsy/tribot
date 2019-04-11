@@ -428,7 +428,7 @@ while True:
                                                          commission=tribot.commission,
                                                          commission_maker=tribot.commission_maker,
                                                          threshold=tribot.threshold,
-                                                         max_order1_updates=1000,
+                                                         max_order1_updates=5000,
                                                          max_order2_updates=30,
                                                          max_order3_updates=30,
                                                          recover_factor_order2=tribot.recover_factor,
