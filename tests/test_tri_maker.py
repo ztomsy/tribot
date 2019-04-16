@@ -406,7 +406,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
         self.assertLess(0, maker.leg2_recovery_amount)
         self.assertLess(0, maker.leg2_recovery_target)
 
-        self.assertEqual(maker.leg2_recovery_amount,  maker.order2.amount_start - maker.order2.filled_start_amount)
+        self.assertEqual(maker.leg2_recovery_amount,  maker.order2.start_amount - maker.order2.filled_start_amount)
         self.assertAlmostEqual(0.5 * maker.order2.amount, maker.leg2_recovery_amount, 6)
 
         self.assertAlmostEqual(1/2, maker.order2.filled / maker.order2.amount, 6)
@@ -427,7 +427,7 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
 
         maker.update_state(tickers)
 
-        self.assertEqual(maker.leg3_recovery_amount,  maker.order3.amount_start - maker.order3.filled_start_amount)
+        self.assertEqual(maker.leg3_recovery_amount,  maker.order3.start_amount - maker.order3.filled_start_amount)
 
         self.assertAlmostEqual(1 / 2, maker.order3.filled / maker.order3.amount, 6)
         self.assertAlmostEqual(0.0025*1.3, maker.leg3_recovery_target, 6)

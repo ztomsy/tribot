@@ -1,3 +1,4 @@
+import tkgcore
 from tkgcore import ActionOrder, ActionOrderManager
 from tkgcore import FokThresholdTakerPriceOrder, FokOrder
 from tkgtri import *
@@ -206,7 +207,7 @@ class SingleTriArbMakerDeal(object):
                                                                           self.order2.filled,
                                                                           self.recover_factor_order2)
 
-            self.leg2_recovery_amount = self.order2.amount_start - self.order2.filled_start_amount
+            self.leg2_recovery_amount = self.order2.start_amount - self.order2.filled_start_amount
 
             self.finish_deal()
             return True
@@ -230,7 +231,7 @@ class SingleTriArbMakerDeal(object):
                                                                               self.order2.amount,
                                                                               self.order2.filled,
                                                                               self.recover_factor_order2)
-                self.leg2_recovery_amount = self.order2.amount_start - self.order2.filled_start_amount
+                self.leg2_recovery_amount = self.order2.start_amount - self.order2.filled_start_amount
 
             return True
 
@@ -251,7 +252,7 @@ class SingleTriArbMakerDeal(object):
                                                                               self.order3.filled,
                                                                               self.recover_factor_order3)
 
-                self.leg3_recovery_amount = self.order3.amount_start - self.order3.filled_start_amount
+                self.leg3_recovery_amount = self.order3.start_amount - self.order3.filled_start_amount
 
             self.finish_deal()
 
