@@ -436,6 +436,7 @@ while True:
                                                          cancel_price_threshold=tribot.cancel_price_threshold)
 
         ok_to_add = triarb_collection.ok_to_add(new_single_trimaker_deal)
+
         if ok_to_add != "OK":
             tribot.log(tribot.LOG_INFO, "Deal could not be added: {}".format(ok_to_add))
             continue

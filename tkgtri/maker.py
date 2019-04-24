@@ -345,10 +345,16 @@ class TriArbMakerCollection(object):
         :param new_deal: deal to be added
         :return: str: OK is it's ok or reason if it's not ok
         """
-        for deal in self.deals:
+        deals_count = 0
 
-            if deal.currency1 == new_deal.currency1 and deal.currency2 == new_deal.currency2:
-                return "New deal with existing cur1 and cur2"
+        for deal in self.deals:
+            if new_deal.current_triangle == deal.current_triangle:
+                deals_count += 1
+                if deals_count > 1:
+                    return "Too many deals with this triangle"
+
+                # if deal.currency1 == new_deal.currency1 and deal.currency2 == new_deal.currency2:
+                #     return "New deal with existing cur1 and cur2"
 
         return "OK"
 

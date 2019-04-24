@@ -546,9 +546,18 @@ class SingleTriArbMakerTestSuite(unittest.TestCase):
             self.assertEqual("OK", tri_collection.ok_to_add(triarb1))
             tri_collection.add_deal(triarb1)
 
-            self.assertEqual("New deal with existing cur1 and cur2", tri_collection.ok_to_add(triarb2))
+            # self.assertEqual("New deal with existing cur1 and cur2", tri_collection.ok_to_add(triarb2))
+
+            self.assertEqual("OK", tri_collection.ok_to_add(triarb2))
+            tri_collection.add_deal(triarb2)
+
+            self.assertEqual("Too many deals with this triangle", tri_collection.ok_to_add(triarb2))
 
             self.assertEqual("OK", tri_collection.ok_to_add(triarb3))
+
+
+
+
 
 
 if __name__ == '__main__':
