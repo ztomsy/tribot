@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from .context import tkgtri
 from tkgtri import SingleTriArbMakerDeal, TriArbMakerCollection
-import tkgcore
-from tkgcore import ccxtExchangeWrapper
-from tkgcore import ActionOrder, ActionOrderManager, FokThresholdTakerPriceOrder, FokThresholdTakerPriceOrder
+import ztom
+from ztom import ccxtExchangeWrapper
+from ztom import ActionOrder, ActionOrderManager, FokThresholdTakerPriceOrder, FokThresholdTakerPriceOrder
 
 import unittest
 import hashlib

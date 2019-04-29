@@ -2,7 +2,7 @@
 
 from .context import tkgtri
 
-import tkgcore
+import ztom
 import unittest
 import os
 import time
@@ -91,7 +91,7 @@ class BasicTestSuite(unittest.TestCase):
         os.remove(default_log)
 
     def test_timer(self):
-        timer = tkgcore.Timer()
+        timer = ztom.Timer()
         timer.notch("start")
         time.sleep(0.1)
         timer.notch("finish")
@@ -424,7 +424,7 @@ class BasicTestSuite(unittest.TestCase):
 
         order_books = dict()
         for key, ob in order_books_data.items():
-            order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+            order_books[ob["symbol"]] = ztom.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         self.tribot.save_order_books(str(uuid.uuid4()), order_books)
 
@@ -451,7 +451,7 @@ class BasicTestSuite(unittest.TestCase):
 
         order_books = dict()
         for key, ob in order_books_data.items():
-            order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+            order_books[ob["symbol"]] = ztom.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         return (order_books, working_triangle)
 
@@ -512,7 +512,7 @@ class BasicTestSuite(unittest.TestCase):
         order_books, working_triangle = self._prepare_bot_for_test_start_amount()
 
         order_books_data_2 = {"asks": list([[0.0000200000, 100]]), "bids":  list([[0.0000200000, 100]])}
-        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+        order_books["MANA/BTC"] = ztom.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
 
         self.tribot.balance = 1
         bal_to_bid = 5
@@ -530,7 +530,7 @@ class BasicTestSuite(unittest.TestCase):
                                             [0.0000300000, 100]]),
                               "bids": list([[0.0000200000, 100]])}
 
-        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+        order_books["MANA/BTC"] = ztom.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
 
         self.tribot.balance = 1
         bal_to_bid = 5
@@ -552,7 +552,7 @@ class BasicTestSuite(unittest.TestCase):
                                             [0.0000300000, 100]]),
                               "bids": list([[0.0000200000, 100]])}
 
-        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+        order_books["MANA/BTC"] = ztom.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
 
         self.tribot.balance = 1
         bal_to_bid = 5
