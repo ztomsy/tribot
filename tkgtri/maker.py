@@ -1,6 +1,6 @@
-import tkgcore
-from tkgcore import ActionOrder, ActionOrderManager
-from tkgcore import FokThresholdTakerPriceOrder, FokOrder
+import ztom
+from ztom import ActionOrder, ActionOrderManager
+from ztom import FokThresholdTakerPriceOrder, FokOrder
 from tkgtri import *
 import copy
 import uuid as uuid_lib

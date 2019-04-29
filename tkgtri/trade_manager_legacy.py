@@ -1,4 +1,4 @@
-from tkgcore.trade_order_manager import *
+from ztom.trade_order_manager import *
 
 
 # temp class for managing orders for old tribot

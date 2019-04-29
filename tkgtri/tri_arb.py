@@ -1,6 +1,6 @@
 import networkx as nx
 import numpy as np
-from tkgcore import core
+from ztom import core
 
 #
 # todo make ccxt independent - take only active markets and tickers as parameter
