@@ -1,24 +1,24 @@
 import json
 import logging
 import sys
-from tkgcore import utils
-from tkgcore import timer
+from ztom import utils
+from ztom import timer
 from .tri_cli import *
 from . import tri_arb as ta
 import copy
-from tkgcore.reporter import TkgReporter, MongoReporter
-from tkgcore.reporter_sqla import SqlaReporter
-from tkgcore.models.deal import DealReport
-from tkgcore.models.trade_order import TradeOrderReport
+from ztom.reporter import Reporter, MongoReporter
+from ztom.reporter_sqla import SqlaReporter
+from ztom.models.deal import DealReport
+from ztom.models.trade_order import TradeOrderReport
 import bisect
 import datetime
-from tkgcore.trade_orders import *
-from tkgcore.trade_order_manager import *
-from tkgcore import Bot
-from tkgcore import rest_server
-from tkgcore import DataStorage
-from tkgcore import ccxtExchangeWrapper
-from tkgcore import ActionOrder, FokOrder, ActionOrderManager, FokThresholdTakerPriceOrder
+from ztom.trade_orders import *
+from ztom.trade_order_manager import *
+from ztom import Bot
+from . import rest_server
+from ztom import DataStorage
+from ztom import ccxtExchangeWrapper
+from ztom import ActionOrder, FokOrder, ActionOrderManager, FokThresholdTakerPriceOrder
 import csv
 import os
 import glob

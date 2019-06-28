@@ -3,7 +3,7 @@
 from .context import tkgtri
 from tkgtri import Deal
 from tkgtri import tri_arb as ta
-import tkgcore
+import ztom
 import unittest
 import ccxt
 
@@ -55,7 +55,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
     def test_ob_results(self):
 
-        exchange = tkgcore.ccxtExchangeWrapper.load_from_id("binance")
+        exchange = ztom.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
         exchange.load_markets()
 
@@ -133,7 +133,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         order_books = dict()
         for key, ob in order_books_data.items():
-            order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+            order_books[ob["symbol"]] = ztom.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         working_triangle = dict()
 
@@ -190,7 +190,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         order_books = dict()
         for key, ob in order_books_data.items():
-            order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+            order_books[ob["symbol"]] = ztom.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         expected_result = ta.order_book_results(exchange, working_triangle,
                                                 {1: order_books[working_triangle["symbol1"]],
@@ -202,7 +202,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
     def test_ob_results_short_ob(self):
 
-        exchange = tkgcore.ccxtExchangeWrapper.load_from_id("binance")
+        exchange = ztom.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
         exchange.load_markets()
 
@@ -280,7 +280,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         order_books = dict()
         for key, ob in order_books_data.items():
-            order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+            order_books[ob["symbol"]] = ztom.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         working_triangle = dict()
 
@@ -296,11 +296,11 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
         order_books_data_2 = dict()
         order_books_data_2 = {"asks": list([[0.0712040000, 1]]), "bids": list([[0.0711150000, 1]])}
 
-        order_books["ETH/BTC"] = tkgcore.OrderBook("ETH/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+        order_books["ETH/BTC"] = ztom.OrderBook("ETH/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
 
         # order_books = dict()
         # for key, ob in order_books_data.items():
-        #     order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+        #     order_books[ob["symbol"]] = ztom.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         expected_result = ta.order_book_results(exchange, working_triangle,
                                                 {1: order_books[working_triangle["symbol1"]],
@@ -312,11 +312,11 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         order_books = dict()
         for key, ob in order_books_data.items():
-            order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+            order_books[ob["symbol"]] = ztom.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         order_books_data_2 = {"asks": list([[0.0000200000, 100]]), "bids": list([[0.0000200000, 100]])}
 
-        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+        order_books["MANA/BTC"] = ztom.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
 
         expected_result = ta.order_book_results(exchange, working_triangle,
                                                 {1: order_books[working_triangle["symbol1"]],
@@ -346,12 +346,12 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         order_books = dict()
         for key, ob in order_books_data.items():
-            order_books[ob["symbol"]] = tkgcore.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
+            order_books[ob["symbol"]] = ztom.OrderBook(ob["symbol"], ob["asks"], ob["bids"])
 
         return (order_books, working_triangle)
 
     def test_ob_results_bigger_depth_price(self):
-        exchange = tkgcore.ccxtExchangeWrapper.load_from_id("binance")
+        exchange = ztom.ccxtExchangeWrapper.load_from_id("binance")
         exchange.set_offline_mode("test_data/markets.json", "test_data/tickers.csv")
         exchange.load_markets()
 
@@ -359,7 +359,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
 
         order_books_data_2 = {"asks": list([[0.0000200000, 100]]), "bids": list([[0.0000200000, 100]])}
 
-        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+        order_books["MANA/BTC"] = ztom.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
 
         expected_result = ta.order_book_results(exchange, working_triangle,
                                                 {1: order_books[working_triangle["symbol1"]],
@@ -375,7 +375,7 @@ class TriArbOrderBooksTestSuite(unittest.TestCase):
                                             [0.0000300000, 100]]),
                               "bids": list([[0.0000200000, 100]])}
 
-        order_books["MANA/BTC"] = tkgcore.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
+        order_books["MANA/BTC"] = ztom.OrderBook("MANA/BTC", order_books_data_2["asks"], order_books_data_2["bids"])
 
         # set the start amount is greater than max start amount from the short order book (0.028)
         expected_result2 = ta.order_book_results(exchange, working_triangle,

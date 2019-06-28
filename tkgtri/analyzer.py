@@ -1,7 +1,7 @@
 import csv
 import collections
 import numpy as np
-from tkgcore.orderbook import OrderBook
+from ztom.orderbook import OrderBook
 
 # todo - add tests
 class Deal:
