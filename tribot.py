@@ -326,10 +326,12 @@ while True:
             tribot.log(tribot.LOG_INFO, "Try to fetch order books: {} {} {} ".format(working_triangle["symbol1"],
                                                                                      working_triangle["symbol2"],
                                                                                      working_triangle["symbol3"]))
-            tribot.timer.notch("time_get_order_books")
+
             order_books = tribot.get_order_books_async(list([working_triangle["symbol1"],
                                                              working_triangle["symbol2"],
                                                              working_triangle["symbol3"]]))
+
+            tribot.timer.notch("time_get_order_books")
             tribot.log(tribot.LOG_INFO, "Order books fetched")
         except Exception as e:
             working_triangle["status"] = "ERROR"
