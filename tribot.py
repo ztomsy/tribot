@@ -278,7 +278,7 @@ while True:
             tribot.reporter.set_indicator("best_result", tribot.tri_list[0]["result"])
 
         tribot.timer.notch("time_proceed")
-
+        print("Time Proceed: {}".format(tribot.timer.notches[-1]["duration"]))
     except Exception as e:
         tribot.log(tribot.LOG_ERROR, "Error while proceeding tickers exchange_id{}: session_uuid:{} fetch_num:{} :".
                    format(tribot.exchange_id, tribot.session_uuid, tribot.fetch_number))

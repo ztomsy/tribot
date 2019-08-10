@@ -355,8 +355,11 @@ class TriBot(Bot):
         # return True
 
     def proceed_triangles(self):
+        if len(self.tri_list) == 0 :
+            self.tri_list = ta.fill_triangles(self.all_triangles, self.start_currency, self.tickers, self.commission)
+        else:
+            self.tri_list = ta.update_triangles(self.tri_list, tickers=self.tickers, commission=self.commission)
 
-        self.tri_list = ta.fill_triangles(self.all_triangles, self.start_currency, self.tickers, self.commission)
         return self.tri_list
 
     def load_balance(self):

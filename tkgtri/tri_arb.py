@@ -43,7 +43,7 @@ def get_all_triangles(triangles: list, start_currencies: list):
 #                       "result": result
 #                     }
 
-def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commission=0):
+def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commission=0.0):
     tri_list = list()
 
     for t in triangles:
@@ -79,7 +79,7 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commi
 
                     if result != 0:
                         result = result / price if order_type == "buy" else result * price
-                        result = result * (1-commission)
+                        result = result * (1 - commission)
 
                 else:
                     price = 0
@@ -92,6 +92,7 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commi
                 tri_dict["symbol" + str(leg)] = symbol
                 tri_dict["leg{}-order".format(str(leg))] = order_type
                 tri_dict["leg{}-price".format(str(leg))] = price
+                tri_dict["leg{}-price-type".format(str(leg))] = price_type
 
             if result != 0:
                 tri_dict["leg-orders"] = tri_dict["leg1-order"] + "-" + tri_dict["leg2-order"] + "-" + \
@@ -104,7 +105,7 @@ def fill_triangles(triangles: list, start_currencies: list, tickers: dict, commi
     return tri_list
 
 
-def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict, commission=0, commission_maker = 0):
+def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict, commission=0, commission_maker=0.0):
     tri_list = list()
 
     for t in triangles:
@@ -142,9 +143,9 @@ def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict,
 
                     if result != 0:
                         result = result / price if order_type == "buy" else result * price
-                        result = result * (1-commission) if leg != 1 else result * (1-commission_maker)
+                        result = result * (1 - commission) if leg != 1 else result * (1 - commission_maker)
 
-                    ticker_qty = tickers[symbol][price_type+'Volume']
+                    ticker_qty = tickers[symbol][price_type + 'Volume']
 
                 else:
                     price = 0
@@ -172,7 +173,7 @@ def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict,
                     try:
                         tri_dict["leg{}-cur1-qty".format(str(leg))] = \
                             core.convert_currency(currency_of_amount_in_ticker,
-                                                  tickers[symbol][price_type+'Volume'],
+                                                  tickers[symbol][price_type + 'Volume'],
                                                   t[0],
                                                   symbol=symbol_to_convert,
                                                   price=price)
@@ -192,6 +193,103 @@ def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict,
 
     return tri_list
 
+
+def update_triangles(tri_list: list,  tickers: dict, commission=0.0):
+
+    result = 1.0
+    tri_list_new = list()
+
+    symbol: str = ""
+    price_type: str = ""
+    order_type: str = ""
+    tri_dict = dict()
+
+    symbol1: str = ""
+    symbol2: str = ""
+    symbol3: str = ""
+
+    price1_type: str = ""
+    price2_type: str = ""
+    price3_type: str = ""
+
+    order1_type: str = ""
+    order2_type: str = ""
+    order3_type: str = ""
+
+    price1, price2, price3 = (0.0, 0.0, 0.0)
+
+    for td in tri_list:
+        result = 1.0
+
+        tri_dict = td
+
+        symbol1 = tri_dict["symbol1" ]
+        symbol2 = tri_dict["symbol2"]
+        symbol3 = tri_dict["symbol3"]
+
+        price1_type = tri_dict["leg1-price-type"]
+        price2_type = tri_dict["leg2-price-type"]
+        price3_type = tri_dict["leg3-price-type"]
+
+        order1_type = tri_dict["leg1-order"]
+        order2_type = tri_dict["leg2-order"]
+        order3_type = tri_dict["leg3-order"]
+
+        # ticker_qty:float = tickers[symbol][price_type + 'Volume']
+
+        try:
+            result = tickers[symbol1][price1_type] if order1_type == "sell" else 1 / tickers[symbol1][price1_type]
+            result = result*tickers[symbol2][price2_type] if order2_type == "sell" else result / tickers[symbol2][price2_type]
+            result = result*tickers[symbol3][price3_type] if order3_type == "sell" else result / tickers[symbol3][price3_type]
+
+        except:
+            result = 0
+            continue
+        result = result * ((1-commission)**3)
+
+        # if result != 0:
+        #     result = price1*price2*price3 # *((1-commission)**3)
+        #
+        # else:
+        #     #price = 0.0
+        #     result = 0.0
+        #     #ticker_qty = 0.0
+
+        # tri_dict["triangle"] = tri_name
+        # tri_dict["cur" + str(leg)] = t[i]
+        # tri_dict[leg_str+"-price"] = price
+        tri_dict["leg1-price"] = tickers[symbol1][price1_type]
+        tri_dict["leg2-price"] = tickers[symbol2][price2_type]
+        tri_dict["leg3-price"] = tickers[symbol3][price3_type]
+
+        # tri_dict[leg_str+"-ticker-qty"] = ticker_qty
+
+        # # getting amount of ticker qty in start cur
+        # currency_of_amount_in_ticker = symbol.split("/")[0]
+        #
+        # if currency_of_amount_in_ticker and currency_of_amount_in_ticker != tri_dict["cur1"]:
+        #
+        #     if leg == 2:
+        #         symbol_to_convert = core.get_symbol(currency_of_amount_in_ticker, tri_dict["cur1"], tickers)
+        #     else:
+        #         symbol_to_convert = symbol
+        #     try:
+        #         tri_dict[leg_str+"-cur1-qty"] = \
+        #             core.convert_currency(currency_of_amount_in_ticker,
+        #                                   tickers[symbol][price_type + 'Volume'],
+        #                                   tri_dict["cur1"],
+        #                                   symbol=symbol_to_convert,
+        #                                   price=price)
+        #     except:
+        #         tri_dict[leg_str+"-cur1-qty"] = 999999999
+        #
+        # else:
+        #     tri_dict[leg_str+"-cur1-qty"] = ticker_qty
+
+        tri_dict["result"] = result
+        tri_list_new.append(tri_dict)
+
+    return tri_list_new
 
 
 def order_book_results(exchange, deal_row, order_books, start_bid):
@@ -289,7 +387,6 @@ def find_counter_order_tickers(past_triangles, max_previous_tickers=5):
 
 def get_maximum_start_amount(exchange, data_row, order_books, maximum_bid, intervals=10, start_amount=None,
                              results_filter=0.0):
-
     if start_amount is None:
         start_amount = data_row["min-namnt"]  # legacy code for binance market orders
 
@@ -301,7 +398,7 @@ def get_maximum_start_amount(exchange, data_row, order_books, maximum_bid, inter
             lambda x: (order_book_results(exchange, data_row, order_books, float(x))),
             amount_to_check)
 
-        results = list(filter(lambda x:  x["result"] >= results_filter, results))
+        results = list(filter(lambda x: x["result"] >= results_filter, results))
 
         if len(results) > 0:
             max_result_dict = max(results, key=lambda x: x["result_diff"])  # max results dict from order books
