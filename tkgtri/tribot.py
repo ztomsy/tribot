@@ -433,7 +433,7 @@ class TriBot(Bot):
         while len(ob_array) < 3 and i < self.max_oder_books_fetch_attempts:
             i += 1
             try:
-                ob_array = self.exchange.get_order_books_async(symbols)
+                ob_array = self.exchange.get_order_books_async(symbols, 10)
             except Exception as e:
                 self.log(self.LOG_ERROR, "Error while fetching order books exchange_id:{} session_uuid:{}"
                                          " fetch_num:{}:".
@@ -580,7 +580,7 @@ class TriBot(Bot):
                                                    {1: order_books[working_triangle["symbol1"]],
                                                     2: order_books[working_triangle["symbol2"]],
                                                     3: order_books[working_triangle["symbol3"]]},
-                                                   start_amount, 100,
+                                                   start_amount, 10,
                                                    self.min_amounts[self.start_currency[0]],
                                                    order_book_threshold)
         if max_possible is None:
