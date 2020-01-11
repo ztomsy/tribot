@@ -13,7 +13,7 @@ def get_basic_triangles_from_markets(markets):
             graph.add_edge(markets[symbol]['base'], markets[symbol]['quote'])
 
     # finding the triangles as the basis cycles in graph
-    triangles = list(nx.cycle_basis(graph))
+    triangles = list(x for x in nx.cycle_basis(graph) if len(x) == 3 )
 
     return triangles
 
