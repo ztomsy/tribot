@@ -651,6 +651,7 @@ class TriBot(Bot):
                 symbol, start_currency, amount, dest_currency, price,
                 max_order_updates=self.order_update_total_requests, taker_price_threshold=self.cancel_price_threshold,
                 threshold_check_after_updates=self.order_update_requests_for_time_out-2,
+
                 time_to_cancel=utils.dict_value_from_path(self.orders_settings, [str(leg), "time_to_cancel"]))
 
         trade_order = copy.deepcopy(order.get_active_order())
