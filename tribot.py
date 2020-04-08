@@ -464,7 +464,7 @@ while True:
 
     tribot.log(tribot.LOG_INFO, "Price: {}. Src Amount {}".format(price1, bal_to_bid))
 
-    order1 = tribot.do_trade(working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
+    order1 = tribot.do_trade("1", working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
                              bal_to_bid, working_triangle["leg1-order"], price1)
 
     if order1 is not None and order1.filled_dest_amount > 0:
@@ -505,7 +505,7 @@ while True:
 
     tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price2, order2_amount))
 
-    order2 = tribot.do_trade(working_triangle["symbol2"], working_triangle["cur2"], working_triangle["cur3"],
+    order2 = tribot.do_trade("2", working_triangle["symbol2"], working_triangle["cur2"], working_triangle["cur3"],
                              order2_amount, working_triangle["leg2-order"], price2)
 
     if order2 is not None and order2.filled_dest_amount > 0:
@@ -576,7 +576,7 @@ while True:
 
     tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price3, order3_amount))
 
-    order3 = tribot.do_trade(working_triangle["symbol3"], working_triangle["cur3"], working_triangle["cur1"],
+    order3 = tribot.do_trade("3", working_triangle["symbol3"], working_triangle["cur3"], working_triangle["cur1"],
                              order3_amount, working_triangle["leg3-order"], price3)
 
     if order3 is not None and order3.filled_dest_amount > 0:

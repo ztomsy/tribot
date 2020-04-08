@@ -30,7 +30,7 @@ class BasicTestSuite(unittest.TestCase):
     def test_create_tribot(self):
         self.tribot.load_config_from_file(self.default_config)
 
-        self.assertEqual(self.tribot.start_currency, ["ETH", "BTC"])
+        self.assertEqual(self.tribot.start_currency, ["ETH", "BTC", "USDT"])
         # self.assertEqual(self.tribot.test_balance, 1)
 
         self.assertEqual(self.tribot.api_key["apiKey"], "testApiKey")
@@ -98,21 +98,6 @@ class BasicTestSuite(unittest.TestCase):
 
         self.assertEqual(timer.notches[0]["name"], "start")
         self.assertAlmostEqual(timer.notches[1]["duration"], 0.1, 1)
-
-    @unittest.skip
-    def test_reporter_init(self):
-        self.tribot.load_config_from_file(self.default_config)
-
-        self.assertEqual(self.tribot.influxdb["measurement"], "tri_status")
-        self.tribot.init_remote_reports()
-
-        self.tribot.reporter.influx.set_tags(self.tribot.reporter.def_indicators)
-        self.assertDictEqual(self.tribot.reporter.def_indicators, self.tribot.reporter.influx.tags)
-
-        self.tribot.reporter.set_indicator("good_triangles", 100)
-        self.tribot.reporter.set_indicator("session_uuid", 6666)
-
-        self.assertDictEqual(self.tribot.reporter.indicators, dict({"good_triangles": 100, "session_uuid": 6666}))
 
     @unittest.skip
     def test_reporter_push_data(self):
@@ -273,6 +258,10 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("BTC", 1, 1.005, 1.005), 0.5)   # 1st threshold
         self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("BTC", 0.7, 1.01, 1.01), 0.7)   # 2nd threshold
         self.assertEqual(self.tribot.max_balance_to_bid_from_thresholds("BTC", 2, 1.01, 1.01), 1)       # 2nd max balance cap
+
+        self.assertEqual(2, self.tribot.max_balance_to_bid_from_thresholds("USDT", 2, 1.01, 1.01))
+        self.assertEqual(100, self.tribot.max_balance_to_bid_from_thresholds("USDT", 120, 1.01, 1.01))
+        self.assertEqual(None, self.tribot.max_balance_to_bid_from_thresholds("USDT", 120, 1, 1))
 
     def test_best_recovery_amount_order2(self):
         self.tribot.load_config_from_file(self.default_config)
@@ -724,6 +713,26 @@ class BasicTestSuite(unittest.TestCase):
         timestamp = 1549480450.999999
         self.assertEqual(True, self.tribot.check_time_to_launch([10], timestamp))
         self.assertEqual(False, self.tribot.check_time_to_launch([0, 5], timestamp))
+
+    def test_do_trade(self):
+        self.tribot.load_config_from_file(self.tribot.config_filename)
+
+        self.tribot.init_exchange()
+        self.tribot.init_offline_mode()
+        self.tribot.load_markets()
+        self.tribot.init_order_manager()
+
+        self.assertEqual(0, self.tribot.orders_settings["1"]["time_to_cancel"])
+        self.assertEqual(600, self.tribot.orders_settings["2"]["time_to_cancel"])
+
+        order = self.tribot.do_trade(1, "ETH/BTC", "BTC", "ETH",1, "buy", 0.1)
+        self.assertEqual(0, self.tribot.orders_settings["1"]["time_to_cancel"])
+        self.assertIsInstance(self.tribot.order_manager.get_closed_orders()[-1], ztom.FokOrder)
+
+        self.tribot.cancel_price_threshold = 0.001
+        order = self.tribot.do_trade(2, "ETH/BTC", "BTC", "ETH", 1, "buy", 0.1)
+        self.assertEqual(600, self.tribot.orders_settings["2"]["time_to_cancel"])
+        self.assertIsInstance(self.tribot.order_manager.get_closed_orders()[-1], ztom.FokThresholdTakerPriceOrder)
 
 
 if __name__ == '__main__':

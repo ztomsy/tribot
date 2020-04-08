@@ -51,7 +51,7 @@ class TriOfflineTestSuite(unittest.TestCase):
         cli = "--balance 1 offline --test -ob test_data/order_books.csv"
         deal = self._run_bot_offine(cli)
 
-        self.assertEqual(0.05991321016925779, float(deal.data_row["start-qty"]), 4)
+        self.assertAlmostEqual(0.05991321016925779, float(deal.data_row["start-qty"]), 4)
         self.assertEqual(0.0024007998307421993, float(deal.data_row["result-fact-diff"]))
 
         # prices from order book
@@ -87,7 +87,7 @@ class TriOfflineTestSuite(unittest.TestCase):
         cli = "--balance 1 --override_depth_amount 0.03 offline  --test -ob test_data/order_books.csv "
         deal = self._run_bot_offine(cli)
 
-        self.assertEqual(0.05991321016925779, float(deal.data_row["start-qty"]), 4)
+        self.assertAlmostEqual(0.05991321016925779, float(deal.data_row["start-qty"]), 4)
         self.assertEqual(0.0024007998307421993, float(deal.data_row["result-fact-diff"]))
 
         # prices from order book

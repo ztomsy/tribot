@@ -37,7 +37,7 @@ class TriBot(Bot):
                          "max_oder_books_fetch_attempts", "max_order_update_attempts", "request_sleep", "lap_time",
                          "max_requests_per_lap", "sleep_on_tickers_error", "force_start_amount", "force_best_tri",
                          "override_depth_amount", "skip_order_books", "recover_factor", "not_request_trades",
-                         "cancel_price_threshold","fullthrottle"]
+                         "cancel_price_threshold", "fullthrottle"]
 
     def __init__(self, default_config: str, log_filename=None):
 
@@ -54,15 +54,12 @@ class TriBot(Bot):
         self.ignore_currency = list()
 
         self.share_balance_to_bid = float()
-        self.max_recovery_attempts = int()
         self.min_amounts = dict()
         self.commission = float()
         self.threshold = float()
         self.threshold_order_book = float()
         self.balance_bid_thresholds = dict()
         self.api_key = dict()
-        self.max_past_triangles = int()
-        self.good_consecutive_results_threshold = int()
 
         self.cancel_price_threshold = 0.0 # relative to taker's price threshold to cancel the order
 
@@ -75,6 +72,8 @@ class TriBot(Bot):
         self.order_update_requests_for_time_out = 0
         self.order_update_time_out = 0
         self.last_update_time = datetime(1, 1, 1, 1, 1, 1)
+
+        self.orders_settings = None
 
         self.max_oder_books_fetch_attempts = 0
         self.max_order_update_attempts = 0
@@ -133,7 +132,6 @@ class TriBot(Bot):
         self.report_dir = str()
         self.deals_file_id = int()
 
-        self.influxdb = dict()
         self.reporter = None  # type: TkgReporter
 
         # ;((((
@@ -253,31 +251,6 @@ class TriBot(Bot):
         # self.report_deals_filename = self.report_deals_filename % (directory, self.deals_file_id)
         # self.report_prev_tickers_filename = self.report_prev_tickers_filename % (directory, self.deals_file_id)
         self.report_dir = directory
-
-    # def init_remote_reports(self):
-    #     if self.influxdb is not None and "enabled" in self.influxdb and self.influxdb["enabled"]:
-    #         self.reporter = TkgReporter(self.server_id, self.exchange_id)
-    #         self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
-    #                               self.influxdb["measurement"])
-    #
-    #     # if self.mongo is not None and self.mongo["enabled"]:
-    #     #     self.mongo_reporter = MongoReporter(self.server_id, self.exchange_id)
-    #     #     self.mongo_reporter.init_db(self.mongo["host"], None, self.mongo["db"],
-    #     #                                 self.mongo["tables"]["tri_results"])
-    #     # else:
-    #     #     self.log(self.LOG_ERROR, "Mongo DB not configured..")
-    #     #     # sys.exit()
-    #
-    #     if self.sqla is not None and self.sqla["enabled"]:
-    #         self.log(self.LOG_INFO, "SQLA Reporter Enabled")
-    #         self.log(self.LOG_INFO, "SQLA connection string {}".format(self.sqla["connection_string"]))
-    #
-    #         self.sqla_reporter = SqlaReporter(self.server_id, self.exchange_id)
-    #         self.sqla_reporter.init_db(self.sqla["connection_string"])
-    #         created_tables = self.sqla_reporter.create_tables()
-    #         if len(created_tables) > 0:
-    #             self.log(self.LOG_INFO, "... created tables {}".format(created_tables))
-
 
     def init_timer(self):
         self.timer = timer.Timer()
@@ -649,7 +622,7 @@ class TriBot(Bot):
         OrderManagerFok.on_order_update_error = lambda _order_manager, _exception: self.log_on_order_update_error(
             _order_manager, _exception)
 
-    def do_trade(self, symbol, start_currency, dest_currency, amount, side, price):
+    def do_trade(self, leg, symbol, start_currency, dest_currency, amount, side, price):
         """
         proceed with the trade and return TradeOrder
 
@@ -667,7 +640,9 @@ class TriBot(Bot):
             self.log(self.LOG_INFO, "Proceeding order without  threshold")
 
             order = FokOrder.create_from_start_amount(symbol, start_currency, amount, dest_currency, price,
-                                                      max_order_updates=self.order_update_total_requests)
+                                                      max_order_updates=self.order_update_total_requests,
+                                                      time_to_cancel=utils.dict_value_from_path(
+                                                          self.orders_settings, [str(leg), "time_to_cancel"]))
         else:
             self.log(self.LOG_INFO, "Proceeding order with taker price threshold from ticker{}".format(
                 self.cancel_price_threshold))
@@ -675,7 +650,8 @@ class TriBot(Bot):
             order = FokThresholdTakerPriceOrder.create_from_start_amount(
                 symbol, start_currency, amount, dest_currency, price,
                 max_order_updates=self.order_update_total_requests, taker_price_threshold=self.cancel_price_threshold,
-                threshold_check_after_updates=self.order_update_requests_for_time_out-2)
+                threshold_check_after_updates=self.order_update_requests_for_time_out-2,
+                time_to_cancel=utils.dict_value_from_path(self.orders_settings, [str(leg), "time_to_cancel"]))
 
         trade_order = copy.deepcopy(order.get_active_order())
         trade_order.tags = ""
@@ -993,28 +969,6 @@ class TriBot(Bot):
             self.log(self.LOG_INFO, "{} = {}".format(r, report[r] if r in report else "None"))
 
     def send_remote_report(self, report, orders_dict_report=None, sqla_orders_report: list = None):
-
-        if self.influxdb is not None and "enabled" in self.influxdb and self.influxdb["enabled"]:
-            try:
-                self.log(self.LOG_INFO, "Sending report to influx....")
-                for r in report:
-                    self.reporter.set_indicator(r, report[r])
-                self.reporter.push_to_influx()
-            except Exception as e:
-                self.log(self.LOG_ERROR, "Error sending report")
-                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-                self.log(self.LOG_ERROR, "Exception body:", e.args)
-
-        # if self.mongo["enabled"]:
-        #     try:
-        #         self.log(self.LOG_INFO, "Sending report to mongo....")
-        #         self.mongo_reporter.push_report(report, self.mongo["tables"]["tri_results"])
-        #         self.mongo_reporter.push_report(orders_dict_report, self.mongo["tables"]["trade_orders"])
-        #
-        #     except Exception as e:
-        #         self.log(self.LOG_ERROR, "Error sending report")
-        #         self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-        #         self.log(self.LOG_ERROR, "Exception body:", e.args)
 
         if self.sqla is not None and "enabled" in self.sqla and self.sqla["enabled"]:
             try:
