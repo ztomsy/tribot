@@ -152,6 +152,7 @@ class TriBot(Bot):
         #     }
         # },
 
+        self.influxdb = None
         self.sqla = dict()  # sqla configuration
         self.sqla_reporter = None  # type: SqlaReporter
 
