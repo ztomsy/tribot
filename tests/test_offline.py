@@ -181,7 +181,7 @@ class TriOfflineTestSuite(unittest.TestCase):
         self.assertEqual(6, float(deal.data_row["leg1-order-updates"]))
         self.assertEqual("#below_threshold", deal.data_row["leg1-tags"])
 
-        self.assertAlmostEqual(0.03397308998946259, float(deal.data_row["finish-qty"]), 6)
+        self.assertAlmostEqual(0.04194208640674394, float(deal.data_row["finish-qty"]), 6)
 
 
         # check if prices are from tickers

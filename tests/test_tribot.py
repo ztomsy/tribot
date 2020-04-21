@@ -725,12 +725,12 @@ class BasicTestSuite(unittest.TestCase):
         self.assertEqual(0, self.tribot.orders_settings["1"]["time_to_cancel"])
         self.assertEqual(600, self.tribot.orders_settings["2"]["time_to_cancel"])
 
-        order = self.tribot.do_trade(1, "ETH/BTC", "BTC", "ETH",1, "buy", 0.1)
+        order = self.tribot.do_trade(1, "ETH/BTC", "BTC", "ETH",1, "buy", 0.1, 0)
         self.assertEqual(0, self.tribot.orders_settings["1"]["time_to_cancel"])
         self.assertIsInstance(self.tribot.order_manager.get_closed_orders()[-1], ztom.FokOrder)
 
         self.tribot.cancel_price_threshold = 0.001
-        order = self.tribot.do_trade(2, "ETH/BTC", "BTC", "ETH", 1, "buy", 0.1)
+        order = self.tribot.do_trade(2, "ETH/BTC", "BTC", "ETH", 1, "buy", 0.1, 0)
         self.assertEqual(600, self.tribot.orders_settings["2"]["time_to_cancel"])
         self.assertIsInstance(self.tribot.order_manager.get_closed_orders()[-1], ztom.FokThresholdTakerPriceOrder)
 
