@@ -500,10 +500,14 @@ while True:
     # Order 2
     order2_amount = order1.filled_dest_amount - order1.fees[order1.dest_currency]["amount"]
 
+    order2_to_start_cur_symbol = core.get_symbol(working_triangle["cur1"], working_triangle["cur2"], tribot.markets) \
+                                 or core.get_symbol(working_triangle["cur1"], working_triangle["cur3"], tribot.markets)
+
+
     order2_cancel_amount_threshold = core.base_amount_for_target_currency(working_triangle["cur1"],
                                                                           tribot.min_amounts[working_triangle["cur1"]],
-                                                                          working_triangle["symbol2"],
-                                                                          ticker=tribot.tickers[working_triangle["symbol2"]])
+                                                                          order2_to_start_cur_symbol,
+                                                                          ticker=tribot.tickers[order2_to_start_cur_symbol])
 
 
     if force_ticker_prices:
