@@ -635,6 +635,8 @@ class TriBot(Bot):
         :return: TradeOrder
         """
 
+        self.log(self.LOG_INFO, "Amount cancel threshold {}. Price {}".format(amount_cancel_threshold,
+                                                                                             price))
 
         # order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
         if self.cancel_price_threshold == 0.0:
