@@ -682,6 +682,15 @@ class TriBot(Bot):
             active_trade_order = self.order_manager.get_open_orders()[0].get_active_order()
             # self.log_order_update(active_trade_order)
 
+            print("Order {} update req# {}/{} (to timer {}). Status:{}. Filled amount:{} / {} ".format(
+            order.id,
+            order.update_requests_count,
+            self.order_update_total_requests,
+            self.order_update_requests_for_time_out,
+            order.status,
+            order.filled,
+            order.amount))
+
             if active_trade_order.update_requests_count <= self.order_update_requests_for_time_out:
                 self.log(self.LOG_INFO, "number of order updates less than order_update_requests_for_time_out")
             else:
