@@ -682,11 +682,9 @@ class TriBot(Bot):
             active_trade_order = self.order_manager.get_open_orders()[0].get_active_order()
             # self.log_order_update(active_trade_order)
 
-            print("Order {} update req# {}/{} (to timer {}). Status:{}. Filled amount:{} / {} ".format(
+            print("Order {} seconds from start# {}. Status:{}. Filled amount:{} / {} ".format(
             order.id,
-            order.update_requests_count,
-            self.order_update_total_requests,
-            self.order_update_requests_for_time_out,
+            time.time() - order.timestamp,
             order.status,
             order.filled,
             order.amount))
