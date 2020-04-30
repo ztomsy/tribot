@@ -634,9 +634,17 @@ class TriBot(Bot):
         :param price: float
         :return: TradeOrder
         """
+        _amount_cancel_threshold = copy.copy(amount_cancel_threshold)
 
-        self.log(self.LOG_INFO, "Amount cancel threshold {}. Price {}".format(amount_cancel_threshold,
+        self.log(self.LOG_INFO, "Amount cancel threshold {}. Price {}".format(_amount_cancel_threshold,
                                                                                              price))
+
+        order_amount = core.base_amount_for_target_currency(start_currency, amount, symbol, price)
+
+        if order_amount <= _amount_cancel_threshold:
+            _amount_cancel_threshold = 0
+            self.log(self.LOG_INFO, "Order amount {} less cancel threshold {}. CT will be 0".format(
+                order_amount, _amount_cancel_threshold))
 
         # order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
         if self.cancel_price_threshold == 0.0:
@@ -646,7 +654,7 @@ class TriBot(Bot):
                                                       max_order_updates=self.order_update_total_requests,
                                                       time_to_cancel=utils.dict_value_from_path(
                                                           self.orders_settings, [str(leg), "time_to_cancel"]),
-                                                      cancel_threshold=amount_cancel_threshold)
+                                                      cancel_threshold=_amount_cancel_threshold)
         else:
             self.log(self.LOG_INFO, "Proceeding order with taker price threshold from ticker{}".format(
                 self.cancel_price_threshold))
@@ -657,7 +665,7 @@ class TriBot(Bot):
                 threshold_check_after_updates=self.order_update_requests_for_time_out - 2,
 
                 time_to_cancel=utils.dict_value_from_path(self.orders_settings, [str(leg), "time_to_cancel"]),
-                cancel_threshold=amount_cancel_threshold)
+                cancel_threshold=_amount_cancel_threshold)
 
         trade_order = copy.deepcopy(order.get_active_order())
         trade_order.tags = ""
