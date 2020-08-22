@@ -468,12 +468,12 @@ while True:
 
     tribot.log(tribot.LOG_INFO, "Price: {}. Src Amount {}".format(price1, bal_to_bid))
 
-    order1_cancel_amount_threshold = core.base_amount_for_target_currency(working_triangle["cur1"],
-                                                                            tribot.min_amounts[working_triangle["cur1"]],
-                                                                            working_triangle["symbol1"],
-                                                                            ticker=tribot.tickers[working_triangle["symbol1"]])
+    # order1_cancel_amount_threshold = core.base_amount_for_target_currency(working_triangle["cur1"],
+    #                                                                         tribot.min_amounts[working_triangle["cur1"]],
+    #                                                                         working_triangle["symbol1"],
+    #                                                                         ticker=tribot.tickers[working_triangle["symbol1"]])
 
-
+    order1_cancel_amount_threshold = 0.0
 
     order1 = tribot.do_trade("1", working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
                              bal_to_bid, working_triangle["leg1-order"], price1, order1_cancel_amount_threshold)
@@ -502,19 +502,21 @@ while True:
     # Order 2
     order2_amount = order1.filled_dest_amount - order1.fees[order1.dest_currency]["amount"]
 
-    order2_base_cur_to_start_cur_symbol = core.get_symbol(working_triangle["cur1"],
-                                                          working_triangle["symbol2"].split("/")[0], tribot.markets)
-
-    order2_cancel_amount_threshold = core.convert_currency(working_triangle["cur1"],
-                                                           tribot.min_amounts[working_triangle["cur1"]],
-                                                           working_triangle["symbol2"].split("/")[0],
-                                                           order2_base_cur_to_start_cur_symbol,
-                                                           ticker=tribot.tickers[order2_base_cur_to_start_cur_symbol])
+    # order2_base_cur_to_start_cur_symbol = core.get_symbol(working_triangle["cur1"],
+    #                                                       working_triangle["symbol2"].split("/")[0], tribot.markets)
+    #
+    # order2_cancel_amount_threshold = core.convert_currency(working_triangle["cur1"],
+    #                                                        tribot.min_amounts[working_triangle["cur1"]],
+    #                                                        working_triangle["symbol2"].split("/")[0],
+    #                                                        order2_base_cur_to_start_cur_symbol,
+    #                                                        ticker=tribot.tickers[order2_base_cur_to_start_cur_symbol])
 
     # order2_cancel_amount_threshold = core.base_amount_for_target_currency(working_triangle["cur1"],
     #                                                                       tribot.min_amounts[working_triangle["cur1"]],
     #                                                                       order2_to_start_cur_symbol,
     #                                                                       ticker=tribot.tickers[order2_to_start_cur_symbol])
+
+    order2_cancel_amount_threshold = 0.0
 
     if force_ticker_prices:
         price2 = working_triangle["leg2-price"]
@@ -587,10 +589,12 @@ while True:
     # Order 3
     order3_amount = order2.filled_dest_amount - order2.fees[order2.dest_currency]["amount"]
 
-    order3_cancel_amount_threshold = core.base_amount_for_target_currency(working_triangle["cur1"],
-                                                                          tribot.min_amounts[working_triangle["cur1"]],
-                                                                          working_triangle["symbol3"],
-                                                                          ticker=tribot.tickers[working_triangle["symbol3"]])
+    # order3_cancel_amount_threshold = core.base_amount_for_target_currency(working_triangle["cur1"],
+    #                                                                       tribot.min_amounts[working_triangle["cur1"]],
+    #                                                                       working_triangle["symbol3"],
+    #                                                                       ticker=tribot.tickers[working_triangle["symbol3"]])
+
+    order3_cancel_amount_threshold = 0.0
 
     if force_ticker_prices:
         price3 = working_triangle["leg3-price"]
