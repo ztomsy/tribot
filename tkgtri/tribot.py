@@ -622,7 +622,7 @@ class TriBot(Bot):
         OrderManagerFok.on_order_update_error = lambda _order_manager, _exception: self.log_on_order_update_error(
             _order_manager, _exception)
 
-    def do_trade(self, leg, symbol, start_currency, dest_currency, amount, side, price):
+    def do_trade(self, leg, symbol, start_currency, dest_currency, amount, side, price, amount_cancel_threshold):
         """
         proceed with the trade and return TradeOrder
 
@@ -634,6 +634,17 @@ class TriBot(Bot):
         :param price: float
         :return: TradeOrder
         """
+        _amount_cancel_threshold = copy.copy(amount_cancel_threshold)
+
+        self.log(self.LOG_INFO, "Amount cancel threshold {}. Price {}".format(_amount_cancel_threshold,
+                                                                                             price))
+
+        order_amount = core.base_amount_for_target_currency(start_currency, amount, symbol, price)
+
+        if order_amount <= _amount_cancel_threshold:
+            _amount_cancel_threshold = 0
+            self.log(self.LOG_INFO, "Order amount {} less cancel threshold {}. CT will be 0".format(
+                order_amount, _amount_cancel_threshold))
 
         # order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
         if self.cancel_price_threshold == 0.0:
@@ -642,7 +653,8 @@ class TriBot(Bot):
             order = FokOrder.create_from_start_amount(symbol, start_currency, amount, dest_currency, price,
                                                       max_order_updates=self.order_update_total_requests,
                                                       time_to_cancel=utils.dict_value_from_path(
-                                                          self.orders_settings, [str(leg), "time_to_cancel"]))
+                                                          self.orders_settings, [str(leg), "time_to_cancel"]),
+                                                      cancel_threshold=_amount_cancel_threshold)
         else:
             self.log(self.LOG_INFO, "Proceeding order with taker price threshold from ticker{}".format(
                 self.cancel_price_threshold))
@@ -652,7 +664,8 @@ class TriBot(Bot):
                 max_order_updates=self.order_update_total_requests, taker_price_threshold=self.cancel_price_threshold,
                 threshold_check_after_updates=self.order_update_requests_for_time_out - 2,
 
-                time_to_cancel=utils.dict_value_from_path(self.orders_settings, [str(leg), "time_to_cancel"]))
+                time_to_cancel=utils.dict_value_from_path(self.orders_settings, [str(leg), "time_to_cancel"]),
+                cancel_threshold=_amount_cancel_threshold)
 
         trade_order = copy.deepcopy(order.get_active_order())
         trade_order.tags = ""
@@ -675,7 +688,14 @@ class TriBot(Bot):
 
         while len(self.order_manager.get_open_orders()) > 0:
             active_trade_order = self.order_manager.get_open_orders()[0].get_active_order()
-            self.log_order_update(active_trade_order)
+            # self.log_order_update(active_trade_order)
+
+            print("Order {} seconds from start# {}. Status:{}. Filled amount:{} / {} ".format(
+            order.id,
+            time.time() - order.timestamp,
+            order.status,
+            order.filled,
+            order.amount))
 
             if active_trade_order.update_requests_count <= self.order_update_requests_for_time_out:
                 self.log(self.LOG_INFO, "number of order updates less than order_update_requests_for_time_out")
