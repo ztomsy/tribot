@@ -45,14 +45,14 @@
           "port": 8080
   },
   "not_request_trades": false,
-  "order_update_total_requests": 6,
+  "order_update_total_requests": 25,
   "order_update_requests_for_time_out": 5,
   "order_update_time_out": 0.001,
 
   "orders_settings": {
-    "1": {"time_to_cancel": 10},
+    "1": {"time_to_cancel": 0},
 
-    "2": {"time_to_cancel": 10},
+    "2": {"time_to_cancel": 600},
 
     "3": {"time_to_cancel": 10}
   },
