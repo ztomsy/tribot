@@ -36,7 +36,7 @@
 
   "sqla":
   {
-    "enabled": true,
+    "enabled": false,
     "connection_string": "postgres://postgres:12345@localhost:5432/ztom"
   },
 

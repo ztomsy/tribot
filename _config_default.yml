@@ -43,7 +43,7 @@ lap_time: 60
 max_requests_per_lap: 1500
 sleep_on_tickers_error: 0.1
 sqla:
-  enabled: true
+  enabled: false
   connection_string: postgres://postgres:12345@localhost:5432/ztom
 recovery_server:
   host: http://localhost
