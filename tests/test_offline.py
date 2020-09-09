@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-
-from .context import tkgtri
-
 import unittest
 from subprocess import call
 import tkgtri.analyzer as ta
+from .context import tkgtri
 
 # todo - tests for reports directories creation
 
@@ -40,6 +38,23 @@ class TriOfflineTestSuite(unittest.TestCase):
 
         self.assertEqual(0.8, float(deal.data_row["start-qty"]))
         self.assertEqual(0.03883667000000002, float(deal.data_row["result-fact-diff"]))
+
+
+    def test_e2e_general_mode_yml_config(self):
+        """
+        order books from ticker. result is good. start-qty should shrink to share_balance_to_bid * balance
+        :return:
+        """
+
+        cli = "--config _config_default.yml --balance 1 offline --test"
+        deal = self._run_bot_offine(cli)
+
+        self.assertEqual(float(deal.data_row["balance"]) * float(deal.data_row["_config_share_balance_to_bid"]),
+                         float(deal.data_row["start-qty"]))
+
+        self.assertEqual(0.8, float(deal.data_row["start-qty"]))
+        self.assertEqual(0.03883667000000002, float(deal.data_row["result-fact-diff"]))
+        self.assertEqual("PROD1_YML", deal.data_row["server-id"])
 
     def test_e2e_order_book_amount_less_than_max_bal(self):
         """

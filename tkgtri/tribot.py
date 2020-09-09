@@ -52,6 +52,7 @@ class TriBot(Bot):
         self.script_id = ""
         self.start_currency = list()
         self.ignore_currency = list()
+        self.allowed_assets = list()
 
         self.share_balance_to_bid = float()
         self.min_amounts = dict()
@@ -181,16 +182,6 @@ class TriBot(Bot):
 
         # load config from json
 
-    def load_config_from_file(self, config_file):
-
-        with open(config_file) as json_data_file:
-            cnf = json.load(json_data_file)
-
-        for i in cnf:
-            attr_val = cnf[i]
-            if not bool(getattr(self, i)) and attr_val is not None:
-                setattr(self, i, attr_val)
-
     def get_cli_parameters(self, args):
         return get_cli_parameters(args)
 
@@ -319,7 +310,13 @@ class TriBot(Bot):
             self.exchange.trades_in_offline_order_update = False
 
     def load_markets(self):
-        self.markets = self.exchange.load_markets()
+        markets = self.exchange.load_markets()
+        if len(self.allowed_assets) == 0:
+            self.markets = markets
+
+        else:
+            self.markets = {k: v for k, v in markets.items() if (v["base"] in self.allowed_assets and
+                                                                 v["quote"] in self.allowed_assets)}
 
     def set_triangles(self):
 

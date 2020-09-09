@@ -231,6 +231,36 @@ class BasicTestSuite(unittest.TestCase):
             self.assertIn(i["triangle"], good_triangles)
             self.assertNotIn(i["triangle"], ["ETH-BTC-TRX", 'BTC-TRX-ETH'])
 
+    def test_good_results_allowed_assets(self):
+        bot = tkgtri.TriBot("test_data/config_allowed.yml")
+        bot.load_config_from_file(bot.config_filename)
+        bot.noauth = True
+        bot.init_exchange()
+        bot.init_offline_mode()
+
+        bot.load_markets()
+
+        self.assertEqual(3, len(bot.markets))
+        self.assertIn("ETH/BTC", bot.markets)
+        self.assertIn("TRX/ETH", bot.markets)
+        self.assertIn("TRX/BTC", bot.markets)
+
+        # all markets
+
+        bot = tkgtri.TriBot(self.default_config)
+        bot.load_config_from_file(self.default_config)
+        bot.init_exchange()
+        bot.init_offline_mode()
+
+        bot.load_markets()
+
+        self.assertEqual(13, len(bot.markets))
+
+
+
+
+
+
     def test_no_good_results(self):
         self.tribot.load_config_from_file(self.default_config)
 
