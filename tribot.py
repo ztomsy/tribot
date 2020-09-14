@@ -431,7 +431,8 @@ while True:
         working_triangle["ob_result"] = working_triangle["result"]
 
     # finalize start amount - if need to apply the share bal to bid:
-    bal_to_bid = tribot.finalize_start_amount(bal_to_bid)
+    if not tribot.force_start_amount:
+        bal_to_bid = tribot.finalize_start_amount(bal_to_bid)
 
     # double check if initial bid is not None and float
     if bal_to_bid is None or not isinstance(bal_to_bid, float):
