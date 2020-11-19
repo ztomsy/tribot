@@ -37,7 +37,7 @@ class TriBot(Bot):
                          "max_oder_books_fetch_attempts", "max_order_update_attempts", "request_sleep", "lap_time",
                          "max_requests_per_lap", "sleep_on_tickers_error", "force_start_amount", "force_best_tri",
                          "override_depth_amount", "skip_order_books", "recover_factor", "not_request_trades",
-                         "cancel_price_threshold","fullthrottle"]
+                         "cancel_price_threshold", "fullthrottle"]
 
     def __init__(self, default_config: str, log_filename=None):
 
@@ -52,19 +52,17 @@ class TriBot(Bot):
         self.script_id = ""
         self.start_currency = list()
         self.ignore_currency = list()
+        self.allowed_assets = list()
 
         self.share_balance_to_bid = float()
-        self.max_recovery_attempts = int()
         self.min_amounts = dict()
         self.commission = float()
         self.threshold = float()
         self.threshold_order_book = float()
         self.balance_bid_thresholds = dict()
         self.api_key = dict()
-        self.max_past_triangles = int()
-        self.good_consecutive_results_threshold = int()
 
-        self.cancel_price_threshold = 0.0 # relative to taker's price threshold to cancel the order
+        self.cancel_price_threshold = 0.0  # relative to taker's price threshold to cancel the order
 
         self.recover_factor = 0.0  # multiplier applied to target recovery amount
 
@@ -75,6 +73,8 @@ class TriBot(Bot):
         self.order_update_requests_for_time_out = 0
         self.order_update_time_out = 0
         self.last_update_time = datetime(1, 1, 1, 1, 1, 1)
+
+        self.orders_settings = None
 
         self.max_oder_books_fetch_attempts = 0
         self.max_order_update_attempts = 0
@@ -133,7 +133,6 @@ class TriBot(Bot):
         self.report_dir = str()
         self.deals_file_id = int()
 
-        self.influxdb = dict()
         self.reporter = None  # type: TkgReporter
 
         # ;((((
@@ -154,6 +153,7 @@ class TriBot(Bot):
         #     }
         # },
 
+        self.influxdb = None
         self.sqla = dict()  # sqla configuration
         self.sqla_reporter = None  # type: SqlaReporter
 
@@ -181,16 +181,6 @@ class TriBot(Bot):
         self.order_manager = None  # type: ActionOrderManager
 
         # load config from json
-
-    def load_config_from_file(self, config_file):
-
-        with open(config_file) as json_data_file:
-            cnf = json.load(json_data_file)
-
-        for i in cnf:
-            attr_val = cnf[i]
-            if not bool(getattr(self, i)) and attr_val is not None:
-                setattr(self, i, attr_val)
 
     def get_cli_parameters(self, args):
         return get_cli_parameters(args)
@@ -253,31 +243,6 @@ class TriBot(Bot):
         # self.report_deals_filename = self.report_deals_filename % (directory, self.deals_file_id)
         # self.report_prev_tickers_filename = self.report_prev_tickers_filename % (directory, self.deals_file_id)
         self.report_dir = directory
-
-    # def init_remote_reports(self):
-    #     if self.influxdb is not None and "enabled" in self.influxdb and self.influxdb["enabled"]:
-    #         self.reporter = TkgReporter(self.server_id, self.exchange_id)
-    #         self.reporter.init_db(self.influxdb["host"], self.influxdb["port"], self.influxdb["db"],
-    #                               self.influxdb["measurement"])
-    #
-    #     # if self.mongo is not None and self.mongo["enabled"]:
-    #     #     self.mongo_reporter = MongoReporter(self.server_id, self.exchange_id)
-    #     #     self.mongo_reporter.init_db(self.mongo["host"], None, self.mongo["db"],
-    #     #                                 self.mongo["tables"]["tri_results"])
-    #     # else:
-    #     #     self.log(self.LOG_ERROR, "Mongo DB not configured..")
-    #     #     # sys.exit()
-    #
-    #     if self.sqla is not None and self.sqla["enabled"]:
-    #         self.log(self.LOG_INFO, "SQLA Reporter Enabled")
-    #         self.log(self.LOG_INFO, "SQLA connection string {}".format(self.sqla["connection_string"]))
-    #
-    #         self.sqla_reporter = SqlaReporter(self.server_id, self.exchange_id)
-    #         self.sqla_reporter.init_db(self.sqla["connection_string"])
-    #         created_tables = self.sqla_reporter.create_tables()
-    #         if len(created_tables) > 0:
-    #             self.log(self.LOG_INFO, "... created tables {}".format(created_tables))
-
 
     def init_timer(self):
         self.timer = timer.Timer()
@@ -345,7 +310,13 @@ class TriBot(Bot):
             self.exchange.trades_in_offline_order_update = False
 
     def load_markets(self):
-        self.markets = self.exchange.load_markets()
+        markets = self.exchange.load_markets()
+        if len(self.allowed_assets) == 0:
+            self.markets = markets
+
+        else:
+            self.markets = {k: v for k, v in markets.items() if (v["base"] in self.allowed_assets and
+                                                                 v["quote"] in self.allowed_assets)}
 
     def set_triangles(self):
 
@@ -355,7 +326,7 @@ class TriBot(Bot):
         # return True
 
     def proceed_triangles(self):
-        if len(self.tri_list) == 0 :
+        if len(self.tri_list) == 0:
             self.tri_list = ta.fill_triangles(self.all_triangles, self.start_currency, self.tickers, self.commission)
         else:
             self.tri_list = ta.update_triangles(self.tri_list, tickers=self.tickers, commission=self.commission)
@@ -376,7 +347,7 @@ class TriBot(Bot):
                         "ETH": 10},
                         "BTC": {"free": 1},
                         "USDT": {"free": 123},
-                        "ETH" :{"free":10}
+                        "ETH": {"free": 10}
                     }
                 )
 
@@ -605,7 +576,6 @@ class TriBot(Bot):
             order_manager.order.filled_dest_amount,
             order_manager.order.amount_dest))
 
-
     # here is the sleep between updates is implemented! needed to be fixed
     def log_order_update(self, order: TradeOrder):
         self.log(self.LOG_INFO, "Order {} update req# {}/{} (to timer {}). Status:{}. Filled amount:{} / {} ".format(
@@ -617,22 +587,22 @@ class TriBot(Bot):
             order.filled,
             order.amount))
 
-        now_order = datetime.now()
-
-        if order.status == "open" and \
-                order.update_requests_count >= self.order_update_requests_for_time_out:
-
-            if order.update_requests_count >= self.order_update_total_requests:
-                self.log(self.LOG_INFO, "...last update will no sleep")
-
-            else:
-                self.log(self.LOG_INFO, "...reached the number of order updates for timeout")
-
-                if (now_order - self.last_update_time).total_seconds() < self.order_update_time_out:
-                    self.log(self.LOG_INFO, "...sleeping while order update for {}".format(self.order_update_time_out))
-                    time.sleep(self.order_update_time_out)
-
-                self.last_update_time = datetime.now()
+        # now_order = datetime.now()
+        #
+        # if order.status == "open" and \
+        #         order.update_requests_count >= self.order_update_requests_for_time_out:
+        #
+        #     if order.update_requests_count >= self.order_update_total_requests:
+        #         self.log(self.LOG_INFO, "...last update will no sleep")
+        #
+        #     else:
+        #         self.log(self.LOG_INFO, "...reached the number of order updates for timeout")
+        #
+        #         if (now_order - self.last_update_time).total_seconds() < self.order_update_time_out:
+        #             self.log(self.LOG_INFO, "...sleeping while order update for {}".format(self.order_update_time_out))
+        #             time.sleep(self.order_update_time_out)
+        #
+        #         self.last_update_time = datetime.now()
 
     def log_on_order_update_error(self, order_manager, exception):
         self.log(self.LOG_ERROR, "Error updating  order_id: {}".format(order_manager.order.id))
@@ -649,7 +619,7 @@ class TriBot(Bot):
         OrderManagerFok.on_order_update_error = lambda _order_manager, _exception: self.log_on_order_update_error(
             _order_manager, _exception)
 
-    def do_trade(self, symbol, start_currency, dest_currency, amount, side, price):
+    def do_trade(self, leg, symbol, start_currency, dest_currency, amount, side, price, amount_cancel_threshold):
         """
         proceed with the trade and return TradeOrder
 
@@ -661,13 +631,27 @@ class TriBot(Bot):
         :param price: float
         :return: TradeOrder
         """
+        _amount_cancel_threshold = copy.copy(amount_cancel_threshold)
+
+        self.log(self.LOG_INFO, "Amount cancel threshold {}. Price {}".format(_amount_cancel_threshold,
+                                                                                             price))
+
+        order_amount = core.base_amount_for_target_currency(start_currency, amount, symbol, price)
+
+        if order_amount <= _amount_cancel_threshold:
+            _amount_cancel_threshold = 0
+            self.log(self.LOG_INFO, "Order amount {} less cancel threshold {}. CT will be 0".format(
+                order_amount, _amount_cancel_threshold))
 
         # order = TradeOrder.create_limit_order_from_start_amount(symbol, start_currency, amount, dest_currency, price)
         if self.cancel_price_threshold == 0.0:
             self.log(self.LOG_INFO, "Proceeding order without  threshold")
 
             order = FokOrder.create_from_start_amount(symbol, start_currency, amount, dest_currency, price,
-                                                      max_order_updates=self.order_update_total_requests)
+                                                      max_order_updates=self.order_update_total_requests,
+                                                      time_to_cancel=utils.dict_value_from_path(
+                                                          self.orders_settings, [str(leg), "time_to_cancel"]),
+                                                      cancel_threshold=_amount_cancel_threshold)
         else:
             self.log(self.LOG_INFO, "Proceeding order with taker price threshold from ticker{}".format(
                 self.cancel_price_threshold))
@@ -675,7 +659,10 @@ class TriBot(Bot):
             order = FokThresholdTakerPriceOrder.create_from_start_amount(
                 symbol, start_currency, amount, dest_currency, price,
                 max_order_updates=self.order_update_total_requests, taker_price_threshold=self.cancel_price_threshold,
-                threshold_check_after_updates=self.order_update_requests_for_time_out-2)
+                threshold_check_after_updates=self.order_update_requests_for_time_out - 2,
+
+                time_to_cancel=utils.dict_value_from_path(self.orders_settings, [str(leg), "time_to_cancel"]),
+                cancel_threshold=_amount_cancel_threshold)
 
         trade_order = copy.deepcopy(order.get_active_order())
         trade_order.tags = ""
@@ -697,17 +684,42 @@ class TriBot(Bot):
         self.order_manager.add_order(order)
 
         while len(self.order_manager.get_open_orders()) > 0:
-            self.log_order_update(self.order_manager.get_open_orders()[0].get_active_order())
+            active_trade_order = self.order_manager.get_open_orders()[0].get_active_order()
+            # self.log_order_update(active_trade_order)
+
+            print("Order {} seconds from start# {}. Status:{}. Filled amount:{} / {} ".format(
+            order.id,
+            time.time() - order.timestamp,
+            order.status,
+            order.filled,
+            order.amount))
+
+            if active_trade_order.update_requests_count <= self.order_update_requests_for_time_out:
+                self.log(self.LOG_INFO, "number of order updates less than order_update_requests_for_time_out")
+            else:
+
+                # check timer
+                sleep_time = self.exchange.requests_throttle.sleep_time()
+                print("Current period time {cur_period_time}/{period}. "
+                      "Requests in curtent period {cur_requests_in_period}/{req_in_per}. ".format(
+                        cur_period_time=self.exchange.requests_throttle._current_period_time,
+                        period=self.exchange.requests_throttle.period,
+                        cur_requests_in_period=self.exchange.requests_throttle.total_requests_current_period,
+                        req_in_per=self.exchange.requests_throttle.requests_per_period))
+
+                print("Sleeping for {}s".format(sleep_time))
+                time.sleep(sleep_time)
+
             self.order_manager.proceed_orders()
 
         try:
 
             trade_order = self.order_manager.get_closed_orders()[0].orders_history[0]
 
-            if self.order_manager.get_closed_orders()[0].tags is not None and\
+            if self.order_manager.get_closed_orders()[0].tags is not None and \
                     len(self.order_manager.get_closed_orders()[0].tags) > 0:
 
-                    trade_order.tags = " ".join(self.order_manager.get_closed_orders()[0].tags)
+                trade_order.tags = " ".join(self.order_manager.get_closed_orders()[0].tags)
             else:
                 trade_order.tags = ""
 
@@ -868,11 +880,9 @@ class TriBot(Bot):
         wt["leg2-tags"] = order2.tags if order2 is not None else None
         wt["leg3-tags"] = order3.tags if order3 is not None else None
 
-
         wt["order1-internal_id"] = order1.internal_id if order1 is not None else None
         wt["order2-internal_id"] = order2.internal_id if order2 is not None else None
         wt["order3-internal_id"] = order3.internal_id if order3 is not None else None
-
 
         wt["leg1-filled"] = order1.filled / order1.amount if order1 is not None and order1.amount != 0 else 0.0
         wt["leg2-filled"] = order2.filled / order2.amount if order2 is not None and order2.amount != 0 else 0.0
@@ -969,7 +979,7 @@ class TriBot(Bot):
         return report
 
     def sqla_orders_report(self, deal_uuid, order1: TradeOrder, order2: TradeOrder = None,
-                               order3: TradeOrder = None):
+                           order3: TradeOrder = None):
 
         timestamp_now = datetime.now(tz=pytz.timezone("UTC"))
         report = list()
@@ -993,28 +1003,6 @@ class TriBot(Bot):
             self.log(self.LOG_INFO, "{} = {}".format(r, report[r] if r in report else "None"))
 
     def send_remote_report(self, report, orders_dict_report=None, sqla_orders_report: list = None):
-
-        if self.influxdb is not None and "enabled" in self.influxdb and self.influxdb["enabled"]:
-            try:
-                self.log(self.LOG_INFO, "Sending report to influx....")
-                for r in report:
-                    self.reporter.set_indicator(r, report[r])
-                self.reporter.push_to_influx()
-            except Exception as e:
-                self.log(self.LOG_ERROR, "Error sending report")
-                self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-                self.log(self.LOG_ERROR, "Exception body:", e.args)
-
-        # if self.mongo["enabled"]:
-        #     try:
-        #         self.log(self.LOG_INFO, "Sending report to mongo....")
-        #         self.mongo_reporter.push_report(report, self.mongo["tables"]["tri_results"])
-        #         self.mongo_reporter.push_report(orders_dict_report, self.mongo["tables"]["trade_orders"])
-        #
-        #     except Exception as e:
-        #         self.log(self.LOG_ERROR, "Error sending report")
-        #         self.log(self.LOG_ERROR, "Exception: {}".format(type(e).__name__))
-        #         self.log(self.LOG_ERROR, "Exception body:", e.args)
 
         if self.sqla is not None and "enabled" in self.sqla and self.sqla["enabled"]:
             try:
@@ -1118,7 +1106,7 @@ class TriBot(Bot):
         return False
 
     def update_state(self, current_state: str, timestamp: float, fullthrottle_enabled: bool, start_at: list,
-                     lap_time: float, prev_throttle_start_timestamp:float):
+                     lap_time: float, prev_throttle_start_timestamp: float):
 
         self.state = current_state
 
@@ -1130,7 +1118,6 @@ class TriBot(Bot):
 
             if current_state == "wait" and self.check_time_to_launch(start_at, timestamp) and \
                     (timestamp - prev_throttle_start_timestamp > lap_time or prev_throttle_start_timestamp == 0):
-
                 self.state = "go"
                 # return self.state
 

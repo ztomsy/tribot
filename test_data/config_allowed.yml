@@ -1,0 +1,16 @@
+server_id: PROD1_YML
+script_id: triarb
+exchange_id: binance
+start_currency:
+- ETH
+
+allowed_assets:
+  - TRX
+  - BTC
+  - ETH
+
+offline_markets_file: test_data/markets.json
+offline_tickers_file: test_data/tickers.csv
+
+lap_time: 60
+max_requests_per_lap: 1500

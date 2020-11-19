@@ -170,14 +170,14 @@ def fill_triangles_maker(triangles: list, start_currencies: list, tickers: dict,
                         symbol_to_convert = core.get_symbol(currency_of_amount_in_ticker, t[0], tickers)
                     else:
                         symbol_to_convert = symbol
-                    try:
-                        tri_dict["leg{}-cur1-qty".format(str(leg))] = \
-                            core.convert_currency(currency_of_amount_in_ticker,
-                                                  tickers[symbol][price_type + 'Volume'],
-                                                  t[0],
-                                                  symbol=symbol_to_convert,
-                                                  price=price)
-                    except:
+
+                    tri_dict["leg{}-cur1-qty".format(str(leg))] = \
+                        core.convert_currency(currency_of_amount_in_ticker,
+                                              tickers[symbol][price_type + 'Volume'],
+                                              t[0],
+                                              symbol=symbol_to_convert,
+                                              price=price)
+                    if tri_dict["leg{}-cur1-qty".format(str(leg))] is None:
                         tri_dict["leg{}-cur1-qty".format(str(leg))] = 999999999
 
                 else:

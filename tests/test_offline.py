@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-
-from .context import tkgtri
-
 import unittest
 from subprocess import call
 import tkgtri.analyzer as ta
+from .context import tkgtri
 
 # todo - tests for reports directories creation
 
@@ -41,6 +39,23 @@ class TriOfflineTestSuite(unittest.TestCase):
         self.assertEqual(0.8, float(deal.data_row["start-qty"]))
         self.assertEqual(0.03883667000000002, float(deal.data_row["result-fact-diff"]))
 
+
+    def test_e2e_general_mode_yml_config(self):
+        """
+        order books from ticker. result is good. start-qty should shrink to share_balance_to_bid * balance
+        :return:
+        """
+
+        cli = "--config _config_default.yml --balance 1 offline --test"
+        deal = self._run_bot_offine(cli)
+
+        self.assertEqual(float(deal.data_row["balance"]) * float(deal.data_row["_config_share_balance_to_bid"]),
+                         float(deal.data_row["start-qty"]))
+
+        self.assertEqual(0.8, float(deal.data_row["start-qty"]))
+        self.assertEqual(0.03883667000000002, float(deal.data_row["result-fact-diff"]))
+        self.assertEqual("PROD1_YML", deal.data_row["server-id"])
+
     def test_e2e_order_book_amount_less_than_max_bal(self):
         """
         orderbooks from ticker. result is good.
@@ -51,8 +66,8 @@ class TriOfflineTestSuite(unittest.TestCase):
         cli = "--balance 1 offline --test -ob test_data/order_books.csv"
         deal = self._run_bot_offine(cli)
 
-        self.assertEqual(0.05991321016925779, float(deal.data_row["start-qty"]), 4)
-        self.assertEqual(0.0024007998307421993, float(deal.data_row["result-fact-diff"]))
+        self.assertAlmostEqual(0.06000734789047485, float(deal.data_row["start-qty"]), 4)
+        self.assertEqual(0.002407822109525136, float(deal.data_row["result-fact-diff"]))
 
         # prices from order book
         self.assertNotEqual(float(deal.data_row["leg1-price"]), float(deal.data_row["leg1-ob-price"]))
@@ -87,8 +102,8 @@ class TriOfflineTestSuite(unittest.TestCase):
         cli = "--balance 1 --override_depth_amount 0.03 offline  --test -ob test_data/order_books.csv "
         deal = self._run_bot_offine(cli)
 
-        self.assertEqual(0.05991321016925779, float(deal.data_row["start-qty"]), 4)
-        self.assertEqual(0.0024007998307421993, float(deal.data_row["result-fact-diff"]))
+        self.assertAlmostEqual(0.06000734789047485, float(deal.data_row["start-qty"]), 4)
+        self.assertEqual(0.002407822109525136, float(deal.data_row["result-fact-diff"]))
 
         # prices from order book
         self.assertNotEqual(float(deal.data_row["leg1-price"]), float(deal.data_row["leg1-ob-price"]))
@@ -181,7 +196,7 @@ class TriOfflineTestSuite(unittest.TestCase):
         self.assertEqual(6, float(deal.data_row["leg1-order-updates"]))
         self.assertEqual("#below_threshold", deal.data_row["leg1-tags"])
 
-        self.assertAlmostEqual(0.03397308998946259, float(deal.data_row["finish-qty"]), 6)
+        self.assertAlmostEqual(0.03774787776606954, float(deal.data_row["finish-qty"]), 6)
 
 
         # check if prices are from tickers

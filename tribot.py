@@ -1,3 +1,4 @@
+from ztom import core
 from tkgtri import TriBot
 from tkgtri import tri_arb as ta
 import uuid
@@ -126,6 +127,9 @@ recovery_data = list()  # list of recovery data dict
 report = dict()
 order1, order2, order3 = (None, None, None)
 price1, price2, price3 = (None, None, None)
+order1_cancel_amount_threshold, order2_cancel_amount_threshold, order3_cancel_amount_threshold = (0.0001, 0.0001, 0.0001)
+
+
 force_ticker_prices = False
 
 # set the default state for enabled full throttle
@@ -427,7 +431,8 @@ while True:
         working_triangle["ob_result"] = working_triangle["result"]
 
     # finalize start amount - if need to apply the share bal to bid:
-    bal_to_bid = tribot.finalize_start_amount(bal_to_bid)
+    if not tribot.force_start_amount:
+        bal_to_bid = tribot.finalize_start_amount(bal_to_bid)
 
     # double check if initial bid is not None and float
     if bal_to_bid is None or not isinstance(bal_to_bid, float):
@@ -464,8 +469,15 @@ while True:
 
     tribot.log(tribot.LOG_INFO, "Price: {}. Src Amount {}".format(price1, bal_to_bid))
 
-    order1 = tribot.do_trade(working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
-                             bal_to_bid, working_triangle["leg1-order"], price1)
+    # order1_cancel_amount_threshold = core.base_amount_for_target_currency(working_triangle["cur1"],
+    #                                                                         tribot.min_amounts[working_triangle["cur1"]],
+    #                                                                         working_triangle["symbol1"],
+    #                                                                         ticker=tribot.tickers[working_triangle["symbol1"]])
+
+    order1_cancel_amount_threshold = 0.0
+
+    order1 = tribot.do_trade("1", working_triangle["symbol1"], working_triangle["cur1"], working_triangle["cur2"],
+                             bal_to_bid, working_triangle["leg1-order"], price1, order1_cancel_amount_threshold)
 
     if order1 is not None and order1.filled_dest_amount > 0:
 
@@ -491,6 +503,22 @@ while True:
     # Order 2
     order2_amount = order1.filled_dest_amount - order1.fees[order1.dest_currency]["amount"]
 
+    # order2_base_cur_to_start_cur_symbol = core.get_symbol(working_triangle["cur1"],
+    #                                                       working_triangle["symbol2"].split("/")[0], tribot.markets)
+    #
+    # order2_cancel_amount_threshold = core.convert_currency(working_triangle["cur1"],
+    #                                                        tribot.min_amounts[working_triangle["cur1"]],
+    #                                                        working_triangle["symbol2"].split("/")[0],
+    #                                                        order2_base_cur_to_start_cur_symbol,
+    #                                                        ticker=tribot.tickers[order2_base_cur_to_start_cur_symbol])
+
+    # order2_cancel_amount_threshold = core.base_amount_for_target_currency(working_triangle["cur1"],
+    #                                                                       tribot.min_amounts[working_triangle["cur1"]],
+    #                                                                       order2_to_start_cur_symbol,
+    #                                                                       ticker=tribot.tickers[order2_to_start_cur_symbol])
+
+    order2_cancel_amount_threshold = 0.0
+
     if force_ticker_prices:
         price2 = working_triangle["leg2-price"]
     else:
@@ -505,8 +533,8 @@ while True:
 
     tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price2, order2_amount))
 
-    order2 = tribot.do_trade(working_triangle["symbol2"], working_triangle["cur2"], working_triangle["cur3"],
-                             order2_amount, working_triangle["leg2-order"], price2)
+    order2 = tribot.do_trade("2", working_triangle["symbol2"], working_triangle["cur2"], working_triangle["cur3"],
+                             order2_amount, working_triangle["leg2-order"], price2, order2_cancel_amount_threshold)
 
     if order2 is not None and order2.filled_dest_amount > 0:
 
@@ -562,6 +590,13 @@ while True:
     # Order 3
     order3_amount = order2.filled_dest_amount - order2.fees[order2.dest_currency]["amount"]
 
+    # order3_cancel_amount_threshold = core.base_amount_for_target_currency(working_triangle["cur1"],
+    #                                                                       tribot.min_amounts[working_triangle["cur1"]],
+    #                                                                       working_triangle["symbol3"],
+    #                                                                       ticker=tribot.tickers[working_triangle["symbol3"]])
+
+    order3_cancel_amount_threshold = 0.0
+
     if force_ticker_prices:
         price3 = working_triangle["leg3-price"]
     else:
@@ -576,8 +611,8 @@ while True:
 
     tribot.log(tribot.LOG_INFO, "Price: {}. Src amount {}".format(price3, order3_amount))
 
-    order3 = tribot.do_trade(working_triangle["symbol3"], working_triangle["cur3"], working_triangle["cur1"],
-                             order3_amount, working_triangle["leg3-order"], price3)
+    order3 = tribot.do_trade("3", working_triangle["symbol3"], working_triangle["cur3"], working_triangle["cur1"],
+                             order3_amount, working_triangle["leg3-order"], price3, order3_cancel_amount_threshold)
 
     if order3 is not None and order3.filled_dest_amount > 0:
 
